@@ -7,10 +7,11 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "test:layout": "node --test tests/quotation-layout.test.cjs"
+    "test:layout": "node --test tests/quotation-layout.test.cjs",
+    "test:pricing": "node --test tests/pricing-technical-writer.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
