@@ -114,7 +114,7 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
  // Full customer validation is required for advancement, not for early rejection.
  if(account&&stage!=='closed_lost')missing.push(...validateAccount(account).map(x=>'pelanggan.'+x));
  const ordered=SALES_STAGES.slice(0,9).map(x=>x[0]);
- const end=stage==='closed_lost'?0:stage==='closed_won'?ordered.length-1:ordered.indexOf(stage);
+ const end=stage==='closed_lost'?-1:stage==='closed_won'?ordered.length-1:ordered.indexOf(stage);
  for(let i=0;i<=end;i++)for(const field of REQUIRED_BY_STAGE[ordered[i]]||[]){
   if(!has(deal.fields[field]))missing.push(field);
  }
