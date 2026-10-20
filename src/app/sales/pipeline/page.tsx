@@ -2,6 +2,7 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
+import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
 
@@ -9,7 +10,7 @@ type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_numbe
  poCheck:{verified_by:string;verified_at:string}|null;checklist:{registration:string[];project:string[]};
  originLead:{lead_id:string;lead_number:string;source:string;campaign:string}|null;
  history:{action:string;from_stage:string|null;to_stage:string|null;actor_email:string;created_at:string}[];
- activities:{kind:string;subject:string;detail:string;created_at:string}[];role:string;identityEmail:string};
+ activities:{kind:string;subject:string;detail:string;created_at:string}[];journey:JourneyGate[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500';
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
@@ -223,6 +224,22 @@ export default function SalesPipelinePage(){
     <Link href={'/sales/leads?lead_id='+encodeURIComponent(detail.originLead.lead_id)} className="font-bold text-blue-700 hover:underline">Buka Lead Marketing →</Link>
    </div>}
    {detail.poCheck&&<p className="mt-2 text-xs text-emerald-700">PO diverifikasi oleh {detail.poCheck.verified_by} • {detail.poCheck.verified_at}</p>}
+  </section>
+  <section className="space-y-3 rounded-xl border bg-white p-4">
+   <div><h3 className="text-sm font-bold">Journey 360 — Marketing hingga Closed Won</h3>
+    <p className="mt-1 text-xs text-slate-500">Indikator bersumber dari D1 dan validasi dokumen. Biru = siap secara data, kuning = perlu review manual, merah = belum memenuhi gate.</p></div>
+   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+    {(detail.journey||[]).map(step=><details key={step.key} className="min-w-0 rounded-lg border border-slate-200 p-3">
+     <summary className="cursor-pointer list-none">
+      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-bold text-slate-900">{step.label}</span>
+       <span className={'rounded-full px-2 py-0.5 text-[10px] font-bold '+(step.state==='complete'?'bg-emerald-100 text-emerald-800':step.state==='manual_review'?'bg-amber-100 text-amber-900':step.state==='blocked'?'bg-red-100 text-red-800':'bg-slate-100 text-slate-700')}>
+        {step.state==='complete'?'Data lengkap':step.state==='manual_review'?'Review manual':step.state==='blocked'?'Belum siap':'Menunggu'}</span></div>
+      <p className="mt-1 text-[11px] text-slate-500">{step.owner}</p>
+     </summary>
+     <p className="mt-2 text-xs text-slate-600">{step.description}</p>
+     {step.missing.length>0&&<ul className="mt-2 list-inside list-disc space-y-1 text-[11px] text-rose-800">{step.missing.slice(0,12).map((x,i)=><li key={i}>{x}</li>)}</ul>}
+    </details>)}
+   </div>
   </section>
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
