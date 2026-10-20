@@ -153,3 +153,25 @@ test('N32 Post-PO never invents KTP or upload evidence',()=>{
  assert.match(txt,/primaryKtpNumber/);
  assert.match(txt,/npwpAttachmentConfirmed/);
 });
+
+test('N33 Sales cannot create opportunity using customer owned by another Sales',()=>{
+ const api=source('app/api/sales/route.ts');
+ assert.match(api,/canReadAccount\(role,email,ownerAccount\.created_by\)/);
+});
+test('N34 actual AI policy blocks standard dotted NPWP, NIK, phone and email',()=>{
+ const {containsPersonalIdentifier}=load('lib/ai-data-policy');
+ for(const secret of [
+  'NPWP 12.345.678.9-012.345',
+  'Nomor induk 1234567890123456',
+  'Nomor telepon +62 812-3456-7890',
+  'Contact: person@example.test'
+ ])assert.equal(containsPersonalIdentifier(secret),true,secret);
+});
+test('N35 harmless anonymized proposal text may still use AI provider',()=>{
+ const {containsPersonalIdentifier}=load('lib/ai-data-policy');
+ assert.equal(containsPersonalIdentifier('Analisis kebutuhan SOC 24x7 untuk 200 aset tanpa nama pelanggan'),false);
+});
+test('N36 valid leap-day ISO date is accepted',()=>{
+ assert.equal(sales.dateValid('2024-02-29'),true);
+ assert.equal(sales.dateValid('2026-02-28'),true);
+});
