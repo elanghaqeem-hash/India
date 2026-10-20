@@ -38,7 +38,8 @@ export default function BoQPage(){
  };
  return <main className="min-w-0 space-y-5 pb-24"><header className="flex flex-wrap justify-between gap-3">
    <div><h1 className="text-xl font-bold text-slate-900">BoQ Management · DefendIT360</h1><p className="text-xs text-slate-500">D1 · Peran {role||'belum terautentikasi'} · Excel</p></div>
-   <button className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white" onClick={()=>{setSelected(null);setForm(blank());setCosts({});}}>+ BoQ Baru</button>
+   <div className="flex gap-2">{role==='admin'&&<a href="/boq/users" className="rounded-lg border px-3 py-2 text-xs font-semibold">Atur Role</a>}
+   <button className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white" onClick={()=>{setSelected(null);setForm(blank());setCosts({});}}>+ BoQ Baru</button></div>
   </header>{msg&&<p role="status" className="rounded-lg border border-blue-200 p-3 text-xs">{msg}</p>}
   <div className="grid gap-4 lg:grid-cols-[240px_1fr]"><aside className="space-y-2">
    <p className="text-xs font-bold">BoQ Tersimpan</p>{list.length===0?<p className="text-xs text-slate-500">Belum ada transaksi</p>:list.map(x=><button key={x.id} onClick={()=>choose(x)}
