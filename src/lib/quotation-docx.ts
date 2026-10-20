@@ -104,10 +104,21 @@ function table(rows: Array<Array<string | number>>, widths: number[], header = t
 }
 function page(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function brand(): string {
-  return p('◆ DEFENDIT360', { bold: true, size: 36, color: '55258C', after: 35 }) +
-    p('PT DATA ENKRIPSI INFORMASI TEKNOLOGI', { bold: true, size: 17, after: 20 }) +
-    p('Sudirman 7.8, Tower 1, Lt. 27 | Jl. Jenderal Sudirman No. 10 | Jakarta 10220', { size: 14, after: 45 }) +
-    p('info@defendit360.co.id  |  www.defendit360.co.id', { size: 14, color: '545454', after: 180 });
+  const left = p('DEFENDIT360', { bold: true, size: 33, color: '572A89', after: 15 }) +
+    p('member of XLSMART', { bold: true, size: 16, color: '394A8C', after: 10 });
+  const right = p('PT. DATA ENKRIPSI INFORMASI TEKNOLOGI', { bold: true, size: 14, align: 'right', after: 4 }) +
+    p('Head Office', { bold: true, size: 13, align: 'right', after: 3 }) +
+    p('Sudirman 7.8, Tower 1, Lt. 27', { size: 13, align: 'right', after: 3 }) +
+    p('Jl. Jenderal Sudirman No. 10', { size: 13, align: 'right', after: 3 }) +
+    p('Karet Tengsin, Jakarta - 10220', { size: 13, align: 'right', after: 3 }) +
+    p('info@defendit360.co.id | www.defendit360.co.id', { size: 12, align: 'right', after: 0 });
+  const block = (content: string, width: number) => '<w:tc><w:tcPr><w:tcW w:w="' + width +
+    '" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>' + content + '</w:tc>';
+  return '<w:tbl><w:tblPr><w:tblW w:w="10100" w:type="dxa"/>' +
+    '<w:tblBorders><w:top w:val="nil"/><w:bottom w:val="nil"/>' +
+    '<w:left w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr>' +
+    '<w:tblGrid><w:gridCol w:w="5000"/><w:gridCol w:w="5100"/></w:tblGrid>' +
+    '<w:tr>' + block(left, 5000) + block(right, 5100) + '</w:tr></w:tbl>' + p(' ', { after: 120 });
 }
 
 function validate(proposal: Proposal): void {
