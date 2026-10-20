@@ -215,6 +215,7 @@ export default function SalesPipelinePage(){
     <Link href={'/boq?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border px-3 py-2 text-xs font-semibold">Buat / Cek BoQ →</Link>
     {detail.boqs.some(b=>b.status==='approved'&&b.id===dealFields.boq_id)&&<a href={'/api/sales/quotation?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-300 px-3 py-2 text-xs font-bold text-indigo-800">Generate Quotation Word (BoQ approved)</a>}
     {detail.deal.stage==='closed_won'&&<Link href={'/post-po?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Isi Form Post-PO →</Link>}
+    {detail.deal.stage==='closed_lost'&&<a href={'/api/sales/loss-report?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Unduh Lost Analysis (.docx)</a>}
    </div>
    {detail.poCheck&&<p className="mt-2 text-xs text-emerald-700">PO diverifikasi oleh {detail.poCheck.verified_by} • {detail.poCheck.verified_at}</p>}
   </section>
