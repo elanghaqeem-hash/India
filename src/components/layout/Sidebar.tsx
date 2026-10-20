@@ -83,7 +83,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   ];
 
   return (
-    <aside className="hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white">
+    <aside className="no-print hidden lg:flex w-64 flex-col border-r border-slate-200 bg-white">
       <div className="flex flex-1 flex-col justify-between p-4">
         <div className="space-y-1">
           <div className="px-3 py-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
