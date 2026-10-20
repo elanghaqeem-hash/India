@@ -252,7 +252,7 @@ function makeCustomer(proposal: Proposal): Sheet[] {
     ['DEFENDIT360 | BILL OF QUANTITIES - CUSTOMER'],
     ['Draft Quotation; tidak memuat HPP, margin dan tarif tenaga ahli internal.'],
     ['Klien: ' + safeText(proposal.company_name) + ' | No: ' + safeText(proposal.quotation_number)],
-    [], ['Paket:', f('Summary!D7')], [], [],
+    [], ['Paket:', f('Summary!D8')], [], [],
     ['Kode', 'Uraian Produk / Layanan', 'Qty', 'Unit', 'Unit Price (Rp)', 'Amount (Rp)', 'Kategori'],
   ];
   for (let i = 0; i < catalogue.length; i++) {
