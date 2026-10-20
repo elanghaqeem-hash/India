@@ -29,7 +29,7 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
    'Scoping teknis, aset, deliverables, dan model delivery'),
   gate('bid','Tender / RKS-KAK / Bid GO','Sales / Presales / Approver',
    needsTenderGate(d.fields.procurement_process||'')?
-     (input.procurement_gaps?.length?'blocked':'complete'):'pending',
+     (!input.procurement_gaps||input.procurement_gaps.length>0?'blocked':'complete'):'pending',
    needsTenderGate(d.fields.procurement_process||'')?
      (input.procurement_gaps||['Bid/No-Bid dan RKS/KAK belum dievaluasi']):[],
    'Tender/RFQ/RFP harus lulus GO dan compliance review sebelum Quotation'),
