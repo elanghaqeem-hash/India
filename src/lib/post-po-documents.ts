@@ -282,3 +282,50 @@ export function downloadPostPoDocx(packet:PostPoPacket,kind:PostPoDocKind):void{
  link.download='INDIA_DefendIT360_'+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
  document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+
+/** Readiness audit of the *existing* Sales customer schema. Never marks a customer
+ * compliant merely because a name, tier and one email have been entered.
+ * Returns only source-backed fields. Missing fields are handled in the Post-PO form.
+ */
+export type SalesCustomerSnapshot = {
+  customer_id?:string;name?:string;legal_name?:string;industry?:string;npwp?:string;
+  address?:string;contacts?:Array<{name?:string;email?:string;phone?:string;is_primary?:boolean}>;
+  business_type?:string;employee_band?:EmployeeBand;hq_province?:string;hq_postal_code?:string;
+  billing_same_as_hq?:boolean;billing_address?:string;billing_province?:string;billing_postal_code?:string;
+  company_phone?:string;primary_ktp_number?:string;fax?:string;
+};
+export function auditExistingSalesCustomer(company:SalesCustomerSnapshot):{
+  mapped:Partial<RegistrationData>; missing:string[]
+}{
+ const mapped:Partial<RegistrationData>={};
+ if(present(company.customer_id))mapped.customerId=company.customer_id!;
+ if(present(company.legal_name||company.name))mapped.customerName=(company.legal_name||company.name)!;
+ if(present(company.business_type))mapped.businessType=company.business_type!;
+ if(company.employee_band)mapped.employeeBand=company.employee_band;
+ if(present(company.address))mapped.hqAddress=company.address!;
+ if(present(company.hq_province))mapped.hqProvince=company.hq_province!;
+ if(present(company.hq_postal_code))mapped.hqPostalCode=company.hq_postal_code!;
+ if(present(company.billing_address))mapped.billingAddress=company.billing_address!;
+ if(present(company.billing_province))mapped.billingProvince=company.billing_province!;
+ if(present(company.billing_postal_code))mapped.billingPostalCode=company.billing_postal_code!;
+ if(company.billing_same_as_hq!==undefined)mapped.billingSameAsHq=company.billing_same_as_hq;
+ if(present(company.npwp) && !/^0[0.]*$/.test(company.npwp!.replace(/[-]/g,'')))mapped.npwp=company.npwp!;
+ if(present(company.company_phone))mapped.companyPhone=company.company_phone!;
+ if(present(company.primary_ktp_number))mapped.primaryKtpNumber=company.primary_ktp_number!;
+ if(present(company.fax))mapped.fax=company.fax!;
+ const p=company.contacts?.find(x=>x.is_primary)||company.contacts?.[0];
+ if(p)mapped.primary={name:p.name||'',mobile:p.phone||'',email:p.email||''};
+ const critical:Array<[string,unknown]>=[
+  ['Customer ID',mapped.customerId],['Nama pelanggan',mapped.customerName],
+  ['Jenis bidang usaha',mapped.businessType],['Jumlah pegawai',mapped.employeeBand],
+  ['Alamat kantor pusat',mapped.hqAddress],['Provinsi',mapped.hqProvince],
+  ['Kode pos',mapped.hqPostalCode],['Alamat penagihan/same-as-HQ',mapped.billingSameAsHq===true?'same':mapped.billingAddress],
+  ['NPWP',mapped.npwp],['Telepon perusahaan',mapped.companyPhone],
+  ['KTP PIC utama',mapped.primaryKtpNumber],['Fax atau N/A',mapped.fax],
+  ['PIC utama',mapped.primary?.name],['Mobile PIC utama',mapped.primary?.mobile],
+  ['Email PIC utama',mapped.primary?.email],
+  ['PIC teknis',undefined],['PIC penagihan',undefined],['PIC pajak',undefined],
+  ['Bukti NPWP',undefined],['Bukti KTP',undefined],['Penandatangan',undefined],
+ ];
+ return {mapped,missing:critical.filter(([,v])=>!present(v)).map(([k])=>k)};
+}
