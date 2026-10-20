@@ -8,6 +8,7 @@ function load(name){
  const m={exports:{}};cache.set(name,m.exports);
  new Function('require','module','exports',js)((name)=>{
   if(name==='./sales-workflow')return load('sales-workflow');
+  if(name==='./sales-procurement')return load('sales-procurement');
   throw Error('Unexpected dependency '+name);
  },m,m.exports);cache.set(name,m.exports);return m.exports;
 }
