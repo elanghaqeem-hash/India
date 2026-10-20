@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { runPriorityChain } from '@/lib/ai-credential-vault';
 
-export const runtime='edge';
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 export async function POST(req:Request){
  const auth=await authorizeBoQ(req);
