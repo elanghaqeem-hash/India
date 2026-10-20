@@ -37,7 +37,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     {
       sender: 'ai',
       text: 'Halo! Saya Asisten AI ICOP CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
-      provider: 'ICOP Expert AI',
+      provider: 'Informasi awal (bukan hasil model AI)',
     },
   ]);
   const [chatInput, setChatInput] = useState('');
@@ -66,7 +66,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-india-ai-admin': '1' },
         body: JSON.stringify({ prompt: userText }),
       });
       const data = await res.json();
@@ -223,7 +223,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <h3 className="font-extrabold text-sm tracking-tight">ICOP AI Business Assistant</h3>
                   <div className="text-[10px] text-slate-300 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    <span>Multi-Provider Active Failover Chain</span>
+                    <span>Koneksi AI Admin: hasil sesuai provider aktif</span>
                   </div>
                 </div>
               </div>
