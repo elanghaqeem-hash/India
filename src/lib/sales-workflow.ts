@@ -84,7 +84,7 @@ const has=(v:unknown)=>typeof v==='string' && v.trim().length>0;
 export const phoneValid=(s:string)=>/^\+?[0-9][0-9\s().-]{7,19}$/.test(s.trim());
 export const emailValid=(s:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 export const dateValid=(s:string)=>{
- if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(s))return false;
+ if(!/^\d{4}-\d{2}-\d{2}$/.test(s))return false;
  const time=Date.parse(s+'T00:00:00Z');
  return Number.isFinite(time) && new Date(time).toISOString().slice(0,10)===s;
 };
