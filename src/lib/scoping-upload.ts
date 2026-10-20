@@ -49,7 +49,7 @@ export async function extractScopingDocument(file: File): Promise<ScopingDocumen
     if (bytes[0] !== 0x50 || bytes[1] !== 0x4b) {
       throw new Error('Isi file tidak sesuai format DOCX.');
     }
-    const zip = await JSZip.loadAsync(buffer, { checkCRC32: true });
+    const zip = await JSZip.loadAsync(buffer);
     const entry = zip.file('word/document.xml');
     if (!entry) throw new Error('File DOCX tidak berisi dokumen Word yang valid.');
     const declaredSize = (entry as typeof entry & { _data?: { uncompressedSize?: number } })._data?.uncompressedSize;
