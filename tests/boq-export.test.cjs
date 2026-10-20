@@ -106,3 +106,33 @@ test('user-provided text is XML-safe, and customer option quantities are editabl
   assert.ok(files.get('xl/worksheets/sheet3.xml').includes('Recommended'));
   assert.ok(files.get('xl/worksheets/sheet3.xml').includes('Comprehensive'));
 });
+
+
+test('payment installments use grand total including tax and sum to quoted value', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'customer'));
+  const s = files.get('xl/worksheets/sheet1.xml');
+  assert.match(s, /C16\*B13/);
+  assert.match(s, /C17\*B13/);
+  assert.match(s, /C18\*B13/);
+  assert.ok(!s.includes('C16*B11'), 'must not calculate payments on pre-tax subtotal');
+});
+
+test('internal P&L requires all five cost buckets before showing aggregate margin', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard'));
+  const boq = files.get('xl/worksheets/sheet2.xml');
+  const pnl = files.get('xl/worksheets/sheet1.xml');
+  assert.match(boq, /COUNT\(H[0-9]+:H[0-9]+\)=5/);
+  assert.match(boq, /LENGKAPI KOMPONEN A-E/);
+  assert.match(pnl, /B10=&quot;&quot;/);
+});
+
+test('12-week cashflow includes late settlement and a 100-percent allocation gate', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'onsite', pricing));
+  const allocations = files.get('xl/worksheets/sheet5.xml');
+  const cashflow = files.get('xl/worksheets/sheet6.xml');
+  assert.match(allocations, /W12/);
+  assert.match(allocations, /O8:O12/);
+  assert.match(cashflow, /W12/);
+  assert.match(cashflow, /\$B\$14/);
+  assert.match(cashflow, /SUM\(B9:M9\)/);
+});
