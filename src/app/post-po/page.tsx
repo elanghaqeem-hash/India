@@ -47,29 +47,6 @@ function Section({title,description,children}:{title:string;description:string;c
 function PicFields({title,value,onChange}:{title:string;value:Pic;onChange:(v:Pic)=>void}){
  return <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-3">
   <h3 className="mb-3 text-xs font-bold text-violet-800">{title}</h3>
-  <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
-   <div className="flex items-start gap-2">
-    <FileLock2 className="mt-0.5 h-5 w-5 shrink-0 text-violet-600"/>
-    <div>
-     <h2 className="text-sm font-bold text-slate-900">Audit Master Data Sales Sebelumnya</h2>
-     <p className="mt-1 text-xs leading-relaxed text-slate-500">Pilih record Customer Master yang tersedia di sesi aplikasi. Pemeriksaan ini hanya membaca field yang benar-benar ada; record seed adalah data contoh dan tidak boleh dipakai untuk dokumen legal.</p>
-    </div>
-   </div>
-   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
-    <label className="text-xs font-semibold text-slate-700">Customer Master Sales
-     <select value={selectedSalesCustomer} onChange={e=>setSelectedSalesCustomer(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm">
-      <option value="">Pilih record untuk audit kelengkapan</option>
-      {availableSalesCustomers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
-     </select>
-    </label>
-    {salesAudit&&<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
-     <div className="font-bold">{salesAudit.missing.length} gap data pada Customer Master Sales</div>
-     <div className="mt-1 max-h-28 overflow-y-auto">{salesAudit.missing.join(' · ')}</div>
-     <p className="mt-2 font-medium">Perlu dilengkapi dan diverifikasi sebelum Word final. Record demo tidak disalin ke dokumen.</p>
-    </div>}
-   </div>
-  </section>
-
   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
    <Field label="Nama Lengkap" value={value.name} onChange={name=>onChange({...value,name})}/>
    <Field label="Nomor Mobile" value={value.mobile} onChange={mobile=>onChange({...value,mobile})}/>
@@ -123,6 +100,29 @@ export default function PostPoPage(){
     Integrasi dengan input Sales historis, verifikasi PO asli, serta persetujuan legal/finance memerlukan backend produksi.
    </div>
   </header>
+
+  <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
+   <div className="flex items-start gap-2">
+    <FileLock2 className="mt-0.5 h-5 w-5 shrink-0 text-violet-600"/>
+    <div>
+     <h2 className="text-sm font-bold text-slate-900">Audit Master Data Sales Sebelumnya</h2>
+     <p className="mt-1 text-xs leading-relaxed text-slate-500">Pilih record Customer Master yang tersedia di sesi aplikasi. Pemeriksaan ini hanya membaca field yang benar-benar ada; record seed adalah data contoh dan tidak boleh dipakai untuk dokumen legal.</p>
+    </div>
+   </div>
+   <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2 sm:items-start">
+    <label className="text-xs font-semibold text-slate-700">Customer Master Sales
+     <select value={selectedSalesCustomer} onChange={e=>setSelectedSalesCustomer(e.target.value)} className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm">
+      <option value="">Pilih record untuk audit kelengkapan</option>
+      {availableSalesCustomers.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+     </select>
+    </label>
+    {salesAudit&&<div className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs leading-relaxed text-amber-950">
+     <div className="font-bold">{salesAudit.missing.length} gap data pada Customer Master Sales</div>
+     <div className="mt-1 max-h-28 overflow-y-auto">{salesAudit.missing.join(' · ')}</div>
+     <p className="mt-2 font-medium">Perlu dilengkapi dan diverifikasi sebelum Word final. Record demo tidak disalin ke dokumen.</p>
+    </div>}
+   </div>
+  </section>
 
   <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
    {([['sales','1. Sales / Customer Master','Identitas, NPWP dan PIC'],['project','2. PO & Project','Scope, biaya dan durasi'],['review','3. Validasi & Download','Pemeriksaan sebelum Kick Off']] as const).map(([id,title,desc])=>(
