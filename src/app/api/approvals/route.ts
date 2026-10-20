@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { appStore } from '@/lib/store';
 
 export async function GET() {
@@ -35,7 +35,7 @@ export async function POST(req: Request) {
     return NextResponse.json({
       success: true,
       approval: updated,
-      message: Approval # berhasil diupdate ke status ,
+      message: `Approval #${id} berhasil diupdate ke status ${status}`,
     });
   } catch (err: any) {
     return NextResponse.json({ success: false, message: err.message }, { status: 500 });
