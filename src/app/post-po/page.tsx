@@ -59,7 +59,7 @@ function PicFields({title,value,onChange}:{title:string;value:Pic;onChange:(v:Pi
 const serviceTypes:ServiceFamily[]=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'];
 
 export default function PostPoPage(){
- const [data,setData]=useState<PostPoPacket>(()=>createDemoPostPoPacket('VAPT'));
+ const [data,setData]=useState<PostPoPacket>(()=>createDemoPostPoPacket(newPostPoPacket(),'VAPT'));
  const [exampleService,setExampleService]=useState<ServiceFamily>('VAPT');
  const [step,setStep]=useState<'sales'|'project'|'review'>('sales');
  const [message,setMessage]=useState('');
@@ -123,7 +123,7 @@ export default function PostPoPage(){
         Isi Kolom Kosong
       </button>
       <button type="button" onClick={()=>{
-        setData(createDemoPostPoPacket(exampleService));
+        setData(createDemoPostPoPacket(newPostPoPacket(),exampleService));
         setMessage('Seluruh formulir diganti dengan contoh '+exampleService+'. Tidak ada informasi dikirim ke database.');
       }} className="self-end rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 text-xs font-bold text-violet-900 hover:bg-violet-100">
         Ganti Seluruh Data Contoh
