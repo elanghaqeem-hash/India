@@ -70,6 +70,7 @@ test('customer export produces three sheets and contains only selling prices', (
   const xml = files.get('xl/worksheets/sheet2.xml');
   assert.match(xml, /Parameters!C7/);
   assert.match(xml, /Summary!D8/);
+  assert.match(xml, /Summary!\$C\$8/); // Qty follows the actual selected option
   assert.ok(xml.includes('API Security Testing'));
   assert.ok(![...files.values()].join(' ').includes('1111111')); // finance-only HPP
   assert.ok(![...files.values()].join(' ').includes('555555')); // finance-only travel
