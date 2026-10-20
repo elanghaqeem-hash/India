@@ -124,6 +124,7 @@ export async function POST(req:Request){
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
    const d=deal(raw,account(acct));
    if(d.stage!=='pending_po')return fail('PO dapat diverifikasi hanya pada Pending PO',409);
+   if(p.confirmed_documents!==true)return fail('Finance/Approver wajib menyatakan telah memeriksa dokumen PO asli, ruang lingkup, nominal dan quotation.',422);
    const check=await requireBoq(db,d,account(acct));
    if('problem' in check)return fail(String(check.problem),409);
    const number=d.fields.po_number||'',date=d.fields.po_date||'',reference=d.fields.po_reference||'',n=Number(d.fields.po_amount_before_vat);
@@ -133,7 +134,7 @@ export async function POST(req:Request){
    if(!d.fields.scope_reconciliation||d.fields.scope_reconciliation.length<15)return fail('Catatan konfirmasi scope dan termin minimal 15 karakter.',409);
    await db.prepare('INSERT INTO india_sales_po_checks(opportunity_id,tenant_id,boq_id,po_number,po_date,po_reference,po_amount_before_vat,quotation_amount_before_vat,verified_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(opportunity_id) DO UPDATE SET boq_id=excluded.boq_id,po_number=excluded.po_number,po_date=excluded.po_date,po_reference=excluded.po_reference,po_amount_before_vat=excluded.po_amount_before_vat,quotation_amount_before_vat=excluded.quotation_amount_before_vat,verified_by=excluded.verified_by,verified_at=CURRENT_TIMESTAMP')
     .bind(d.id,TENANT,check.boq.id,number,date,reference,n,check.subtotal,email).run();
-   await audit(db,'deal',d.id,'VERIFY_PO',email,null,null,'PO dan approved BoQ dicocokkan secara manual');
+   await audit(db,'deal',d.id,'VERIFY_PO',email,null,null,'Pemeriksa menyatakan PO asli dan BoQ disandingkan; evidence berupa referensi, belum arsip digital');
    return answer({success:true,verified_by:email});
   }
   if(kind==='document'){
@@ -145,7 +146,8 @@ export async function POST(req:Request){
    const doc=String(p.document_kind||''),ref=String(p.reference||'').trim();
    if(!['boq','quotation','customer_registration','project_form','sales_handover','loss_analysis'].includes(doc)||!ref||ref.length>200)return fail('Jenis / referensi dokumen tidak valid');
    const missing=doc==='customer_registration'?checklist.registration:doc==='project_form'?checklist.project:[];
-   const status=missing.length?'draft':'verified';
+   // Metadata and a completed checklist do not establish that an original file exists or is signed.
+   const status='draft';
    await db.prepare('INSERT INTO india_sales_documents(id,tenant_id,opportunity_id,kind,status,reference,checklist_json,created_by) VALUES (?,?,?,?,?,?,?,?)')
     .bind(crypto.randomUUID(),TENANT,id as string,doc,status,ref,JSON.stringify(missing),email).run();
    await audit(db,'deal',id as string,'DOCUMENT_'+doc.toUpperCase(),email,null,null,'Status '+status);
