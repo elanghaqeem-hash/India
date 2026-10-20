@@ -33,7 +33,6 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
       <AIWorkbench />
       <MobileNav pendingApprovalsCount={pendingCount} />
-      <AIWorkbench />
     </div>
   );
 };
