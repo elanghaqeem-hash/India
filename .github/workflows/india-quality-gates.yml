@@ -17,8 +17,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - name: Recreate missing lockfile in CI
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
       - name: Install dependencies
         run: npm ci --no-audit --no-fund
       - name: TypeScript check
@@ -27,8 +25,3 @@ jobs:
         run: node test-runner.cjs
       - name: Build for Cloudflare
         run: npm run build:cf
-      - name: Save generated lockfile for committing
-        uses: actions/upload-artifact@v4
-        with:
-          name: india-package-lock
-          path: package-lock.json
