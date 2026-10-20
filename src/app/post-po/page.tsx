@@ -4,10 +4,11 @@ import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, Download, FileLock2, AlertCircle, CheckCircle2, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { appStore } from '@/lib/store';
 import {
-  newPostPoPacket, validatePostPoPacket, validatePostPoDemoPacket, downloadPostPoDocx, auditExistingSalesCustomer,
+  newPostPoPacket, validatePostPoPacket, validatePostPoDemoPacket, auditExistingSalesCustomer,
   type PostPoPacket, type RegistrationData, type ProjectData, type Pic, type ServiceFamily
 } from '@/lib/post-po-documents';
 import { createDemoPostPoPacket, fillEmptyPostPoWithDummy, DUMMY_DATA_NOTICE } from '@/lib/post-po-dummy';
+import { downloadOfficialPostPoDocx } from '@/lib/post-po-official-layout';
 
 const SERVICE_GUIDANCE: Record<ServiceFamily,string> = {
   'VAPT':'Cantumkan objek aplikasi/web/API/mobile/jaringan, jumlah target, metode black/grey/white box, testing window, retest, dan deliverables yang tercantum PO/SOW.',
@@ -64,6 +65,8 @@ export default function PostPoPage(){
  const [step,setStep]=useState<'sales'|'project'|'review'>('sales');
  const [message,setMessage]=useState('');
  const [selectedSalesCustomer,setSelectedSalesCustomer]=useState('');
+ const [officialTemplates,setOfficialTemplates]=useState<{registration:File|null;project:File|null}>({registration:null,project:null});
+ const [exportLoading,setExportLoading]=useState<'registration'|'project'|null>(null);
  const availableSalesCustomers=appStore.getState().companies;
  const salesSource=availableSalesCustomers.find(x=>x.id===selectedSalesCustomer);
  const salesAudit=salesSource?auditExistingSalesCustomer(salesSource):null;
@@ -75,10 +78,17 @@ export default function PostPoPage(){
  const reg=<K extends keyof RegistrationData>(key:K,value:RegistrationData[K])=>setData(d=>({...d,registration:{...d.registration,[key]:value}}));
  const proj=<K extends keyof ProjectData>(key:K,value:ProjectData[K])=>setData(d=>({...d,project:{...d.project,[key]:value}}));
  const pic=(key:'primary'|'technical'|'billing'|'tax',value:Pic)=>reg(key,value);
- const exportWord=(kind:'registration'|'project')=>{
-   if(!ready){setStep('review');setMessage('Dokumen final dikunci karena masih ada data wajib yang belum tervalidasi.');return;}
-   try {downloadPostPoDocx(data,kind);setMessage(data.isDemo?'Dokumen DEMO berhasil disiapkan. Tidak berlaku sebagai dokumen klien atau dasar Kick Off.':'Dokumen Word berhasil disiapkan di browser. Dokumen tetap perlu tanda tangan pihak berwenang.');}
-   catch(err){setMessage(err instanceof Error?err.message:'Pembuatan dokumen gagal');}
+ const exportWord=async(kind:'registration'|'project')=>{
+   if(!ready){setStep('review');setMessage('Masih ada field wajib yang perlu diperiksa.');return;}
+   const template=officialTemplates[kind];
+   if(!template){setMessage('Unggah file template Word V.042026 untuk '+(kind==='registration'?'Registrasi':'Project')+' terlebih dahulu.');return;}
+   setExportLoading(kind);
+   try{
+     await downloadOfficialPostPoDocx(data,kind,template);
+     setMessage(data.isDemo?'Dokumen Word resmi-layout DEMO berhasil dibuat dari template asli dan tidak sah sebagai dokumen pelanggan.':'DOCX mengikuti layout template resmi. Masih diperlukan verifikasi dokumen dan tanda tangan berwenang.');
+   }catch(err){
+     setMessage(err instanceof Error?err.message:'Gagal membuat DOCX menggunakan template resmi.');
+   }finally{setExportLoading(null);}
  };
  const commonInput=(label:string,key:keyof RegistrationData,help?:string,inputType='text')=>(
   <Field label={label} value={String(r[key]??'')} onChange={v=>reg(key,v as never)} help={help} type={inputType}/>
@@ -353,18 +363,36 @@ export default function PostPoPage(){
     </Section>
    </div>
    <div className="space-y-4">
-    <Section title="Unduh Dokumen" description="File Word terpisah sesuai kedua referensi DefendIT360.">
+    <Section title="Unduh Dokumen" description="Generator mempertahankan layout asli Word V.042026, tidak lagi menyusun ulang tabel dua kolom.">
+     <div className="mb-4 space-y-3 rounded-xl border border-violet-200 bg-violet-50/50 p-3">
+       <h3 className="text-xs font-bold text-violet-900">Template Word Resmi DefendIT360 V.042026</h3>
+       <p className="text-[11px] leading-relaxed text-slate-600">Unggah kedua template Word asli dari referensi sebelumnya. File dibaca hanya pada tab browser; logo, tabel, font, footer, klausul bilingual, dan kotak tanda tangan tetap dipertahankan. Template tidak dikirim ke server.</p>
+       <label className="block text-xs font-semibold text-slate-700">
+         Template Form Registrasi (.docx)
+         <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={e=>setOfficialTemplates(previous=>({...previous,registration:e.target.files?.[0]||null}))}
+          className="mt-1 block w-full max-w-full rounded-lg border border-violet-200 bg-white p-2 text-xs text-slate-700 file:mr-2 file:rounded file:border-0 file:bg-violet-100 file:px-2 file:py-1 file:text-violet-800"/>
+         <span className="mt-1 block font-normal text-slate-500">{officialTemplates.registration?'Dipilih: '+officialTemplates.registration.name:'Belum diunggah'}</span>
+       </label>
+       <label className="block text-xs font-semibold text-slate-700">
+         Template Form Project One Time (.docx)
+         <input type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+          onChange={e=>setOfficialTemplates(previous=>({...previous,project:e.target.files?.[0]||null}))}
+          className="mt-1 block w-full max-w-full rounded-lg border border-violet-200 bg-white p-2 text-xs text-slate-700 file:mr-2 file:rounded file:border-0 file:bg-violet-100 file:px-2 file:py-1 file:text-violet-800"/>
+         <span className="mt-1 block font-normal text-slate-500">{officialTemplates.project?'Dipilih: '+officialTemplates.project.name:'Belum diunggah'}</span>
+       </label>
+     </div>
      <div className="space-y-2">
-      <button type="button" disabled={!ready} onClick={()=>exportWord('registration')}
+      <button type="button" disabled={!ready||!officialTemplates.registration||!!exportLoading} onClick={()=>void exportWord('registration')}
        className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-700 px-3 py-3 text-xs font-bold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300">
        <Download className="h-4 w-4"/> {data.isDemo?'DEMO — ':''}Form Registrasi (.docx)
       </button>
-      <button type="button" disabled={!ready} onClick={()=>exportWord('project')}
+      <button type="button" disabled={!ready||!officialTemplates.project||!!exportLoading} onClick={()=>void exportWord('project')}
        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-3 py-3 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
        <Download className="h-4 w-4"/> {data.isDemo?'DEMO — ':''}Form Project (.docx)
       </button>
      </div>
-     <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-slate-500"><FileLock2 className="mt-0.5 h-4 w-4 shrink-0"/> Tombol aktif setelah pemeriksaan format. Dalam mode simulasi, semua dokumen berlabel DATA DUMMY dan tidak boleh digunakan sebagai dokumen resmi.</p>
+     <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-slate-500"><FileLock2 className="mt-0.5 h-4 w-4 shrink-0"/> Unggah template masing-masing sebelum ekspor. Dalam mode simulasi, file diberi prefiks DEMO dan isian simulasi dicantumkan pada formulir asli; belum sah untuk Kick Off.</p>
     </Section>
     <Section title="Ringkasan Tahap" description="Pemeriksaan kesiapan sumber data Sales.">
      <div className="space-y-2 text-xs text-slate-700">
