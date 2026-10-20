@@ -84,7 +84,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       badge: 'Ledger',
     },
     {
-      name: 'AI & API Key Settings',
+      name: 'AI Connections & API Keys',
       href: '/settings/ai',
       icon: Sparkles,
       badge: 'Multi-AI',
