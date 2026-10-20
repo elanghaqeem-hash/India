@@ -55,9 +55,13 @@ export async function GET(req:Request){
   // Client tier and price range are structurally required by legacy Proposal but not printed by generator.
   const detail:QuotationDetails={
    endUser:str(fields.end_user)||acct.legal_name,scope:str(fields.technical_scope),
+   recipientName:str(fields.quotation_to_pic),
+   signatoryName:str(fields.quotation_sender_name),
+   signatoryTitle:str(fields.quotation_sender_title),
+   quotationDate:str(fields.quotation_sent_at),
    assets:str(fields.asset_profile)||str(fields.scope_quantity),
    methodology:str(fields.methodology),serviceLevels:str(fields.service_level),
-   technicalPlatform:str(fields.license_or_sku),team:str(fields.resourcing_model),
+   technicalPlatform:str(fields.license_or_sku),team:str(fields.team_composition)||str(fields.resourcing_model),
    deliverables:str(fields.deliverables),terms:str(fields.quotation_terms),
    paymentNotes:str(fields.quotation_payment_notes),exclusions:str(fields.exclusions),
    rules:str(fields.methodology),logSources:str(fields.asset_profile),
