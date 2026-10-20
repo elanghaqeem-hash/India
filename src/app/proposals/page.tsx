@@ -309,7 +309,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
 
             {/* A mobile readable screen view; preserve all original values in the A4 print table. */}
             <div className="min-w-0">
-              <div className="quotation-mobile-list space-y-3 md:hidden print:hidden" aria-label="Rincian layanan penawaran">
+              <div className="quotation-mobile-list space-y-3 lg:hidden print:hidden" aria-label="Rincian layanan penawaran">
                 {selectedProp.line_items.map(item => (
                   <article key={item.line_number} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/40 p-3.5">
                     <div className="flex items-start gap-2.5">
@@ -332,7 +332,8 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                   </article>
                 ))}
               </div>
-              <table className="quotation-desktop-table hidden w-full table-auto border-collapse text-left text-xs md:table print:table">
+              <div className="hidden min-w-0 max-w-full overflow-x-auto lg:block print:block print:overflow-visible">
+                <table className="quotation-desktop-table w-full min-w-[720px] border-collapse text-left text-xs print:min-w-0">
                 <thead>
                   <tr className="border-y-2 border-slate-900 text-slate-900 font-bold uppercase text-[11px]">
                     <th className="py-2.5 px-2">No</th>
@@ -360,7 +361,8 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
 
               {/* Totals Summary */}
               <div className="border-t-2 border-slate-900 pt-3 flex justify-end">
