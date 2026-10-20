@@ -35,6 +35,38 @@ function FormFields({fields,values,onUpdate,readOnly}:{
  </label>)}
  </div>;
 }
+const SALES_FIELD_GROUPS: Array<{title:string;description:string;keys:readonly string[]}>= [
+ {title:'01 · Pipeline & Qualification',description:'Sumber lead, owner, target closing, kebutuhan, budget, PIC keputusan dan procurement',
+  keys:['lead_source','sales_owner','expected_closing_date','service_family','contract_model','client_need','budget_status','decision_maker','procurement_process','discovery_notes']},
+ {title:'02 · Technical Scoping & Delivery',description:'Parameter teknis, aset, metodologi, SLA, resource, deliverables dan timeline',
+  keys:['technical_scope','technical_specifications','scope_quantity','service_level','delivery_model','resourcing_model','deliverables','project_site','project_province','project_postal','project_pic_name','project_pic_phone','project_pic_email','implementation_timeline','contract_duration','license_or_sku','asset_profile','methodology','exclusions','team_composition']},
+ {title:'03 · BoQ, Costing & Commercial',description:'Referensi BoQ approved, komersial, termin dan rekening VA',
+  keys:['boq_id','costing_notes','payment_terms','payment_va','payment_milestones']},
+ {title:'04 · Quotation & Dokumen',description:'Nomor surat, masa berlaku, penerima, penandatangan dan ketentuan',
+  keys:['quotation_number','quotation_sent_at','quotation_valid_days','quotation_valid_until','quotation_terms','quotation_payment_notes','end_user','quotation_to_pic','quotation_sender_name','quotation_sender_title']},
+ {title:'05 · Negotiation & Follow-up',description:'Perkembangan penawaran, keputusan pelanggan, rencana tindak lanjut',
+  keys:['next_action','next_action_at','negotiation_notes','customer_decision']},
+ {title:'06 · PO & Closing / Loss Analysis',description:'Nomor, tanggal, nilai dan bukti pemeriksaan PO atau alasan deal tidak dimenangkan',
+  keys:['scope_reconciliation','po_number','po_date','po_reference','po_amount_before_vat','lost_reason','lost_notes','competitor','opportunity_notes']},
+];
+function DealFieldSections({values,onUpdate,readOnly}:{
+ values:SalesFields;onUpdate:(key:string,value:string)=>void;readOnly?:(key:string)=>boolean;
+}){
+ const used=new Set(SALES_FIELD_GROUPS.flatMap(g=>g.keys));
+ const groups=[...SALES_FIELD_GROUPS,{title:'Parameter Lain',description:'Field tambahan yang diperlukan oleh format dokumen',keys:DEAL_FIELDS.map(x=>x[0]).filter(k=>!used.has(k))}];
+ return <div className="space-y-3">{groups.filter(g=>g.keys.length>0).map((g,i)=>{
+  const fields=DEAL_FIELDS.filter(([key])=>g.keys.includes(key));
+  const count=fields.filter(([k])=>!!values[k]?.trim()).length;
+  return <details key={g.title} open={i===0?true:undefined} className="rounded-xl border border-slate-200 bg-white p-3 sm:p-4">
+   <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-left">
+    <span><span className="block text-sm font-bold text-slate-900">{g.title}</span>
+     <span className="mt-1 block text-xs font-normal text-slate-500">{g.description}</span></span>
+    <span className="shrink-0 rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600">{count}/{fields.length}</span>
+   </summary>
+   <div className="mt-4 border-t pt-4"><FormFields fields={fields} values={values} readOnly={readOnly} onUpdate={onUpdate}/></div>
+  </details>;
+ })}</div>;
+}
 async function request(method:'GET'|'POST'|'PATCH',url:string,body?:Record<string,unknown>){
  const response=await fetch(url,{method,cache:'no-store',headers:{'Content-Type':'application/json'},
   credentials:'same-origin',...(body?{body:JSON.stringify(body)}:{})});
@@ -166,7 +198,7 @@ export default function SalesPipelinePage(){
    <option value="">Pilih pelanggan</option>{accounts.map(a=><option key={a.id} value={a.id}>{a.legal_name} · {a.customer_number}</option>)}</select></label>
   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold">Nama Proyek *<input className={inputClass} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
   <label className="text-xs font-bold">Estimasi Nilai (IDR) *<input type="number" min="1" className={inputClass} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
-  <FormFields fields={DEAL_FIELDS} values={dealFields} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
+  <DealFieldSections values={dealFields} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
   <button disabled={busy||!isMaker} onClick={saveDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">Simpan ke Pipeline</button>
  </section>}
  {tab==='details'&&detail&&<div className="space-y-4">
@@ -197,7 +229,7 @@ export default function SalesPipelinePage(){
    <h3 className="text-sm font-bold">Sales Form • Discovery, Technical, Commercial, Negotiation & PO</h3>
    <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Nama proyek<input className={inputClass} disabled={!mayMove} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
    <label className="text-xs font-semibold">Nilai pipeline (IDR)<input type="number" className={inputClass} disabled={!mayMove} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
-   <FormFields fields={DEAL_FIELDS} values={dealFields} readOnly={k=>!mayMove&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
+   <DealFieldSections values={dealFields} readOnly={k=>!mayMove&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
    <div className="flex flex-wrap items-center gap-3">
     <button disabled={busy||!['admin','sales','presales'].includes(role)||['closed_won','closed_lost'].includes(detail.deal.stage)} onClick={updateDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">{role==='presales'?'Simpan Parameter Teknis':'Simpan Semua Perubahan'}</button>
     <p className="text-xs text-amber-700">Simpan perubahan sebelum pindah stage. Edit detail membatalkan verifikasi PO sebelumnya.</p>
