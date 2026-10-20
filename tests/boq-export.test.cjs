@@ -136,3 +136,17 @@ test('12-week cashflow includes late settlement and a 100-percent allocation gat
   assert.match(cashflow, /\$B\$14/);
   assert.match(cashflow, /SUM\(B9:M9\)/);
 });
+
+
+test('percentage formatting preserves readable VAT, margins, installment shares and allocations', () => {
+  const internal = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard', pricing));
+  const customer = unzipStored(exportsObj.createProposalBoQ(proposal, 'customer'));
+  const styles = internal.get('xl/styles.xml');
+  assert.match(styles, /<cellXfs count="7">/);
+  assert.match(styles, /numFmtId="165"/);
+  assert.match(internal.get('xl/worksheets/sheet1.xml'), /r="B12" s="5"/);
+  assert.match(internal.get('xl/worksheets/sheet3.xml'), /r="C9" s="5"/);
+  assert.match(internal.get('xl/worksheets/sheet5.xml'), /r="C8" s="5"/);
+  assert.match(customer.get('xl/worksheets/sheet1.xml'), /r="C16" s="5"/);
+  assert.match(customer.get('xl/worksheets/sheet3.xml'), /r="C[0-9]+" s="5"/);
+});
