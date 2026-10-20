@@ -111,14 +111,20 @@ export default function Deal360Workspace() {
 
   const handleStageChange = async (id: string, newStage: OpportunityStage) => {
     try {
-      await fetch('/api/opportunities', {
+      const res = await fetch('/api/opportunities', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, stage: newStage }),
       });
-      refreshData();
+      const data = await res.json();
+      if (!res.ok || !data.success || !data.opportunity) {
+        throw new Error(data.message || 'Tidak dapat memperbarui tahap');
+      }
+      // Public preview: update the visible session, not an unverified persistent database.
+      setOpportunities(prev => prev.map(o => o.id === id ? { ...o, stage: newStage } : o));
     } catch (err) {
       console.error(err);
+      alert('Perubahan tahap tidak berhasil. Silakan coba lagi.');
     }
   };
 
@@ -155,8 +161,8 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
       {/* Top Banner / Welcome */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 pb-5">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-black tracking-tight text-slate-900">Deal 360 Workspace</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Deal 360 Workspace</h1>
             <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
               PRATINJAU / DEMO — DATA CONTOH
@@ -292,23 +298,25 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
       </div>
 
       {/* Pipeline Kanban Stage Tabs & Search */}
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-          <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+      <div className="min-w-0 space-y-3 lg:space-y-4 lg:rounded-2xl lg:border lg:border-slate-200 lg:bg-white lg:p-5 lg:shadow-sm">
+        <div className="min-w-0 space-y-3 rounded-2xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4 lg:rounded-none lg:border-0 lg:p-0 lg:shadow-none">
+          <div className="relative w-full">
+            <Search className="pointer-events-none absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
             <input
               type="text"
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Cari opportunity atau klien..."
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:ring-1 focus:ring-blue-500"
+              aria-label="Cari opportunity atau pelanggan"
+              className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100"
             />
           </div>
 
-          <div className="flex flex-wrap gap-1.5">
+          <div role="group" aria-label="Filter tahapan pipeline" className="flex min-w-0 gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
+              aria-pressed={selectedStage === 'all'}
               onClick={() => setSelectedStage('all')}
-              className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors ${
+              className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2.5 text-xs font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
                 selectedStage === 'all'
                   ? 'bg-slate-900 text-white'
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -323,7 +331,8 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
                 <button
                   key={s.id}
                   onClick={() => setSelectedStage(s.id)}
-                  className={`rounded-lg px-2.5 py-1 text-xs font-semibold transition-colors flex items-center gap-1.5 ${
+                  aria-pressed={isSelected}
+                  className={`shrink-0 whitespace-nowrap rounded-full px-3.5 py-2.5 text-xs font-semibold transition-colors flex items-center gap-1.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
                     isSelected
                       ? 'bg-blue-600 text-white shadow-xs'
                       : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
@@ -339,8 +348,92 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
           </div>
         </div>
 
-        {/* Opportunities Table */}
-        <div className="overflow-x-auto">
+        {/* Mobile: readable cards instead of compressing six table columns. */}
+        <div className="space-y-3 lg:hidden">
+          {filteredOpps.map(opp => {
+            const company = companies.find(c => c.id === opp.company_id);
+            const stageInfo = stages.find(s => s.id === opp.stage);
+            return (
+              <article key={opp.id} className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                    {opp.service_type === 'SOC' ? <ShieldCheck className="h-5 w-5" aria-hidden="true" /> : <Building className="h-5 w-5" aria-hidden="true" />}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md bg-blue-50 px-2 py-1 text-[11px] font-bold text-blue-700">{opp.service_type}</span>
+                      <span className={`rounded-md px-2 py-1 text-[11px] font-semibold ${stageInfo?.color || 'bg-slate-100 text-slate-700'}`}>{stageInfo?.label || opp.stage}</span>
+                    </div>
+                    <h3 className="mt-2 break-words text-[15px] font-bold leading-snug text-slate-900">{opp.name}</h3>
+                  </div>
+                </div>
+
+                <div className="mt-4 space-y-2.5 rounded-xl bg-slate-50 p-3">
+                  <div className="flex min-w-0 items-start gap-2">
+                    <Building className="mt-0.5 h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                    <div className="min-w-0 break-words text-sm font-semibold text-slate-800">{opp.company_name}</div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                    <span className="rounded-md border border-indigo-100 bg-indigo-50 px-2 py-1 font-bold text-indigo-700">Tier {company?.client_tier || '—'}</span>
+                    {company?.industry && <span>{company.industry}</span>}
+                    <span>AM: {opp.account_manager}</span>
+                  </div>
+                </div>
+
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="col-span-2 min-w-0 sm:col-span-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Nilai estimasi</p>
+                    <p className="mt-1 break-words text-xl font-extrabold tracking-tight text-slate-900">{formatIDR(opp.estimated_value)}</p>
+                    <p className="mt-1 text-xs font-semibold text-emerald-700">Probabilitas {opp.probability}%</p>
+                  </div>
+                  <div className="col-span-2 min-w-0 sm:col-span-1">
+                    <p className="text-[11px] font-medium uppercase tracking-wide text-slate-500">Target close</p>
+                    <p className="mt-1 flex items-center gap-1.5 text-sm font-semibold text-slate-700">
+                      <Clock className="h-4 w-4 shrink-0 text-slate-400" aria-hidden="true" />
+                      {formatDate(opp.expected_closing_date)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-4 border-t border-slate-100 pt-3">
+                  <label htmlFor={`mobile-stage-${opp.id}`} className="mb-1.5 block text-xs font-semibold text-slate-600">Tahap pipeline</label>
+                  <select
+                    id={`mobile-stage-${opp.id}`}
+                    value={opp.stage}
+                    onChange={e => handleStageChange(opp.id, e.target.value as OpportunityStage)}
+                    className="h-11 w-full rounded-xl border border-slate-200 bg-white px-3 text-sm font-medium text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  >
+                    {stages.map(stage => <option key={stage.id} value={stage.id}>{stage.label}</option>)}
+                  </select>
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    <Link href={`/pricing?opp=${encodeURIComponent(opp.id)}`} className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2 text-xs font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                      <Calculator className="h-4 w-4" aria-hidden="true" /> Pricing BoQ
+                    </Link>
+                    <Link href="/proposals" className="flex min-h-11 items-center justify-center gap-1.5 rounded-xl bg-blue-600 px-2 text-xs font-bold text-white hover:bg-blue-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500">
+                      Quotation <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+
+        {filteredOpps.length === 0 && (
+          <div role="status" className="rounded-2xl border border-dashed border-slate-200 bg-white px-5 py-10 text-center">
+            <p className="text-sm font-bold text-slate-800">Tidak ada opportunity yang sesuai</p>
+            <p className="mt-1 text-xs text-slate-500">Coba kata kunci atau tahap pipeline lainnya.</p>
+            <button
+              onClick={() => { setSearchQuery(''); setSelectedStage('all'); }}
+              className="mt-4 min-h-11 rounded-xl bg-blue-50 px-4 text-sm font-bold text-blue-700 hover:bg-blue-100"
+            >
+              Atur ulang filter
+            </button>
+          </div>
+        )}
+
+        {/* Desktop: retain the full comparison table. */}
+        <div className="hidden overflow-x-auto lg:block">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -440,8 +533,8 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
 
       {/* New Opportunity Modal */}
       {showNewOppModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-3 backdrop-blur-sm sm:p-4">
+          <div className="max-h-[90dvh] w-full max-w-lg space-y-4 overflow-y-auto rounded-2xl border border-slate-200 bg-white p-4 shadow-2xl sm:p-6">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
               <h3 className="text-sm font-bold text-slate-900">Buat Opportunity Baru</h3>
               <button onClick={() => setShowNewOppModal(false)} className="text-slate-400 hover:text-slate-600">
