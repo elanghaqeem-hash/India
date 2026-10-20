@@ -43,3 +43,75 @@ body {
     display: block !important;
   }
 }
+
+
+/* Quotation preview: keep the document inside the available viewport. */
+.quotation-page,
+.quotation-document {
+  max-width: 100%;
+  min-width: 0;
+}
+.quotation-document {
+  overflow-wrap: anywhere;
+}
+.quotation-desktop-table th,
+.quotation-desktop-table td {
+  vertical-align: top;
+}
+@media (max-width: 639px) {
+  .quotation-page .quotation-document {
+    font-size: 13px;
+  }
+  .quotation-page .quotation-document h2 {
+    overflow-wrap: anywhere;
+  }
+}
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 14mm 13mm;
+  }
+  html, body {
+    overflow: visible !important;
+    background: #fff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .quotation-page,
+  .quotation-document {
+    width: 100% !important;
+    max-width: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: 0 !important;
+  }
+  .quotation-desktop-table {
+    width: 100% !important;
+    min-width: 0 !important;
+    table-layout: fixed;
+    font-size: 9px;
+  }
+  .quotation-desktop-table thead {
+    display: table-header-group;
+  }
+  .quotation-desktop-table tr {
+    break-inside: avoid;
+  }
+  .quotation-desktop-table th,
+  .quotation-desktop-table td {
+    padding: 5px 4px !important;
+    overflow-wrap: anywhere;
+    vertical-align: top;
+  }
+  .quotation-desktop-table th:nth-child(1) { width: 5%; }
+  .quotation-desktop-table th:nth-child(2) { width: 37%; }
+  .quotation-desktop-table th:nth-child(3) { width: 7%; }
+  .quotation-desktop-table th:nth-child(4) { width: 11%; }
+  .quotation-desktop-table th:nth-child(5) { width: 20%; }
+  .quotation-desktop-table th:nth-child(6) { width: 20%; }
+  .quotation-document > div {
+    break-inside: auto;
+  }
+}
