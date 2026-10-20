@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
@@ -19,7 +19,8 @@
     "test:ai": "node --test tests/ai-config-security.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
     "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs",
-    "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs"
+    "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
+    "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
