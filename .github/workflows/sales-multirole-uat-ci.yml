@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Seven-role UAT domain and document simulations
-        run: npm run test:sales
+        run: npm run test:sales && npm run test:marketing
       - name: BoQ maker checker and quotation tests
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: TypeScript verification
