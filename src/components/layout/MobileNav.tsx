@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare } from 'lucide-react';
+import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare, Megaphone } from 'lucide-react';
 
 interface MobileNavProps {
   pendingApprovalsCount?: number;
@@ -13,6 +13,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   const pathname = usePathname();
 
   const items = [
+    { label: 'Leads', href: '/sales/leads', icon: Megaphone },
     { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
     { label: 'Demo 360', href: '/', icon: LayoutDashboard },
     { label: 'Scoping', href: '/scoping', icon: FileSearch },
