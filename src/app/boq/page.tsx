@@ -2,7 +2,7 @@
 import React,{useEffect,useState} from 'react';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
-type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;opportunity_id?:string|null;cost_items?:{code:string;amount:number}[]};
+type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;cost_items?:{code:string;amount:number}[]};
 const blank=()=>({opportunity_id:'',quotation_number:'',customer_name:'',project_name:'',service_type:'VAPT',vat_rate:0,payment_terms:'30-50-20',line_items:[{description:'',quantity:1,unit:'Paket',unit_price:0,service_type:'VAPT'}] as Item[]});
 export default function BoQPage(){
  const [list,setList]=useState<Doc[]>([]),[selected,setSelected]=useState<Doc|null>(null);
@@ -14,7 +14,7 @@ export default function BoQPage(){
  const canCreate=['finance','admin','presales','sales'].includes(role);
  const canEdit=canCreate&&(!selected||selected.status==='draft');
  const load=async()=>{try{const r=await fetch('/api/boq',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message);setList(d.boqs||[]);setRole(d.role);}catch(e){setMsg(String(e));}};
- useEffect(()=>{void load();const id=new URLSearchParams(window.location.search).get('opportunity_id');
+ useEffect(()=>{void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
   if(id)fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store'}).then(r=>r.json()).then(j=>{
    if(j.success){setForm(f=>({...f,opportunity_id:id,customer_name:j.account.legal_name,project_name:j.deal.title,
     service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
