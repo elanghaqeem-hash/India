@@ -12,6 +12,7 @@ type ServiceExample = {
   specifications: string;
   fee: number;
   duration: string;
+  durationUnit: 'hari' | 'bulan' | 'tahun';
   deadline: string;
   timeline: string;
 };
@@ -23,6 +24,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh metode: Grey Box; referensi OWASP WSTG/ASVS; 2 web apps dan 1 API gateway. Target/IP asli belum tersedia.',
     fee: 125000000,
     duration: '30',
+    durationUnit: 'hari',
     deadline: '2026-11-20',
     timeline: 'Minggu 1: kickoff & persiapan; Minggu 2-3: pengujian; Minggu 4: pelaporan dan retest (SIMULASI).'
   },
@@ -33,6 +35,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh arsitektur FortiSIEM dan ACT Pro; estimasi 50 log sources. EPS, retensi, SLA serta personel shared/dedicated belum disepakati.',
     fee: 480000000,
     duration: '12',
+    durationUnit: 'bulan',
     deadline: '2027-10-20',
     timeline: 'Bulan 1: onboarding dan tuning; Bulan 2-12: layanan operasional (SIMULASI).'
   },
@@ -43,6 +46,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh pemantauan: 2 domain dan 3 brand keyword; kuota laporan dan penyedia feed belum disetujui.',
     fee: 180000000,
     duration: '12',
+    durationUnit: 'bulan',
     deadline: '2027-10-20',
     timeline: 'Bulan 1: baseline; Bulan 2-12: monitoring dan laporan (SIMULASI).'
   },
@@ -53,6 +57,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh acuan ISO/IEC 27001:2022; 1 organisasi, 3 workshop; bukan klaim sertifikasi.',
     fee: 200000000,
     duration: '60',
+    durationUnit: 'hari',
     deadline: '2026-12-20',
     timeline: 'Minggu 1-2: asesmen; Minggu 3-6: analisis; Minggu 7-8: laporan (SIMULASI).'
   },
@@ -63,6 +68,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: '5 unit endpoint simulasi; imaging forensik dan pemeriksaan artefak. Kewenangan atas perangkat dan akses harus diverifikasi.',
     fee: 150000000,
     duration: '20',
+    durationUnit: 'hari',
     deadline: '2026-11-10',
     timeline: 'Minggu 1: penerimaan dan akuisisi; Minggu 2-3: analisis serta pelaporan (SIMULASI).'
   },
@@ -73,6 +79,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh SKU belum ditetapkan. Merek/OEM, sizing, model support, SLA dan lisensi wajib dipastikan dari BoQ final.',
     fee: 320000000,
     duration: '45',
+    durationUnit: 'hari',
     deadline: '2026-12-05',
     timeline: 'Minggu 1-2: persiapan; Minggu 3-5: konfigurasi; Minggu 6: UAT (SIMULASI).'
   },
@@ -83,6 +90,7 @@ const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
     specifications: 'Contoh generik; isi spesifikasi sesuai produk/layanan yang telah dibeli klien.',
     fee: 95000000,
     duration: '30',
+    durationUnit: 'hari',
     deadline: '2026-11-20',
     timeline: 'Tahap persiapan, pelaksanaan dan pelaporan (SIMULASI).'
   }
@@ -181,7 +189,10 @@ export function fillEmptyPostPoWithDummy(source:PostPoPacket):PostPoPacket {
   if(p.quotationAmountBeforeVat<=0)p.quotationAmountBeforeVat=example.fee;
   if(p.projectFeeBeforeVat<=0)p.projectFeeBeforeVat=example.fee;
   p.milestones=fillMilestones(p.milestones,p.projectFeeBeforeVat);
-  p.durationValue=useIfEmpty(p.durationValue,example.duration);
+  if(missing(p.durationValue)){
+    p.durationValue=example.duration;
+    p.durationUnit=example.durationUnit;
+  }
   p.completionDeadline=useIfEmpty(p.completionDeadline,example.deadline);
   p.timeline=useIfEmpty(p.timeline,example.timeline);
   p.notes=useIfEmpty(p.notes,DUMMY_DATA_NOTICE);
