@@ -30,5 +30,9 @@ Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan 
 - **`manual-push.bat`**: Klik dua kali file ini untuk langsung melakukan push seluruh perubahan saat ini secara manual.
 
 ---
-*Status: Auto-push sinkronisasi aktif ke [https://github.com/elanghaqeem-hash/India](https://github.com/elanghaqeem-hash/India)*
+*Status: auto-push lokal hanya aktif selama watcher Windows berjalan. Cloudflare Git integration sudah tertaut namun build aplikasi masih gagal; lihat CLOUDFLARE_DEPLOYMENT.md.*
 
+
+## Cloudflare CI/CD
+
+Informasi koneksi, penyebab build gagal, keamanan deployment dan verifikasi tersedia di [CLOUDFLARE_DEPLOYMENT.md](CLOUDFLARE_DEPLOYMENT.md).

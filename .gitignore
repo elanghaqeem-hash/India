@@ -3,24 +3,34 @@ node_modules/
 .pnp
 .pnp.js
 
-# Production & Build
+# Build output
 .next/
 out/
 build/
 dist/
+.open-next/
+.wrangler/
+.vinext/
 
-# Env
-.env*.local
+# Secrets (never commit keys or local database)
+.env
+.env.*
+!.env.example
+.dev.vars
+.dev.vars.*
+*.pem
+*.key
+credentials.json
+credentials.*.json
+data/icop_database.json
 
-# Temporary Microsoft Word / Office lock files
+# Microsoft Office temporary lock files
 ~$*
 *.~*
 
-# OS and system files
+# OS and logs
 Thumbs.db
 Desktop.ini
 .DS_Store
-
-# Logs & temp
 *.log
 *.tmp

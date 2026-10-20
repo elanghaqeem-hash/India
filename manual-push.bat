@@ -1,20 +1,17 @@
 @echo off
-title Git Manual Push - Indie
+title Git Manual Push - India
 cd /d "%~dp0"
-echo ========================================================
-echo Status Perubahan:
-echo ========================================================
-git status -s
-echo.
-set /p commit_msg="Masukkan pesan commit (atau tekan Enter untuk auto-timestamp): "
-if "%commit_msg%"=="" (
-    set commit_msg=Update: %DATE% %TIME%
+echo ================================================
+echo Repository: elanghaqeem-hash/India
+echo Branch: main
+echo ================================================
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0auto-push.ps1" -Once
+if errorlevel 1 (
+    echo.
+    echo ERROR: GitHub push failed. Check messages above.
+    pause
+    exit /b 1
 )
-git add -A
-git commit -m "%commit_msg%"
-git push origin main
 echo.
-echo ========================================================
-echo Selesai!
-echo ========================================================
+echo GitHub push successful.
 pause

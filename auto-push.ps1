@@ -1,93 +1,101 @@
-# auto-push.ps1
+# Auto-push changes from the LOCAL Windows checkout only.
+# Requires authenticated Git remote. Keep this process running while working.
 param(
-    [int]$IntervalSeconds = 3,
-    [string]$Branch = "main"
+    [ValidateRange(2,3600)][int]$IntervalSeconds = 3,
+    [string]$Branch = 'main',
+    [switch]$Once
 )
 
-Set-Location -Path $PSScriptRoot
+$ErrorActionPreference = 'Stop'
+Set-Location -LiteralPath $PSScriptRoot
 
-Write-Host "=================================================" -ForegroundColor Cyan
-Write-Host "   Git Auto-Push Watcher Aktif                   " -ForegroundColor Cyan
-Write-Host "   Direktori: $PSScriptRoot                      " -ForegroundColor DarkGray
-Write-Host "   Branch   : $Branch                            " -ForegroundColor DarkGray
-Write-Host "=================================================" -ForegroundColor Cyan
-Write-Host "Memantau perubahan file secara realtime..." -ForegroundColor Yellow
-Write-Host "Tekan Ctrl+C untuk menghentikan pemantauan.`n" -ForegroundColor Yellow
+function Invoke-Git {
+    param([string[]]$ArgsList)
+    $output = & git @ArgsList 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        throw "git failed: $($ArgsList -join ' ') : $($output | Out-String)"
+    }
+    return $output
+}
 
 function Sync-GitChanges {
     try {
-        $status = git status --porcelain 2>&1
-        if ($status) {
-            Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Perubahan terdeteksi:" -ForegroundColor Green
-            $status | ForEach-Object { Write-Host "   $_" -ForegroundColor DarkGray }
+        $actualBranch = (Invoke-Git -ArgsList @('branch','--show-current') | Out-String).Trim()
+        if ($actualBranch -ne $Branch) {
+            throw "Expected branch $Branch but found $actualBranch"
+        }
+        $origin = (Invoke-Git -ArgsList @('remote','get-url','origin') | Out-String).Trim()
+        if ($origin -notmatch '^(https://github[.]com/elanghaqeem-hash/India([.]git)?|git@github[.]com:elanghaqeem-hash/India([.]git)?)$') {
+            throw "Unexpected origin: $origin"
+        }
 
-            # Debounce singkat agar program penyimpan file (misal Word) selesai menulis
+        $status = @(Invoke-Git -ArgsList @('status','--porcelain'))
+        if ($status.Count -gt 0) {
             Start-Sleep -Seconds 2
-
-            git add -A
-            $diffCheck = git diff --staged --name-only
-            if ($diffCheck) {
-                $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-                $commitMsg = "Auto-update: $timestamp"
-
-                Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Melakukan commit: '$commitMsg'..." -ForegroundColor Cyan
-                git commit -m $commitMsg
-
-                Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Melakukan push ke origin $Branch..." -ForegroundColor Cyan
-                $pushOutput = git push origin $Branch 2>&1
-                Write-Host $pushOutput -ForegroundColor Gray
-                Write-Host "[$(Get-Date -Format 'HH:mm:ss')] Push berhasil!`n" -ForegroundColor Green
+            Invoke-Git -ArgsList @('add','-A') | Out-Null
+            $staged = @(Invoke-Git -ArgsList @('diff','--cached','--name-only'))
+            $blocked = @($staged | Where-Object {
+                $_ -match '(^|/)([.]env($|[.])|[.]dev[.]vars($|[.])|credentials([.]|$)|icop_database[.]json$)' -or $_ -match '[.](pem|key)$'
+            })
+            if ($blocked.Count -gt 0) {
+                throw "Sensitive files staged; remove them first: $($blocked -join ', ')"
+            }
+            if ($staged.Count -gt 0) {
+                $message = 'Auto-update: ' + (Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+                Invoke-Git -ArgsList @('commit','-m',$message) | Out-Null
+                Write-Host "Commit created: $message" -ForegroundColor Cyan
             }
         }
+        # Retry any earlier unpushed commits, even when no new files changed.
+        Invoke-Git -ArgsList @('push','origin',"HEAD:refs/heads/$Branch") | Out-Null
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] GitHub push verified." -ForegroundColor Green
+        return $true
     }
     catch {
-        Write-Host "[ERROR] Terjadi kesalahan: $_" -ForegroundColor Red
+        Write-Host "[$(Get-Date -Format 'HH:mm:ss')] ERROR: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
     }
 }
 
-# Lakukan sinkronisasi awal jika ada perubahan tertunda
-Sync-GitChanges
+if ($Once) {
+    if (Sync-GitChanges) { exit 0 }
+    exit 1
+}
 
-$global:hasChanges = $false
-
+Write-Host "Auto-push India; branch=$Branch; interval=$IntervalSeconds seconds." -ForegroundColor Cyan
+Write-Host "Keep this window open. Press Ctrl+C to stop." -ForegroundColor Yellow
 $watcher = New-Object System.IO.FileSystemWatcher
 $watcher.Path = $PSScriptRoot
 $watcher.IncludeSubdirectories = $true
 $watcher.EnableRaisingEvents = $true
-
-$eventHandler = {
+$global:hasChanges = $true
+$handler = {
     $name = $Event.SourceEventArgs.Name
-    # Abaikan perubahan di direktori .git atau file sementara Word (~$)
-    if ($name -notmatch '^\.git' -and $name -notmatch '^~\$' -and $name -notmatch '\.tmp$') {
+    if ($name -notmatch '(^|[\\/])[.]git([\\/]|$)' -and $name -notmatch '(^|[\\/])~[$]' -and $name -notmatch '[.]tmp$') {
         $global:hasChanges = $true
     }
 }
-
-$subChanged = Register-ObjectEvent $watcher "Changed" -Action $eventHandler
-$subCreated = Register-ObjectEvent $watcher "Created" -Action $eventHandler
-$subDeleted = Register-ObjectEvent $watcher "Deleted" -Action $eventHandler
-$subRenamed = Register-ObjectEvent $watcher "Renamed" -Action $eventHandler
-
-$tickCount = 0
-
+$subs = @(
+    (Register-ObjectEvent $watcher Changed -Action $handler),
+    (Register-ObjectEvent $watcher Created -Action $handler),
+    (Register-ObjectEvent $watcher Deleted -Action $handler),
+    (Register-ObjectEvent $watcher Renamed -Action $handler)
+)
+$elapsed = 0
 try {
     while ($true) {
         Start-Sleep -Seconds $IntervalSeconds
-        $tickCount += $IntervalSeconds
-
-        # Jika ada event dari watcher ATAU cek berkala tiap 30 detik
-        if ($global:hasChanges -or ($tickCount -ge 30)) {
+        $elapsed += $IntervalSeconds
+        if ($global:hasChanges -or $elapsed -ge 30) {
             $global:hasChanges = $false
-            $tickCount = 0
-            Sync-GitChanges
+            $elapsed = 0
+            Sync-GitChanges | Out-Null
         }
     }
 }
 finally {
-    Unregister-Event -SourceIdentifier $subChanged.Name -ErrorAction SilentlyContinue
-    Unregister-Event -SourceIdentifier $subCreated.Name -ErrorAction SilentlyContinue
-    Unregister-Event -SourceIdentifier $subDeleted.Name -ErrorAction SilentlyContinue
-    Unregister-Event -SourceIdentifier $subRenamed.Name -ErrorAction SilentlyContinue
+    foreach ($sub in $subs) {
+        Unregister-Event -SourceIdentifier $sub.Name -ErrorAction SilentlyContinue
+    }
     $watcher.Dispose()
-    Write-Host "`nAuto-push watcher telah dinonaktifkan." -ForegroundColor Yellow
 }
