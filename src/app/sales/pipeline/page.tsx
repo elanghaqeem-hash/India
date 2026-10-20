@@ -1,6 +1,7 @@
 'use client';
 import React,{useEffect,useState,useCallback} from 'react';
 import Link from 'next/link';
+import { PRESALES_FIELDS } from '@/lib/sales-access';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
 
@@ -21,16 +22,16 @@ const listSelect:Record<string,string[]>={
 };
 const stageLabel=(s:string)=>SALES_STAGES.find(x=>x[0]===s)?.[1]||s;
 const stages:SalesStage[]=SALES_STAGES.map(x=>x[0]);
-function FormFields({fields,values,onUpdate}:{
- fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;
+function FormFields({fields,values,onUpdate,readOnly}:{
+ fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
  {fields.map(([key,label])=><label key={key} className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
   {label}
-  {listSelect[key]?<select aria-label={label} className={inputClass} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
+  {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
-  areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
-  <input className={inputClass} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')?'number':'text'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>}
+  areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
+  <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>}
  </label>)}
  </div>;
 }
@@ -96,7 +97,14 @@ export default function SalesPipelinePage(){
  const saveAccount=()=>void run(()=>request('POST','/api/sales',{entity:'account',legal_name:accountName,fields:accountFields}),'Customer Account tersimpan di D1.');
  const saveDeal=()=>void run(()=>request('POST','/api/sales',{entity:'deal',company_id:customerId,title:dealTitle,estimated_value:Number(amount),fields:dealFields}),'Opportunity terdaftar pada pipeline.');
  const updateAccount=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'account',id:detail.account.id,legal_name:accountName,fields:accountFields}),'Registrasi pelanggan diperbarui.',selectedId);
- const updateDeal=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'deal',id:selectedId,title:dealTitle,estimated_value:Number(amount),fields:dealFields}),'Detail opportunity diperbarui. Verifikasi PO lama dibatalkan jika ada.',selectedId);
+ const updateDeal=()=>{if(!detail)return;
+  // Presales submits only modified technical fields; never quote/PO/commercial fields.
+  const changes=Object.fromEntries(Object.entries(dealFields).filter(([k,v])=>v!==(detail.deal.fields[k]||'')));
+  if(role==='presales'&&!Object.keys(changes).some(k=>PRESALES_FIELDS.has(k))){setMessage('Tidak ada perubahan teknis yang perlu disimpan.');return;}
+  const payload=role==='presales'?{entity:'deal',id:selectedId,fields:Object.fromEntries(Object.entries(changes).filter(([k])=>PRESALES_FIELDS.has(k)))}:
+    {entity:'deal',id:selectedId,title:dealTitle,estimated_value:Number(amount),fields:dealFields};
+  void run(()=>request('PATCH','/api/sales',payload),'Detail opportunity diperbarui. Verifikasi PO lama dibatalkan jika ada.',selectedId);
+ };
  const transition=(stage:SalesStage)=>void run(()=>request('PATCH','/api/sales',{entity:'transition',id:selectedId,stage}),'Tahap berubah menjadi '+stageLabel(stage),selectedId);
  const verify=()=>{if(!window.confirm('Konfirmasi Finance/Approver: Anda sudah memeriksa dokumen PO asli, nomor/tanggal, scope, nilai sebelum PPN, dan kesesuaian quotation final?'))return;
   void run(()=>request('POST','/api/sales',{entity:'verify_po',id:selectedId,confirmed_documents:true}),'Pemeriksaan PO terhadap BoQ approved dicatat beserta identitas pemeriksa.',selectedId);
@@ -107,14 +115,17 @@ export default function SalesPipelinePage(){
  const value=pipeline.reduce((a,d)=>a+d.estimated_value,0),weighted=pipeline.reduce((a,d)=>a+d.estimated_value*stageProbability(d.stage)/100,0);
  const ordered=stages.filter(s=>!['closed_won','closed_lost'].includes(s));
  const idx=detail?ordered.indexOf(detail.deal.stage):-1;
+ const isMaker=['sales','admin'].includes(role);
+ // Admin can always move stage, Sales ownership is enforced by API and client-created list.
+ const mayMove=role==='admin'||(role==='sales'&&detail?.deal.created_by!==undefined);
  return <div className="min-w-0 space-y-5 pb-24">
  <header className="flex flex-wrap items-center justify-between gap-3">
   <div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">INDIA • DefendIT360</p>
    <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Sales Pipeline & Opportunity 360</h1>
    <p className="mt-1 max-w-3xl text-xs text-slate-500">Registrasi → Qualification → Scoping → BoQ → Approval → Quotation → Negotiation → Won / Lost. Setiap perubahan tersimpan di Cloudflare D1 dan dicatat audit trail.</p></div>
   <div className="flex flex-wrap gap-2">
-   <button disabled={busy} onClick={newAccount} className="rounded-lg border px-3 py-2 text-xs font-bold">+ Customer</button>
-   <button disabled={busy||!accounts.length} onClick={newDeal} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white">+ Opportunity</button>
+   <button disabled={busy||!isMaker} onClick={newAccount} className="rounded-lg border px-3 py-2 text-xs font-bold">+ Customer</button>
+   <button disabled={busy||!isMaker||!accounts.length} onClick={newDeal} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white">+ Opportunity</button>
   </div>
  </header>
  {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">{message}</div>}
@@ -145,7 +156,7 @@ export default function SalesPipelinePage(){
   <p className="text-xs text-slate-500">Customer ID diterbitkan otomatis. Field kosong harus dilengkapi sebelum tahap Qualified dan sebelum dokumen final.</p>
   <label className="block text-xs font-bold">Nama badan usaha resmi *<input className={inputClass} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
   <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
-  <button disabled={busy} onClick={saveAccount} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Simpan Customer Account</button>
+  <button disabled={busy||!isMaker} onClick={saveAccount} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Simpan Customer Account</button>
  </section>}
  {tab==='newdeal'&&<section className="space-y-4 rounded-xl border bg-white p-4">
   <h2 className="font-bold">Opportunity Registration</h2>
@@ -154,19 +165,19 @@ export default function SalesPipelinePage(){
   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-bold">Nama Proyek *<input className={inputClass} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
   <label className="text-xs font-bold">Estimasi Nilai (IDR) *<input type="number" min="1" className={inputClass} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
   <FormFields fields={DEAL_FIELDS} values={dealFields} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
-  <button disabled={busy} onClick={saveDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">Simpan ke Pipeline</button>
+  <button disabled={busy||!isMaker} onClick={saveDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">Simpan ke Pipeline</button>
  </section>}
  {tab==='details'&&detail&&<div className="space-y-4">
   <section className="rounded-xl border bg-white p-4">
    <div className="flex flex-wrap justify-between gap-2"><h2 className="font-bold">Opportunity Detail • {stageLabel(detail.deal.stage)}</h2><span className="break-all text-[10px] text-slate-500">ID {detail.deal.id}</span></div>
    <p className="mt-2 text-sm text-slate-600">{detail.account.legal_name} · {detail.account.customer_number}</p>
    <div className="mt-3 flex flex-wrap gap-2">
-    {detail.deal.stage!=='closed_won'&&detail.deal.stage!=='closed_lost'&&idx>=0&&idx<ordered.length-1&&
+    {mayMove&&detail.deal.stage!=='closed_won'&&detail.deal.stage!=='closed_lost'&&idx>=0&&idx<ordered.length-1&&
     <button disabled={busy} onClick={()=>transition(ordered[idx+1])} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Lanjut: {stageLabel(ordered[idx+1])}</button>}
     {detail.deal.stage==='pending_po'&&
-    <><button disabled={busy} onClick={verify} className="rounded-lg border border-blue-300 px-3 py-2 text-xs font-bold">Verifikasi PO (Finance/Approver)</button><button disabled={busy||!detail.poCheck} onClick={()=>transition('closed_won')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Closed Won</button></>}
-    {detail.deal.stage!=='closed_won'&&detail.deal.stage!=='closed_lost'&&<button disabled={busy} onClick={()=>transition('closed_lost')} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700">Closed Lost (isi alasan dahulu)</button>}
-    {detail.deal.stage==='closed_lost'&&<button disabled={busy} onClick={()=>transition('prospecting')} className="rounded-lg border px-3 py-2 text-xs font-bold">Reopen → Prospecting</button>}
+    <>{['admin','finance','approver'].includes(role)&&<button disabled={busy} onClick={verify} className="rounded-lg border border-blue-300 px-3 py-2 text-xs font-bold">Verifikasi PO (Finance/Approver)</button>}{mayMove&&<button disabled={busy||!detail.poCheck} onClick={()=>transition('closed_won')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Closed Won</button>}</>}
+    {mayMove&&detail.deal.stage!=='closed_won'&&detail.deal.stage!=='closed_lost'&&<button disabled={busy} onClick={()=>transition('closed_lost')} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700">Closed Lost (isi alasan dahulu)</button>}
+    {mayMove&&detail.deal.stage==='closed_lost'&&<button disabled={busy} onClick={()=>transition('prospecting')} className="rounded-lg border px-3 py-2 text-xs font-bold">Reopen → Prospecting</button>}
     <Link href={'/boq?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border px-3 py-2 text-xs font-semibold">Buat / Cek BoQ →</Link>
     {detail.boqs.some(b=>b.status==='approved'&&b.id===dealFields.boq_id)&&<a href={'/api/sales/quotation?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-300 px-3 py-2 text-xs font-bold text-indigo-800">Generate Quotation Word (BoQ approved)</a>}
     {detail.deal.stage==='closed_won'&&<Link href={'/post-po?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Isi Form Post-PO →</Link>}
@@ -175,24 +186,24 @@ export default function SalesPipelinePage(){
   </section>
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
-    <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
-    <button disabled={busy||!['admin','sales'].includes(role)} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
+    <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!isMaker} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
+    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!isMaker} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+    <button disabled={busy||!isMaker} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
    </details>
   </section>
   <section className="space-y-4 rounded-xl border bg-white p-4">
    <h3 className="text-sm font-bold">Sales Form • Discovery, Technical, Commercial, Negotiation & PO</h3>
-   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Nama proyek<input className={inputClass} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
-   <label className="text-xs font-semibold">Nilai pipeline (IDR)<input type="number" className={inputClass} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
-   <FormFields fields={DEAL_FIELDS} values={dealFields} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
+   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Nama proyek<input className={inputClass} disabled={!isMaker} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
+   <label className="text-xs font-semibold">Nilai pipeline (IDR)<input type="number" className={inputClass} disabled={!isMaker} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
+   <FormFields fields={DEAL_FIELDS} values={dealFields} readOnly={k=>!isMaker&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
    <div className="flex flex-wrap items-center gap-3">
-    <button disabled={busy||['closed_won','closed_lost'].includes(detail.deal.stage)} onClick={updateDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">Simpan Semua Perubahan</button>
+    <button disabled={busy||!['admin','sales','presales'].includes(role)||['closed_won','closed_lost'].includes(detail.deal.stage)} onClick={updateDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">{role==='presales'?'Simpan Parameter Teknis':'Simpan Semua Perubahan'}</button>
     <p className="text-xs text-amber-700">Simpan perubahan sebelum pindah stage. Edit detail membatalkan verifikasi PO sebelumnya.</p>
    </div>
   </section>
   <div className="grid gap-4 lg:grid-cols-2">
    <section className="space-y-3 rounded-xl border bg-white p-4"><h3 className="text-sm font-bold">BoQ & Persetujuan Terkait</h3>
-    {detail.boqs.length?detail.boqs.map(b=><button key={b.id} className={'block w-full rounded-lg border p-3 text-left text-xs '+(dealFields.boq_id===b.id?'border-blue-500 bg-blue-50':'')} onClick={()=>setDealFields(f=>({...f,boq_id:b.id,quotation_number:b.quotation_number}))}><b>{b.quotation_number}</b> · {b.status}<span className="mt-1 block text-slate-500">{b.project_name}</span><span className="text-blue-700">Pilih (lalu simpan form)</span></button>):
+    {detail.boqs.length?detail.boqs.map(b=><button disabled={!isMaker} key={b.id} className={'block w-full rounded-lg border p-3 text-left text-xs '+(dealFields.boq_id===b.id?'border-blue-500 bg-blue-50':'')} onClick={()=>setDealFields(f=>({...f,boq_id:b.id,quotation_number:b.quotation_number}))}><b>{b.quotation_number}</b> · {b.status}<span className="mt-1 block text-slate-500">{b.project_name}</span><span className="text-blue-700">Pilih (lalu simpan form)</span></button>):
     <p className="text-xs text-slate-500">Belum ada BoQ D1 terhubung. Buat di menu BoQ dan cantumkan Opportunity ID.</p>}
    </section>
    <section className="space-y-2 rounded-xl border bg-white p-4"><h3 className="text-sm font-bold">Kelengkapan Form Post-PO</h3>
