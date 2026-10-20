@@ -17,7 +17,9 @@ export async function encryptionKey():Promise<CryptoKey>{
  try {bytes=Uint8Array.from(atob(configured),c=>c.charCodeAt(0));}
  catch {throw new Error('Konfigurasi enkripsi tidak valid.');}
  if(bytes.byteLength!==32)throw new Error('Secret enkripsi wajib berupa 32 byte base64.');
- return crypto.subtle.importKey('raw',bytes,'AES-GCM',false,['encrypt','decrypt']);
+ const material=new Uint8Array(32);
+ material.set(bytes);
+ return crypto.subtle.importKey('raw',material,'AES-GCM',false,['encrypt','decrypt']);
 }
 const base64=(bytes:Uint8Array)=>btoa(Array.from(bytes,x=>String.fromCharCode(x)).join(''));
 const unbase64=(s:string)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
