@@ -122,6 +122,7 @@ export async function POST(req:Request){
    if(!safeID(p.id))return fail('Opportunity tidak valid');
    const raw=await getDeal(db,p.id as string),acct=raw?await getAccount(db,raw.company_id):null;
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
+   if(raw.created_by?.trim().toLowerCase()===email.trim().toLowerCase())return fail('Segregation of Duties: pembuat opportunity tidak boleh melakukan verifikasi PO, termasuk Admin.',403);
    const d=deal(raw,account(acct));
    if(d.stage!=='pending_po')return fail('PO dapat diverifikasi hanya pada Pending PO',409);
    if(p.confirmed_documents!==true)return fail('Finance/Approver wajib menyatakan telah memeriksa dokumen PO asli, ruang lingkup, nominal dan quotation.',422);
