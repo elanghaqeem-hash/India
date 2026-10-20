@@ -16,10 +16,10 @@ type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;
 const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 async function getAccount(db:D1DB,id:string):Promise<AcctRow|null>{
- return db.prepare('SELECT * FROM companies WHERE id=? AND tenant_id=?').bind(id,TENANT).first<AcctRow>();
+ return db.prepare('SELECT * FROM india_sales_accounts WHERE id=? AND tenant_id=?').bind(id,TENANT).first<AcctRow>();
 }
 async function getDeal(db:D1DB,id:string):Promise<DealRow|null>{
- return db.prepare('SELECT * FROM opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
+ return db.prepare('SELECT * FROM india_sales_opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
 }
 async function audit(db:D1DB,entity:string,id:string,action:string,email:string,from:string|null=null,to:string|null=null,summary=''){
  await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,from_stage,to_stage,actor_email,summary) VALUES (?,?,?,?,?,?,?,?,?)')
@@ -46,12 +46,12 @@ export async function GET(req:Request){
  if(!allowed(auth.identity.role,servicePerms))return fail('Hak akses data Sales tidak tersedia untuk role ini',403);
  try{
   if(entity==='accounts'){
-   const rows=await db.prepare('SELECT * FROM companies WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
+   const rows=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
    return answer({success:true,accounts:rows.results.map(account),role:auth.identity.role});
   }
   if(entity==='deals'){
-   const rows=await db.prepare('SELECT * FROM opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
-   const companies=await db.prepare('SELECT * FROM companies WHERE tenant_id=?').bind(TENANT).all<AcctRow>();
+   const rows=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
+   const companies=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=?').bind(TENANT).all<AcctRow>();
    const refs=new Map(companies.results.map(r=>[r.id,account(r)]));
    return answer({success:true,deals:rows.results.filter(x=>refs.has(x.company_id)&&canReadDeal(auth.identity.role,auth.identity.email,x.created_by)).map(x=>deal(x,refs.get(x.company_id)!)),role:auth.identity.role});
   }
@@ -91,7 +91,7 @@ export async function POST(req:Request){
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
    const fields=cleanFields(p.fields||{},ACCOUNT_KEYS);
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
-   await db.prepare('INSERT INTO companies(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
+   await db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
     .bind(id,TENANT,legal_name,customer_number,JSON.stringify(fields),email).run();
    await audit(db,'account',id,'CREATE',email);
    return answer({success:true,id,customer_number,missing:[]},201);
@@ -103,7 +103,7 @@ export async function POST(req:Request){
    if(!await getAccount(db,company_id as string))return fail('Customer account tidak ditemukan',404);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
-   await db.prepare("INSERT INTO opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
+   await db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
     .bind(id,TENANT,company_id as string,title,'prospecting',amount,JSON.stringify(fields),email).run();
    await audit(db,'deal',id,'CREATE',email,null,'prospecting');
    return answer({success:true,id},201);
@@ -180,7 +180,7 @@ export async function PATCH(req:Request){
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim();
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
-   const result=await db.prepare('UPDATE companies SET legal_name=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
+   const result=await db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
     .bind(name,JSON.stringify(fields),row.id,TENANT,row.data_json).run();
    if((result as any).meta?.changes===0)return fail('Data berubah pada sesi lain; refresh',409);
    await audit(db,'account',row.id,'UPDATE',email);
@@ -200,7 +200,7 @@ export async function PATCH(req:Request){
     const amount=p.estimated_value===undefined?d.estimated_value:Number(p.estimated_value);
     if(!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Judul dan nilai tidak valid');
     const fields={...d.fields,...allowedFields};
-    const updated=await db.prepare('UPDATE opportunities SET title=?,estimated_value_idr=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
+    const updated=await db.prepare('UPDATE india_sales_opportunities SET title=?,estimated_value_idr=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
      .bind(title,amount,JSON.stringify(fields),d.id,TENANT,row.data_json).run();
     if((updated as any).meta?.changes===0)return fail('Opportunity telah berubah, muat ulang',409);
     await db.prepare('DELETE FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).run();
@@ -230,7 +230,7 @@ export async function PATCH(req:Request){
        Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>1)
       return fail('Verifikasi PO oleh Finance/Approver harus selesai dengan bukti yang sama.',409);
    }
-   const changed=await db.prepare('UPDATE opportunities SET stage=? WHERE id=? AND tenant_id=? AND stage=? AND data_json=?')
+   const changed=await db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=? AND stage=? AND data_json=?')
     .bind(stage,d.id,TENANT,d.stage,row.data_json).run();
    if((changed as any).meta?.changes===0)return fail('Stage diperbarui oleh pengguna lain, muat ulang',409);
    await audit(db,'deal',d.id,'STAGE',email,d.stage,stage);
