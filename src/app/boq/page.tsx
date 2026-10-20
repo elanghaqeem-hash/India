@@ -18,7 +18,7 @@ export default function BoQPage(){
     service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
   }).catch(()=>{});
   void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
- const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
+ const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d,opportunity_id:d.opportunity_id||''});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
  const change=(key:string,value:any)=>setForm(p=>({...p,[key]:value}));
  const line=(i:number,key:keyof Item,v:any)=>setForm(p=>({...p,line_items:p.line_items.map((x,j)=>i===j?{...x,[key]:v}:x)}));
  const call=async(action:string)=>{
