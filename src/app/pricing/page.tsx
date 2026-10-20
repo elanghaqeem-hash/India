@@ -619,6 +619,33 @@ function PricingEngineContent() {
               </p>
             </div>
 
+            {/* AI Commercial Advisor Button */}
+            <button
+              type="button"
+              onClick={handleGetAiPricingAdvice}
+              disabled={aiAdvising}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100/80 py-2.5 text-xs font-bold text-indigo-900 transition-all"
+            >
+              <Sparkles className="h-4 w-4 text-indigo-600" />
+              <span>{aiAdvising ? 'Mengkaji AI Commercial Intelligence...' : 'AI Pricing & Margin Advisor'}</span>
+            </button>
+
+            {/* AI Advisor Modal / Drawer */}
+            {aiAdvice && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 text-xs space-y-2 animate-in fade-in">
+                <div className="flex items-center justify-between text-indigo-950 font-bold border-b border-indigo-100 pb-1.5">
+                  <span className="flex items-center gap-1.5">
+                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
+                    <span>Rekomendasi Strategi Komersial AI</span>
+                  </span>
+                  <button onClick={() => setAiAdvice(null)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
+                </div>
+                <div className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap bg-white p-2.5 rounded-lg border border-indigo-100 max-h-48 overflow-y-auto">
+                  {aiAdvice}
+                </div>
+              </div>
+            )}
+
             {/* Submit to Quotation & Approval Button */}
             <button
               onClick={handleCreateQuotation}

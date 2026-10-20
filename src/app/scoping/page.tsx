@@ -79,22 +79,177 @@ export default function SmartScopingPage() {
     }
   };
 
+  // AI Extraction State
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [aiDocText, setAiDocText] = useState('');
+  const [aiExtracting, setAiExtracting] = useState(false);
+  const [aiExtractionResult, setAiExtractionResult] = useState<string | null>(null);
+
+  const handleAiExtract = async () => {
+    if (!aiDocText.trim()) return;
+    setAiExtracting(true);
+    setAiExtractionResult(null);
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_type: 'scoping_analysis',
+          prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText}\n\nTentukan:
+1. Rekomendasi Service (VAPT Web, Mobile, API, Network, atau SOC MDR).
+2. Metodologi (Black Box / Grey Box / White Box).
+3. Estimasi kompleksitas, jumlah endpoint/host/servers.
+4. Kebutuhan kepatuhan (POJK/BSSN/ISO27001).
+5. Ringkasan singkat alasan rekomendasi.`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiExtractionResult(data.content);
+        // Heuristic auto-adjust
+        const lower = aiDocText.toLowerCase();
+        if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
+          setVaptType('mobile_app');
+          setActiveTab('VAPT');
+        } else if (lower.includes('api') || lower.includes('microservice')) {
+          setVaptType('api');
+          setActiveTab('VAPT');
+        } else if (lower.includes('soc') || lower.includes('siem') || lower.includes('monitoring') || lower.includes('mdr')) {
+          setActiveTab('SOC');
+        } else if (lower.includes('network') || lower.includes('firewall') || lower.includes('server')) {
+          setVaptType('network_infra');
+          setActiveTab('VAPT');
+        } else if (lower.includes('red team') || lower.includes('apt')) {
+          setVaptType('red_team');
+          setActiveTab('VAPT');
+        }
+
+        if (lower.includes('white box') || lower.includes('whitebox')) setBoxMethod('white_box');
+        else if (lower.includes('black box') || lower.includes('blackbox')) setBoxMethod('black_box');
+        else setBoxMethod('grey_box');
+
+        if (lower.includes('bank') || lower.includes('ojk') || lower.includes('fintech') || lower.includes('keuangan')) {
+          setIsFinancial(true);
+        }
+      } else {
+        setAiExtractionResult('Gagal menganalisis dokumen: ' + (data.message || 'Error'));
+      }
+    } catch (e: any) {
+      setAiExtractionResult('Koneksi AI gagal: ' + e.message);
+    } finally {
+      setAiExtracting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="border-b border-slate-200 pb-5">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
-            <FileSearch className="h-4 w-4" />
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-100 text-blue-700">
+              <FileSearch className="h-4 w-4" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Smart Scoping Assessment Engine</h1>
+              <p className="text-xs text-slate-500">
+                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS DefendIT360.
+              </p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Smart Scoping Assessment Engine</h1>
-            <p className="text-xs text-slate-500">
-              Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS DefendIT360.
-            </p>
-          </div>
+
+          <button
+            onClick={() => setShowAiModal(true)}
+            className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-bold text-white shadow-md shadow-blue-500/20 hover:from-blue-700 hover:to-indigo-700 transition-all self-start sm:self-auto"
+          >
+            <Sparkles className="h-4 w-4 text-cyan-200" />
+            <span>AI Auto-Extract RKS / TOR</span>
+          </button>
         </div>
       </div>
+
+      {/* AI Extraction Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-in fade-in">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-indigo-600" />
+                <h3 className="text-base font-black text-slate-900">AI Auto-Extract Scoping dari Dokumen RKS / TOR</h3>
+              </div>
+              <button
+                onClick={() => setShowAiModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-lg font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Tempelkan cuplikan teks Kerangka Acuan Kerja (KAK), RKS, TOR, atau deskripsi scope tender dari klien. Multi-Source AI Engine (Gemini/OpenAI/Claude/Local) akan menganalisis parameter teknis dan otomatis mengisi formulir scoping.
+            </p>
+
+            <div>
+              <label className="text-xs font-bold text-slate-700 block mb-1">
+                Teks Ruang Lingkup Dokumen Klien:
+              </label>
+              <textarea
+                value={aiDocText}
+                onChange={e => setAiDocText(e.target.value)}
+                placeholder="Contoh: Dibutuhkan uji penetrasi keamanan Web Application Core Banking dan Mobile Banking iOS & Android dengan metodologi Grey-Box sesuai POJK No. 11/POJK.03/2022, mencakup 30 API endpoint dan 25 halaman layar..."
+                rows={6}
+                className="w-full rounded-xl border border-slate-200 p-3 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShowAiModal(false)}
+                className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
+              >
+                Batal
+              </button>
+              <button
+                disabled={aiExtracting || !aiDocText.trim()}
+                onClick={handleAiExtract}
+                className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
+              >
+                {aiExtracting ? (
+                  <>
+                    <div className="h-3 w-3 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    <span>Menganalisis Multi-Source AI...</span>
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Ekstrak Parameter Teknis</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {aiExtractionResult && (
+              <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-xs space-y-2 mt-4 animate-in fade-in">
+                <div className="flex items-center gap-2 font-bold text-indigo-950">
+                  <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                  <span>Hasil Analisis AI & Rekomendasi Parameter:</span>
+                </div>
+                <div className="prose prose-xs text-slate-800 whitespace-pre-wrap leading-relaxed text-[11px] bg-white p-3 rounded-lg border border-indigo-100 max-h-56 overflow-y-auto">
+                  {aiExtractionResult}
+                </div>
+                <div className="flex justify-end pt-2">
+                  <button
+                    onClick={() => setShowAiModal(false)}
+                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+                  >
+                    Terapkan Nilai ke Formulir
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Service Type Selection Tabs */}
       <div className="flex rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs max-w-md">
