@@ -90,3 +90,17 @@ test('cost item mismatch is visible; malformed amounts are rejected', async () =
   assert.throws(() => api.createQuotationDocx({ ...base, vat_amount: -1 }), /tidak valid/);
   assert.throws(() => api.createQuotationDocx({ ...base, line_items: [] }), /minimal satu/);
 });
+
+test('DOCX source-aligned letterhead and purple table contain the expected four columns', async () => {
+  const api = await exporter();
+  const xml = unpack(api.createQuotationDocx(base, 'mobile'), 'word/document.xml');
+  assert.match(xml, /member of XLSMART/);
+  assert.match(xml, /Head Office/);
+  assert.match(xml, /PT\. DATA ENKRIPSI INFORMASI TEKNOLOGI/);
+  assert.match(xml, /Product/);
+  assert.match(xml, /Layanan/);
+  assert.match(xml, /Qty/);
+  assert.match(xml, /Price/);
+  assert.match(xml, /63369B/);
+  assert.match(xml, /RINCIAN HARGA PENAWARAN/);
+});
