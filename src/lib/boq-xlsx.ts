@@ -72,11 +72,19 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     const r = b.length + 1;
     push(b, [
       item.line_number, safeText(item.description), safeText(item.unit), money(item.quantity),
-      money(item.unit_price), null, f('D' + r + '*E' + r), null, null, null, item.service_type,
+      money(item.unit_price), null, f('D' + r + '*E' + r),
+      f('IF(F' + r + '="","",D' + r + '*F' + r + ')'),
+      f('IF(OR(G' + r + '="",H' + r + '=""),"",G' + r + '-H' + r + ')'),
+      f('IFERROR(I' + r + '/G' + r + ',"")'), item.service_type,
     ]);
   }
   for (const [type, label, unit] of PRODUCT_CATALOG) {
-    push(b, [type, label, unit, 0, null, null, null, null, null, null, 'Katalog - tidak aktif']);
+    const r = b.length + 1;
+    push(b, [type, label, unit, 0, null, null,
+      f('IF(OR(D' + r + '=0,E' + r + '=""),"",D' + r + '*E' + r + ')'),
+      f('IF(OR(D' + r + '=0,F' + r + '=""),"",D' + r + '*F' + r + ')'),
+      f('IF(OR(G' + r + '="",H' + r + '=""),"",G' + r + '-H' + r + ')'),
+      f('IFERROR(I' + r + '/G' + r + ',"")'), 'Katalog - tidak aktif']);
   }
   const costBegin = b.length + 3;
   pad(b, costBegin - 1);
@@ -97,15 +105,15 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     f('SUMIF(C9:C' + (costBegin - 1) + ',"MD",D9:D' + (costBegin - 1) + ')'),
     null, null,
     f('SUM(G9:G' + (total - 1) + ')'),
-    pricing ? f('SUM(H' + (costBegin + 1) + ':H' + (costBegin + 5) + ')') : null,
-    pricing ? f('G' + total + '-H' + total) : null,
-    pricing ? f('IFERROR(I' + total + '/G' + total + ',"")') : null,
+    f('IF(COUNT(H' + (costBegin + 1) + ':H' + (costBegin + 5) + ')>0,SUM(H' + (costBegin + 1) + ':H' + (costBegin + 5) + '),IF(COUNT(H9:H' + (costBegin - 1) + ')>0,SUM(H9:H' + (costBegin - 1) + '),""))'),
+    f('IF(H' + total + '="","",G' + total + '-H' + total + ')'),
+    f('IFERROR(I' + total + '/G' + total + ',"")'),
     pricing ? 'HPP agregat terhubung' : 'BELUM ADA HPP TERVERIFIKASI']);
   push(b, ['', 'PPN', null, null, null, null, f('G' + total + '*Parameter!C9')]);
   push(b, ['', 'TOTAL TERMASUK PPN', null, null, null, null, f('G' + total + '+G' + (total + 1))]);
   push(b, ['', 'VALIDASI: Harga/HPP/lingkup/otorisasi harus diperiksa sebelum dokumen digunakan.']);
 
-  const gross = pricing ? f("'BoQ Internal'!I" + total) : null;
+  const gross = f('IF(\'BoQ Internal\'!I' + total + '="","",\'BoQ Internal\'!I' + total + ')');
   const summary: Cell[][] = [
     ['DEFENDIT360 | RINGKASAN PROFITABILITAS'],
     ['DOKUMEN INTERNAL - RAHASIA'],
@@ -116,9 +124,9 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ['Indikator', 'Nilai', 'Catatan'],
     [],
     ['Revenue Excl. PPN', f("'BoQ Internal'!G" + total), 'Mengikuti proposal'],
-    ['HPP total', pricing ? f("'BoQ Internal'!H" + total) : null, 'Kosong jika tidak ada pricing linked'],
+    ['HPP total', f('IF(\'BoQ Internal\'!H' + total + '="","",\'BoQ Internal\'!H' + total + ')'), 'Kosong jika belum diisi'],
     ['Gross Profit', gross, 'Belum final sebelum approval'],
-    ['Gross Profit %', pricing ? f('IFERROR(B11/B9,"")') : null, 'Guardrail margin'],
+    ['Gross Profit %', f('IFERROR(B11/B9,"")'), 'Guardrail margin'],
     ['Mandays', f("'BoQ Internal'!D" + total), 'MD yang tercantum dalam proposal'],
     ['Floor (HPP/0,8)', pricing ? f('IFERROR(B10/Parameter!C11,0)') : null],
     ['Standard price', pricing ? f('B14*Parameter!C12') : null],
@@ -347,7 +355,8 @@ function sheetXml(sheet: Sheet): string {
 
 function crc32(bytes: Uint8Array): number {
   let crc = 0xFFFFFFFF;
-  for (const byte of bytes) {
+  for (let j = 0; j < bytes.length; j++) {
+    const byte = bytes[j];
     crc ^= byte;
     for (let i = 0; i < 8; i++) crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
   }
