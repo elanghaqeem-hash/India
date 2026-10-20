@@ -1,7 +1,7 @@
 export type BidDecision='pending'|'go'|'conditional_go'|'no_go';
 export type ProcurementBid={opportunity_id:string;tenant_id:string;channel:string;
  bid_decision:BidDecision;proposed_by:string;decided_by:string|null;decision_reason:string};
-export type RequirementEvidence={kind:string;status:string;compliance_status:string;reviewed_by:string|null};
+export type RequirementEvidence={kind:string;status:string;compliance_status:string;reviewed_by:string|null;file_reference:string;source_content_hash:string};
 export const needsTenderGate=(process:string):boolean=>/(?:^|\W)(?:tender|rfp|rfq|lpse|spse|pengadaan)(?:$|\W)/i.test(process);
 export function canDecideBid(bid:ProcurementBid,role:string,actor:string):string|null{
  if(!['admin','approver'].includes(role))return 'Hanya Approver atau Admin dapat membuat keputusan Bid/No-Bid';
@@ -15,7 +15,7 @@ export function procurementGate(
  if(!needsTenderGate(process))return [];
  const missing:string[]=[];
  if(!bid||bid.bid_decision!=='go'||!bid.decided_by)missing.push('Bid/No-Bid harus GO dan disahkan Approver independen');
- if(!requirements.some(r=>['rks','kak','rfp','rfq'].includes(r.kind)&&r.status==='reviewed'&&r.compliance_status==='compliant'&&r.reviewed_by))
+ if(!requirements.some(r=>['rks','kak','rfp','rfq'].includes(r.kind)&&r.status==='reviewed'&&r.compliance_status==='compliant'&&r.reviewed_by&&r.file_reference&&/^[a-f0-9]{64}$/i.test(r.source_content_hash)))
   missing.push('RKS/KAK/RFP requirement matrix harus sudah reviewed dan compliant');
  return missing;
 }
