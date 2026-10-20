@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList } from 'lucide-react';
 
 interface MobileNavProps {
   pendingApprovalsCount?: number;
@@ -16,6 +16,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
     { label: 'Deal 360', href: '/', icon: LayoutDashboard },
     { label: 'Scoping', href: '/scoping', icon: FileSearch },
     { label: 'Pricing', href: '/pricing', icon: Calculator },
+    { label: 'BoQ', href: '/boq', icon: ClipboardList },
     { label: 'Approval', href: '/approvals', icon: Stamp, badge: pendingApprovalsCount },
     { label: 'Quotation', href: '/proposals', icon: FileSpreadsheet },
     { label: 'Post-PO', href: '/post-po', icon: ClipboardCheck },
@@ -23,7 +24,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
 
   return (
     <nav aria-label="Navigasi utama mobile" className="no-print fixed inset-x-0 bottom-0 z-50 flex min-h-16 border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(15,23,42,0.04)] backdrop-blur-md lg:hidden">
-      <div className="grid h-full w-full grid-cols-6 items-center">
+      <div className="grid h-full w-full grid-cols-7 items-center">
         {items.map(item => {
           const isActive = pathname === item.href;
           const Icon = item.icon;

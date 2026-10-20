@@ -15,6 +15,7 @@ import {
   FileCheck2,
   FileText,
   ClipboardCheck,
+  ClipboardList,
   Sparkles,
 } from 'lucide-react';
 
@@ -26,6 +27,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   const pathname = usePathname();
 
   const navigation = [
+    { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
     {
       name: 'Deal 360 Workspace',
       href: '/',
