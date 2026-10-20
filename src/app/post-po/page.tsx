@@ -104,6 +104,47 @@ export default function PostPoPage(){
    </div>
   </header>
 
+  <section className="rounded-2xl border border-violet-200 bg-white p-4 sm:p-5">
+    <h2 className="text-sm font-bold text-slate-900">Isi data dummy pada Form Registrasi dan Form Project</h2>
+    <p className="mt-1 text-xs text-slate-600">{DUMMY_DATA_NOTICE}</p>
+    <p className="mt-1 text-xs text-slate-500">Saat pertama dibuka, form sudah berisi contoh VAPT. Anda dapat memilih skenario produk/layanan lain, melengkapi hanya field kosong, atau mengganti seluruh contoh.</p>
+    <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
+      <label className="text-xs font-semibold text-slate-700">
+        Skenario Layanan DefendIT360
+        <select value={exampleService} onChange={e=>setExampleService(e.target.value as ServiceFamily)}
+          className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900">
+          {serviceTypes.map(service=><option value={service} key={service}>{service}</option>)}
+        </select>
+      </label>
+      <button type="button" onClick={()=>{
+        setData(current=>fillEmptyPostPoWithDummy({...current,project:{...current.project,serviceFamily:exampleService}}));
+        setMessage('Kolom kosong dilengkapi dengan data dummy. Kolom yang sebelumnya sudah terisi tetap dipertahankan. Mode DEMO aktif.');
+      }} className="self-end rounded-lg bg-violet-700 px-4 py-2.5 text-xs font-bold text-white hover:bg-violet-800">
+        Isi Kolom Kosong
+      </button>
+      <button type="button" onClick={()=>{
+        setData(createDemoPostPoPacket(exampleService));
+        setMessage('Seluruh formulir diganti dengan contoh '+exampleService+'. Tidak ada informasi dikirim ke database.');
+      }} className="self-end rounded-lg border border-violet-200 bg-violet-50 px-4 py-2.5 text-xs font-bold text-violet-900 hover:bg-violet-100">
+        Ganti Seluruh Data Contoh
+      </button>
+    </div>
+    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+      <p className="max-w-2xl text-[11px] text-slate-500">Nomor PO, NPWP/KTP, PIC, harga dan termin adalah sintetis. Bukti NPWP/KTP serta verifikasi PO tidak dianggap tersedia secara otomatis.</p>
+      <button type="button" onClick={()=>{
+        setData(newPostPoPacket());
+        setSelectedSalesCustomer('');
+        setMessage('Form dikosongkan; kembali ke mode input manual tanpa data contoh.');
+        setStep('sales');
+      }} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50">
+        Kosongkan Form
+      </button>
+    </div>
+    {data.isDemo&&<p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900">
+      MODE SIMULASI AKTIF — Dokumen DOCX berlabel DATA DUMMY. Lulus validasi simulasi tidak berarti PO dan proyek layak Kick Off.
+    </p>}
+  </section>
+
   <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
    <div className="flex items-start gap-2">
     <FileLock2 className="mt-0.5 h-5 w-5 shrink-0 text-violet-600"/>
