@@ -1,0 +1,257 @@
+'use client';
+
+import React, { useState } from 'react';
+import {
+  FileSpreadsheet,
+  Printer,
+  Download,
+  CheckCircle2,
+  Clock,
+  Shield,
+  Building,
+  Calendar,
+  CreditCard,
+  AlertCircle,
+} from 'lucide-react';
+import { appStore } from '@/lib/store';
+import { formatIDR, formatDate } from '@/lib/formatters';
+import { Proposal } from '@/lib/types';
+
+export default function ProposalsPage() {
+  const store = appStore.getState();
+  const [proposals] = useState<Proposal[]>(store.proposals);
+  const [selectedProp, setSelectedProp] = useState<Proposal>(proposals[0]);
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header (Hidden when printing) */}
+      <div className="no-print border-b border-slate-200 pb-5">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-md shadow-blue-500/20">
+              <FileSpreadsheet className="h-5 w-5" />
+            </div>
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                Quotation & Commercial Offer Generator
+              </h1>
+              <p className="text-xs text-slate-500">
+                Penerbitan Surat Penawaran Harga resmi dengan klausul komersial POJK, PPN 11%, dan terms 30-50-20.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrint}
+              className="flex items-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              <span>Cetak / Simpan PDF</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Left Column: Quotation List Selector (Hidden when printing) */}
+        <div className="no-print lg:col-span-1 space-y-3">
+          <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
+            Daftar Penawaran Harga
+          </div>
+          <div className="space-y-2">
+            {proposals.map(prop => {
+              const isSelected = selectedProp.id === prop.id;
+              return (
+                <div
+                  key={prop.id}
+                  onClick={() => setSelectedProp(prop)}
+                  className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-1 ring-blue-600'
+                      : 'border-slate-200 bg-white hover:border-slate-300'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <span className="font-extrabold text-slate-900">{prop.quotation_number}</span>
+                    <span className={`px-1.5 py-0.2 rounded text-[10px] font-bold ${
+                      prop.status === 'approved'
+                        ? 'bg-emerald-100 text-emerald-800'
+                        : 'bg-amber-100 text-amber-800'
+                    }`}>
+                      {prop.status.toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="font-semibold text-slate-800 mt-1 truncate">{prop.company_name}</div>
+                  <div className="text-slate-500 text-[11px] mt-0.5 truncate">{prop.opportunity_name}</div>
+                  <div className="mt-2 text-xs font-black text-slate-900">
+                    {formatIDR(prop.grand_total)}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Right Column: Professional Formal Document Preview */}
+        <div className="lg:col-span-3">
+          <div className="rounded-2xl border border-slate-300 bg-white p-8 sm:p-12 shadow-md print:border-none print:shadow-none print:p-0 text-slate-900 space-y-6">
+            {/* Letterhead */}
+            <div className="border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white font-black text-xl">
+                  <Shield className="h-7 w-7 text-cyan-400" />
+                </div>
+                <div>
+                  <h2 className="text-lg font-black tracking-tight text-slate-900">
+                    PT DATA ENKRIPSI INFORMASI TEKNOLOGI
+                  </h2>
+                  <div className="text-[11px] text-slate-500 font-medium">
+                    DefendIT360 Enterprise Cybersecurity Solutions &bull; Terdaftar LK SMPI BSSN
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Gedung Tower 01 Lt. 27, Jl. Jend. Sudirman Kav. 10, Jakarta Pusat 10220
+                  </div>
+                </div>
+              </div>
+              <div className="text-left sm:text-right text-xs">
+                <div className="font-bold text-slate-900">SURAT PENAWARAN HARGA</div>
+                <div className="font-mono text-xs font-bold text-blue-700">{selectedProp.quotation_number}</div>
+                <div className="text-[11px] text-slate-500">Tanggal: {formatDate(selectedProp.created_at)}</div>
+              </div>
+            </div>
+
+            {/* Client Destination & Subject */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+              <div>
+                <span className="text-slate-400 font-semibold block text-[11px] uppercase">Kepada Yth:</span>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedProp.company_name}</div>
+                <div className="text-slate-600">Up. Bagian Pengadaan / Information Security</div>
+                <div className="text-slate-500">Klasifikasi Klien: Tier {selectedProp.client_tier}</div>
+              </div>
+              <div>
+                <span className="text-slate-400 font-semibold block text-[11px] uppercase">Perihal / Subject:</span>
+                <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedProp.opportunity_name}</div>
+                <div className="text-slate-600">Masa Berlaku Penawaran: {selectedProp.valid_days} Hari Kalender</div>
+                <div className="text-slate-500">Berlaku Hingga: {formatDate(selectedProp.valid_until)}</div>
+              </div>
+            </div>
+
+            {/* Line Items Table */}
+            <div>
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-y-2 border-slate-900 text-slate-900 font-bold uppercase text-[11px]">
+                    <th className="py-2.5 px-2">No</th>
+                    <th className="py-2.5 px-3">Uraian Ruang Lingkup Layanan</th>
+                    <th className="py-2.5 px-3 text-center">Vol</th>
+                    <th className="py-2.5 px-3 text-center">Satuan</th>
+                    <th className="py-2.5 px-3 text-right">Harga Satuan (Rp)</th>
+                    <th className="py-2.5 px-3 text-right">Total (Rp)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                  {selectedProp.line_items.map(item => (
+                    <tr key={item.line_number}>
+                      <td className="py-3 px-2 font-bold">{item.line_number}</td>
+                      <td className="py-3 px-3">
+                        <div className="font-bold text-slate-900">{item.description}</div>
+                        <div className="text-[11px] text-slate-500 mt-0.5">
+                          Metodologi Grey-Box &bull; Reporting Standar OWASP / OJK &bull; Termasuk 1x Retest gratis dlm 30 hari
+                        </div>
+                      </td>
+                      <td className="py-3 px-3 text-center font-semibold">{item.quantity}</td>
+                      <td className="py-3 px-3 text-center text-slate-600">{item.unit}</td>
+                      <td className="py-3 px-3 text-right font-medium">{formatIDR(item.unit_price)}</td>
+                      <td className="py-3 px-3 text-right font-bold text-slate-900">{formatIDR(item.line_total)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+
+              {/* Totals Summary */}
+              <div className="border-t-2 border-slate-900 pt-3 flex justify-end">
+                <div className="w-full sm:w-72 space-y-1.5 text-xs">
+                  <div className="flex justify-between text-slate-600">
+                    <span>Subtotal:</span>
+                    <span className="font-bold text-slate-900">{formatIDR(selectedProp.subtotal)}</span>
+                  </div>
+                  {selectedProp.discount_pct > 0 && (
+                    <div className="flex justify-between text-rose-600 font-semibold">
+                      <span>Diskon ({selectedProp.discount_pct}%):</span>
+                      <span>Sudah Termasuk</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between text-slate-600">
+                    <span>PPN (11%):</span>
+                    <span className="font-bold text-slate-900">{formatIDR(selectedProp.vat_amount)}</span>
+                  </div>
+                  <div className="flex justify-between items-center border-t border-slate-300 pt-2 text-sm font-black text-slate-900">
+                    <span>Grand Total:</span>
+                    <span className="text-base text-blue-900">{formatIDR(selectedProp.grand_total)}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Commercial Terms & Conditions */}
+            <div className="rounded-xl border border-slate-200 bg-slate-50/70 p-4 text-xs space-y-2">
+              <div className="font-bold text-slate-900 uppercase text-[11px] tracking-wider">
+                Syarat & Ketentuan Komersial Resmi (PKS Baseline)
+              </div>
+              <ul className="list-decimal pl-4 space-y-1 text-slate-600 text-[11px]">
+                <li>
+                  <span className="font-semibold text-slate-800">Termin Pembayaran ({selectedProp.payment_terms}): </span>
+                  Termin 1 (30%) uang muka setelah Kickoff Meeting; Termin 2 (50%) setelah penyerahan Laporan Pendahuluan; Termin 3 (20%) setelah BAST Final ditandatangani.
+                </li>
+                <li>
+                  <span className="font-semibold text-slate-800">Klausul Denda Keterlambatan: </span>
+                  Denda keterlambatan ditetapkan sebesar 1&permil; (satu permil / 0.1%) per hari kalender dengan batas akumulasi maksimum 5% dari total nilai kontrak.
+                </li>
+                <li>
+                  <span className="font-semibold text-slate-800">Rekening Resmi Pembayaran: </span>
+                  Bank Mandiri KC Jakarta Sudirman &bull; No. Rek: 122-00-1928374-5 &bull; A.n. PT Data Enkripsi Informasi Teknologi.
+                </li>
+                <li>
+                  <span className="font-semibold text-slate-800">Retesting: </span>
+                  Verifikasi perbaikan (Retest) diberikan gratis sebanyak 1 (satu) kali dalam jangka waktu maksimal 30 hari kalender setelah laporan awal diserahkan.
+                </li>
+              </ul>
+            </div>
+
+            {/* Signatures Row */}
+            <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-200 text-xs">
+              <div>
+                <span className="text-slate-400 font-medium block">Diterima & Disetujui Klien:</span>
+                <div className="font-bold text-slate-800 mt-0.5">{selectedProp.company_name}</div>
+                <div className="h-16 flex items-end">
+                  <div className="w-48 border-b border-slate-400" />
+                </div>
+                <div className="text-slate-500 text-[11px] mt-1">Nama & Jabatan Pejabat Berwenang</div>
+              </div>
+
+              <div className="text-right flex flex-col items-end">
+                <span className="text-slate-400 font-medium block">Hormat Kami,</span>
+                <div className="font-bold text-slate-800 mt-0.5">PT DATA ENKRIPSI INFORMASI TEKNOLOGI</div>
+                <div className="h-16 flex items-end justify-end">
+                  <div className="text-center">
+                    <span className="rounded bg-blue-50 border border-blue-200 px-2 py-0.5 text-[9px] font-bold text-blue-800 block mb-1">
+                      DIGITALLY AUTHORIZED
+                    </span>
+                    <div className="w-48 border-b border-slate-400" />
+                  </div>
+                </div>
+                <div className="font-bold text-slate-900 text-[11px] mt-1">Reza Fahlevi / Direksi</div>
+                <div className="text-slate-500 text-[10px]">Head of Sales & Commercial Operations</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

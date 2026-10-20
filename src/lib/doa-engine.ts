@@ -39,7 +39,7 @@ export function evaluateQuotationDoA(params: {
     level = 'director';
     reasons.push(`Nilai transaksi di atas Rp 500 Juta (${formatIDRCompact(grandTotal)}) memerlukan otorisasi Direktur`);
   } else if (valueExceededManager) {
-    if (level !== 'director') level = 'vp';
+    level = 'vp';
     reasons.push(`Nilai transaksi di atas Rp 50 Juta (${formatIDRCompact(grandTotal)}) memerlukan otorisasi VP / Head Sales`);
   } else {
     reasons.push(`Nilai transaksi standar (≤ Rp 50 Juta) - Wewenang Sales Manager`);
