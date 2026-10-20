@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { extractScopingDocument, MAX_SCOPING_FILE_BYTES } from '@/lib/scoping-upload';
 
-export const runtime = 'edge';
 const json = (data: unknown, status = 200) =>
   NextResponse.json(data, { status, headers: privateHeaders });
 
