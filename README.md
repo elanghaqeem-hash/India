@@ -28,3 +28,7 @@ Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan 
 
 - **`start-auto-push.bat`**: Klik dua kali file ini untuk mengaktifkan pemantauan folder otomatis. Setiap ada file yang dibuat, diedit, atau dihapus, perubahan akan otomatis di-commit dan di-push ke GitHub.
 - **`manual-push.bat`**: Klik dua kali file ini untuk langsung melakukan push seluruh perubahan saat ini secara manual.
+
+---
+*Status: Auto-push sinkronisasi aktif ke [https://github.com/elanghaqeem-hash/India](https://github.com/elanghaqeem-hash/India)*
+
