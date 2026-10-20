@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound } from 'lucide-react';
+import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare } from 'lucide-react';
 
 interface MobileNavProps {
   pendingApprovalsCount?: number;
@@ -13,7 +13,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   const pathname = usePathname();
 
   const items = [
-    { label: 'Deal 360', href: '/', icon: LayoutDashboard },
+    { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
+    { label: 'Demo 360', href: '/', icon: LayoutDashboard },
     { label: 'Scoping', href: '/scoping', icon: FileSearch },
     { label: 'Pricing', href: '/pricing', icon: Calculator },
     { label: 'BoQ', href: '/boq', icon: ClipboardList },
@@ -24,8 +25,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   ];
 
   return (
-    <nav aria-label="Navigasi utama mobile" className="no-print fixed inset-x-0 bottom-0 z-50 flex min-h-16 border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(15,23,42,0.04)] backdrop-blur-md lg:hidden">
-      <div className="grid h-full w-full grid-cols-8 items-center">
+    <nav aria-label="Navigasi utama mobile" className="no-print fixed inset-x-0 bottom-0 z-50 flex min-h-16 overflow-x-auto border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(15,23,42,0.04)] backdrop-blur-md lg:hidden">
+      <div className="flex h-full min-w-max items-center">
         {items.map(item => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -34,7 +35,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
               key={item.label}
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
-              className={`relative flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-md py-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
+              className={`relative flex min-h-16 w-[76px] min-w-[76px] flex-col items-center justify-center gap-1 rounded-md py-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
                 isActive ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
               }`}
             >
