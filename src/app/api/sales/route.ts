@@ -56,7 +56,7 @@ export async function GET(req:Request){
   }
   const id=u.searchParams.get('id');
   if(!safeID(id))return fail('ID opportunity tidak valid');
-  const raw=await getDeal(db,id),acct=raw?await getAccount(db,raw.company_id):null;
+  const raw=await getDeal(db,id as string),acct=raw?await getAccount(db,raw.company_id):null;
   if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
   const d=deal(raw,account(acct));
   if(entity==='details'){
@@ -98,29 +98,29 @@ export async function POST(req:Request){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh mendaftarkan opportunity',403);
    const company_id=p.company_id,title=String(p.title||'').trim(),amount=Number(p.estimated_value);
    if(!safeID(company_id)||!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Pelanggan, nama proyek dan nilai peluang wajib valid');
-   if(!await getAccount(db,company_id))return fail('Customer account tidak ditemukan',404);
+   if(!await getAccount(db,company_id as string))return fail('Customer account tidak ditemukan',404);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
    await db.prepare("INSERT INTO opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
-    .bind(id,TENANT,company_id,title,'prospecting',amount,JSON.stringify(fields),email).run();
+    .bind(id,TENANT,company_id as string,title,'prospecting',amount,JSON.stringify(fields),email).run();
    await audit(db,'deal',id,'CREATE',email,null,'prospecting');
    return answer({success:true,id},201);
   }
   if(kind==='activity'){
    if(!safeID(p.opportunity_id)||!['call','email','meeting','follow_up','tender','note'].includes(String(p.kind)))return fail('Opportunity / jenis aktivitas tidak valid');
-   if(!await getDeal(db,p.opportunity_id))return fail('Opportunity tidak ditemukan',404);
+   if(!await getDeal(db,p.opportunity_id as string))return fail('Opportunity tidak ditemukan',404);
    const subject=String(p.subject||'').trim(),detail=String(p.detail||'').trim(),date=String(p.next_action_at||'');
    if(!subject||subject.length>200||detail.length>2000||date.length>30)return fail('Aktivitas tidak valid');
    const id=crypto.randomUUID();
    await db.prepare('INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,next_action_at,created_by) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(id,TENANT,p.opportunity_id,String(p.kind),subject,detail,date||null,email).run();
+    .bind(id,TENANT,p.opportunity_id as string,String(p.kind),subject,detail,date||null,email).run();
    await audit(db,'deal',String(p.opportunity_id),'ACTIVITY',email);
    return answer({success:true,id},201);
   }
   if(kind==='verify_po'){
    if(!allowed(role,['admin','finance','approver']))return fail('Verifikasi PO hanya untuk Finance/Approver/Admin',403);
    if(!safeID(p.id))return fail('Opportunity tidak valid');
-   const raw=await getDeal(db,p.id),acct=raw?await getAccount(db,raw.company_id):null;
+   const raw=await getDeal(db,p.id as string),acct=raw?await getAccount(db,raw.company_id):null;
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
    const d=deal(raw,account(acct));
    if(d.stage!=='pending_po')return fail('PO dapat diverifikasi hanya pada Pending PO',409);
@@ -139,7 +139,7 @@ export async function POST(req:Request){
   if(kind==='document'){
    const id=p.opportunity_id;
    if(!safeID(id))return fail('Opportunity tidak valid');
-   const raw=await getDeal(db,id),acct=raw?await getAccount(db,raw.company_id):null;
+   const raw=await getDeal(db,id as string),acct=raw?await getAccount(db,raw.company_id):null;
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
    const d=deal(raw,account(acct)),checklist=documentChecklist(d,account(acct));
    const doc=String(p.document_kind||''),ref=String(p.reference||'').trim();
@@ -147,8 +147,8 @@ export async function POST(req:Request){
    const missing=doc==='customer_registration'?checklist.registration:doc==='project_form'?checklist.project:[];
    const status=missing.length?'draft':'verified';
    await db.prepare('INSERT INTO india_sales_documents(id,tenant_id,opportunity_id,kind,status,reference,checklist_json,created_by) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(crypto.randomUUID(),TENANT,id,doc,status,ref,JSON.stringify(missing),email).run();
-   await audit(db,'deal',id,'DOCUMENT_'+doc.toUpperCase(),email,null,null,'Status '+status);
+    .bind(crypto.randomUUID(),TENANT,id as string,doc,status,ref,JSON.stringify(missing),email).run();
+   await audit(db,'deal',id as string,'DOCUMENT_'+doc.toUpperCase(),email,null,null,'Status '+status);
    return answer({success:true,status,missing});
   }
   return fail('Aksi tidak dikenali');
@@ -166,7 +166,7 @@ export async function PATCH(req:Request){
  try{
   if(p.entity==='account'){
    if(!allowed(role,salesPerms))return fail('Perubahan pelanggan hanya Sales/Admin',403);
-   const row=await getAccount(db,p.id);
+   const row=await getAccount(db,p.id as string);
    if(!row)return fail('Pelanggan tidak ditemukan',404);
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim();
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
@@ -179,7 +179,7 @@ export async function PATCH(req:Request){
   }
   if(p.entity==='deal'||p.entity==='transition'){
    if(!allowed(role,['admin','sales','presales','finance','approver']))return fail('Role tidak diizinkan',403);
-   const row=await getDeal(db,p.id),a=row?await getAccount(db,row.company_id):null;
+   const row=await getDeal(db,p.id as string),a=row?await getAccount(db,row.company_id):null;
    if(!row||!a)return fail('Opportunity / pelanggan tidak ditemukan',404);
    const d=deal(row,account(a));
    if(p.entity==='deal'){
