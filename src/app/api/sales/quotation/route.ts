@@ -22,9 +22,9 @@ export async function GET(req:Request){
  if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return deny('Opportunity ID tidak valid');
  const db=auth.identity.db;
  try{
-  const row=await db.prepare('SELECT * FROM opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
+  const row=await db.prepare('SELECT * FROM india_sales_opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
   if(!row)return deny('Opportunity tidak ditemukan',404);
-  const acct=await db.prepare('SELECT * FROM companies WHERE id=? AND tenant_id=?').bind(row.company_id,TENANT).first<AccountRow>();
+  const acct=await db.prepare('SELECT * FROM india_sales_accounts WHERE id=? AND tenant_id=?').bind(row.company_id,TENANT).first<AccountRow>();
   if(!acct)return deny('Customer Account tidak ditemukan',404);
   const fields=JSON.parse(row.data_json||'{}') as Record<string,string>;
   const boqId=fields.boq_id||'';
