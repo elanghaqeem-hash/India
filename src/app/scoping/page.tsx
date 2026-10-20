@@ -119,8 +119,16 @@ export default function SmartScopingPage() {
         headers: { 'x-india-document-upload': '1' },
         body: form,
       });
-      const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.message || 'File gagal diproses.');
+      // The public demo can read documents locally without sending the file to a backend.
+      // A 503 indicates D1/Access is not yet configured; other auth failures stay blocked.
+      const data = res.status === 503
+        ? await (async () => {
+            const { extractScopingDocument } = await import('@/lib/scoping-upload');
+            const result = await extractScopingDocument(file);
+            return { success: true, filename: file.name, ...result };
+          })()
+        : await res.json();
+      if (!data.success || (!res.ok && res.status !== 503)) throw new Error(data.message || 'File gagal diproses.');
       setAiDocText(data.text);
       setUploadedDocument({ name: data.filename, format: data.format, chars: data.text.length, truncated: !!data.truncated });
     } catch (err) {
