@@ -28,14 +28,35 @@ export default function ApprovalsPage() {
   const pendingApprovals = approvals.filter(a => a.status === 'pending');
   const pastApprovals = approvals.filter(a => a.status !== 'pending');
 
-  const handleAction = (id: string, status: 'approved' | 'rejected' | 'revision_requested') => {
+  const handleAction = async (id: string, status: 'approved' | 'rejected' | 'revision_requested') => {
     const approverName = 'Reza Fahlevi (Head Sales / Otorisator)';
-    const updated = appStore.updateApproval(id, status, approverName, comments);
+    try {
+      const res = await fetch('/api/approvals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          status,
+          approver_name: approverName,
+          comments,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotification(`Berhasil memproses transaksi #${id}: Status diubah menjadi ${status.toUpperCase()}`);
+      } else {
+        setNotification(`Catatan: ${data.message || 'Status disimpan lokal'}`);
+      }
+    } catch (e: any) {
+      // Local fallback
+      appStore.updateApproval(id, status, approverName, comments);
+      setNotification(`Berhasil memproses transaksi #${id}: Status diubah menjadi ${status.toUpperCase()}`);
+    }
+
     setApprovals([...appStore.getState().approvals]);
     setSelectedItem(null);
     setActionType(null);
     setComments('');
-    setNotification(`Berhasil memproses transaksi #${id}: Status diubah menjadi ${status.toUpperCase()}`);
     setTimeout(() => setNotification(null), 4000);
   };
 

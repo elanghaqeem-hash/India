@@ -224,7 +224,47 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
         </div>
 
         {/* Right Column: Professional Formal Document Preview */}
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-4">
+          {/* Action Ribbon (Hidden when printing) */}
+          <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-700">Status Proposal:</span>
+              <span className={`px-2 py-0.5 rounded text-[11px] font-black uppercase ${
+                selectedProp.status === 'accepted' ? 'bg-emerald-100 text-emerald-800' :
+                selectedProp.status === 'sent' ? 'bg-blue-100 text-blue-800' :
+                selectedProp.status === 'approved' ? 'bg-indigo-100 text-indigo-800' :
+                selectedProp.status === 'rejected' ? 'bg-rose-100 text-rose-800' :
+                'bg-amber-100 text-amber-800'
+              }`}>
+                {selectedProp.status}
+              </span>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleUpdateStatus('sent')}
+                disabled={selectedProp.status === 'sent' || selectedProp.status === 'accepted'}
+                className="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                Kirim ke Klien (Sent)
+              </button>
+              <button
+                onClick={() => handleUpdateStatus('accepted')}
+                disabled={selectedProp.status === 'accepted'}
+                className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold shadow-xs transition-colors"
+              >
+                Tandatangani Klien (Accepted)
+              </button>
+              <button
+                onClick={() => handleUpdateStatus('rejected')}
+                disabled={selectedProp.status === 'rejected' || selectedProp.status === 'accepted'}
+                className="px-3 py-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 border border-rose-200 disabled:opacity-40 text-rose-700 text-xs font-bold transition-colors"
+              >
+                Klien Tolak (Lost)
+              </button>
+            </div>
+          </div>
+
           <div className="rounded-2xl border border-slate-300 bg-white p-8 sm:p-12 shadow-md print:border-none print:shadow-none print:p-0 text-slate-900 space-y-6">
             {/* Letterhead */}
             <div className="border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
