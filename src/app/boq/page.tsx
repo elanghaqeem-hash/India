@@ -10,13 +10,24 @@ export default function BoQPage(){
  const [costs,setCosts]=useState<Record<string,string>>({});
  const [catalog,setCatalog]=useState<Catalog[]>([]),[sku,setSku]=useState('');
  const isFinance=['finance','admin'].includes(role);
- const canEdit=['finance','admin','presales','sales'].includes(role)&&(!selected||selected.status==='draft');
+ const canCreate=['finance','admin','presales','sales'].includes(role);
+ const canEdit=canCreate&&(!selected||selected.status==='draft');
  const load=async()=>{try{const r=await fetch('/api/boq',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message);setList(d.boqs||[]);setRole(d.role);}catch(e){setMsg(String(e));}};
  useEffect(()=>{void load();void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
  const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
  const change=(key:string,value:any)=>setForm(p=>({...p,[key]:value}));
  const line=(i:number,key:keyof Item,v:any)=>setForm(p=>({...p,line_items:p.line_items.map((x,j)=>i===j?{...x,[key]:v}:x)}));
  const call=async(action:string)=>{
+  // Prevent accidental submission while inputs have unsaved changes.
+  if(selected&&action==='submit'){
+    const persisted={...blank(),...selected};
+    const changed=JSON.stringify(form.line_items)!==JSON.stringify(persisted.line_items)
+      ||form.customer_name!==persisted.customer_name
+      ||form.project_name!==persisted.project_name
+      ||form.quotation_number!==persisted.quotation_number
+      ||form.vat_rate!==persisted.vat_rate;
+    if(changed){setMsg('Ada perubahan belum disimpan. Simpan draft sebelum mengajukan approval.');return;}
+  }
   setBusy(true);setMsg('');
   try{
    const body:any=selected?{action,payload:{...form}}:{...form};
@@ -76,7 +87,7 @@ export default function BoQPage(){
    <div className="flex flex-wrap gap-2 border-t pt-4">{canEdit&&<button disabled={busy} onClick={()=>call(selected?'update':'create')} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Simpan ke D1</button>}
      {selected?.status==='draft'&&canEdit&&<button disabled={busy} onClick={()=>call('submit')} className="rounded-lg border p-2 text-xs">Submit Approval</button>}
      {selected?.status==='submitted'&&['admin','approver'].includes(role)&&<><button disabled={busy} onClick={()=>call('approve')} className="rounded-lg border p-2 text-xs">Approve</button><button disabled={busy} onClick={()=>call('reject')} className="rounded-lg border p-2 text-xs">Reject</button></>}
-     {selected&&['submitted','approved','rejected'].includes(selected.status)&&canEdit&&<button disabled={busy} onClick={()=>call('revise')} className="rounded-lg border p-2 text-xs">Buat Revisi</button>}</div>
+     {selected&&['submitted','approved','rejected'].includes(selected.status)&&canCreate&&<button disabled={busy} onClick={()=>call('revise')} className="rounded-lg border p-2 text-xs">Buat Revisi</button>}</div>
    {selected&&<div className="flex flex-wrap gap-2 border-t pt-4"><b className="w-full text-xs">Download Excel</b>
      <button disabled={busy} onClick={()=>download('customer')} className="rounded-lg bg-slate-900 p-2 text-xs text-white">Customer BoQ</button>
      {isFinance&&['standard','onsite'].map(x=><button key={x} disabled={busy} onClick={()=>download(x)} className="rounded-lg border p-2 text-xs">Internal {x}</button>)}</div>}
