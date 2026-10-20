@@ -3,7 +3,6 @@
  * No names, identifiers, approval checks, real contracts, or client data are asserted.
  * Every resulting packet is permanently marked DEMO until the user resets the form.
  */
-import { newPostPoPacket } from './post-po-documents';
 import type { PostPoPacket, Pic, ServiceFamily, PaymentMilestone } from './post-po-documents';
 
 type ServiceExample = {
@@ -191,8 +190,8 @@ export function fillEmptyPostPoWithDummy(source:PostPoPacket):PostPoPacket {
   return base;
 }
 
-export function createDemoPostPoPacket(serviceFamily:ServiceFamily='VAPT'):PostPoPacket {
-  const base=newPostPoPacket();
+export function createDemoPostPoPacket(source:PostPoPacket,serviceFamily:ServiceFamily='VAPT'):PostPoPacket {
+  const base:PostPoPacket=structuredClone(source);
   base.project.serviceFamily=serviceFamily;
   return fillEmptyPostPoWithDummy(base);
 }
