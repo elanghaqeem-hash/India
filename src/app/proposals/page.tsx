@@ -115,7 +115,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
   };
 
   return (
-    <div className="space-y-6">
+    <div className="quotation-page min-w-0 max-w-full space-y-4 sm:space-y-6">
       {/* Header (Hidden when printing) */}
       <div className="no-print border-b border-slate-200 pb-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -183,9 +183,9 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      <div className="grid min-w-0 grid-cols-1 lg:grid-cols-4 gap-4 lg:gap-6 print:block">
         {/* Left Column: Quotation List Selector (Hidden when printing) */}
-        <div className="no-print lg:col-span-1 space-y-3">
+        <div className="no-print min-w-0 lg:col-span-1 space-y-3">
           <div className="text-xs font-bold uppercase tracking-wider text-slate-400">
             Daftar Penawaran Harga
           </div>
@@ -224,7 +224,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
         </div>
 
         {/* Right Column: Professional Formal Document Preview */}
-        <div className="lg:col-span-3 space-y-4">
+        <div className="min-w-0 lg:col-span-3 space-y-4 print:block">
           {/* Action Ribbon (Hidden when printing) */}
           <div className="no-print flex flex-wrap items-center justify-between gap-3 bg-white p-3.5 rounded-xl border border-slate-200 shadow-2xs">
             <div className="flex items-center gap-2">
@@ -265,15 +265,15 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
             </div>
           </div>
 
-          <div className="rounded-2xl border border-slate-300 bg-white p-8 sm:p-12 shadow-md print:border-none print:shadow-none print:p-0 text-slate-900 space-y-6">
+          <div className="quotation-document min-w-0 w-full max-w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-300 bg-white p-4 sm:p-7 lg:p-10 shadow-md print:overflow-visible print:border-none print:shadow-none print:p-0 text-slate-900 space-y-5 sm:space-y-6">
             {/* Letterhead */}
-            <div className="border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-900 text-white font-black text-xl">
+            <div className="border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
+              <div className="flex min-w-0 items-start gap-3">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-900 text-white font-black text-xl">
                   <Shield className="h-7 w-7 text-cyan-400" />
                 </div>
-                <div>
-                  <h2 className="text-lg font-black tracking-tight text-slate-900">
+                <div className="min-w-0 break-words">
+                  <h2 className="text-base sm:text-lg font-black tracking-tight text-slate-900">
                     PT DATA ENKRIPSI INFORMASI TEKNOLOGI
                   </h2>
                   <div className="text-[11px] text-slate-500 font-medium">
@@ -292,7 +292,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
             </div>
 
             {/* Client Destination & Subject */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid min-w-0 grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <span className="text-slate-400 font-semibold block text-[11px] uppercase">Kepada Yth:</span>
                 <div className="font-bold text-slate-900 text-sm mt-0.5">{selectedProp.company_name}</div>
@@ -307,9 +307,32 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
               </div>
             </div>
 
-            {/* Line Items Table */}
-            <div>
-              <table className="w-full text-left text-xs border-collapse">
+            {/* A mobile readable screen view; preserve all original values in the A4 print table. */}
+            <div className="min-w-0">
+              <div className="quotation-mobile-list space-y-3 md:hidden print:hidden" aria-label="Rincian layanan penawaran">
+                {selectedProp.line_items.map(item => (
+                  <article key={item.line_number} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/40 p-3.5">
+                    <div className="flex items-start gap-2.5">
+                      <span className="shrink-0 rounded-md bg-blue-50 px-2 py-1 text-[11px] font-extrabold text-blue-700">#{item.line_number}</span>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="break-words text-sm font-bold leading-5 text-slate-900">{item.description}</h3>
+                        <p className="mt-1.5 break-words text-[11px] leading-relaxed text-slate-500">
+                          Metodologi Grey-Box &bull; Reporting Standar OWASP / OJK &bull; Termasuk 1x Retest gratis dlm 30 hari
+                        </p>
+                      </div>
+                    </div>
+                    <dl className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200 pt-3">
+                      <div className="min-w-0"><dt className="text-[11px] text-slate-500">Volume</dt><dd className="mt-0.5 break-words text-xs font-semibold text-slate-800">{item.quantity} {item.unit}</dd></div>
+                      <div className="min-w-0"><dt className="text-[11px] text-slate-500">Harga satuan</dt><dd className="mt-0.5 break-words text-right text-xs font-semibold text-slate-800">{formatIDR(item.unit_price)}</dd></div>
+                    </dl>
+                    <div className="mt-3 flex flex-wrap items-baseline justify-between gap-2 border-t border-slate-200 pt-3">
+                      <span className="text-xs font-semibold text-slate-600">Total layanan</span>
+                      <strong className="text-sm font-extrabold text-blue-900">{formatIDR(item.line_total)}</strong>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              <table className="quotation-desktop-table hidden w-full table-auto border-collapse text-left text-xs md:table print:table">
                 <thead>
                   <tr className="border-y-2 border-slate-900 text-slate-900 font-bold uppercase text-[11px]">
                     <th className="py-2.5 px-2">No</th>
@@ -390,7 +413,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
             </div>
 
             {/* Signatures Row */}
-            <div className="grid grid-cols-2 gap-8 pt-6 border-t border-slate-200 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 print:grid-cols-2 gap-6 sm:gap-8 pt-6 border-t border-slate-200 text-xs">
               <div>
                 <span className="text-slate-400 font-medium block">Diterima & Disetujui Klien:</span>
                 <div className="font-bold text-slate-800 mt-0.5">{selectedProp.company_name}</div>
