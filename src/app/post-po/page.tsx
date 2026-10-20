@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useMemo, useState } from 'react';
-import { ClipboardCheck, Download, FileCheck2, FileLock2, AlertCircle, CheckCircle2, ArrowRight, Plus, Trash2 } from 'lucide-react';
+import { ClipboardCheck, Download, FileLock2, AlertCircle, CheckCircle2, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import {
   newPostPoPacket, validatePostPoPacket, downloadPostPoDocx,
   type PostPoPacket, type RegistrationData, type ProjectData, type Pic, type ServiceFamily
@@ -16,7 +16,6 @@ const SERVICE_GUIDANCE: Record<ServiceFamily,string> = {
   'Cybersecurity Technology':'Cantumkan nama OEM/SKU, jumlah lisensi/appliance, masa subscription, support, implementasi, integrasi, dan serah terima.',
   'Other':'Cantumkan setiap produk/layanan, kuantitas-satuan, objek lingkup, batas pekerjaan, hasil kerja, dan SLA jika disepakati.'
 };
-type FormValue = string | number | boolean;
 
 function Field({label,value,onChange,type='text',help,required=true,placeholder}:{
   label:string;value:string|number;onChange:(s:string)=>void;type?:string;help?:string;required?:boolean;placeholder?:string
@@ -76,7 +75,6 @@ export default function PostPoPage(){
  const commonInput=(label:string,key:keyof RegistrationData,help?:string)=>(
   <Field label={label} value={String(r[key]??'')} onChange={v=>reg(key,v as never)} help={help}/>
  );
- const completeness=Math.max(0,Math.round(100*(1-Math.min(findings.length,43)/43)));
  return <div className="mx-auto max-w-6xl space-y-5 pb-24">
   <header className="rounded-2xl border border-violet-100 bg-gradient-to-br from-white via-white to-violet-50 p-5 sm:p-6">
    <div className="flex flex-wrap items-start justify-between gap-4">
@@ -300,7 +298,7 @@ export default function PostPoPage(){
      <div className="space-y-2 text-xs text-slate-700">
       <p>Registrasi <strong className="float-right">{regIssues.length===0?'Lengkap':'Belum Lengkap'}</strong></p>
       <p>PO & Project <strong className="float-right">{prjIssues.length===0?'Lengkap':'Belum Lengkap'}</strong></p>
-      <p>Progress <strong className="float-right">{completeness}% estimasi</strong></p>
+
       <p className="text-[11px] text-slate-500">Indikator hanya visual. Gate ditentukan berdasarkan seluruh temuan, bukan persentase.</p>
      </div>
     </Section>
