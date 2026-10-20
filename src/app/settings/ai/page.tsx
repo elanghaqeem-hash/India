@@ -1,407 +1,180 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Sparkles,
-  Key,
-  ShieldCheck,
-  CheckCircle2,
-  XCircle,
-  AlertTriangle,
-  ArrowUp,
-  ArrowDown,
-  RefreshCw,
-  Cpu,
-  Layers,
-  Send,
-  Zap,
-  Info,
-} from 'lucide-react';
-import { AIProviderConfig, AIServiceResponse } from '@/lib/types';
+import React,{useCallback,useEffect,useState} from 'react';
+import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, KeyRound, ArrowUp,
+ ArrowDown, RefreshCcw, Trash2, Save, LoaderCircle, PlugZap, Send } from 'lucide-react';
+import type { AIProviderPublic, ProviderId } from '@/lib/ai-provider-registry';
 
-export default function AISettingsPage() {
-  const [configs, setConfigs] = useState<AIProviderConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [testingId, setTestingId] = useState<string | null>(null);
-  const [saveNotification, setSaveNotification] = useState<string | null>(null);
+type ApiResponse={success:boolean;message?:string;configs?:AIProviderPublic[];
+  content?:string;providerUsed?:string;modelUsed?:string;latencyMs?:number;isFallback?:boolean};
+const secureHeaders={'Content-Type':'application/json','x-india-ai-admin':'1'};
+const smallInput='w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100';
 
-  // Playground state
-  const [testPrompt, setTestPrompt] = useState('Analisis kebutuhan VAPT aplikasi perbankan dengan 20 API endpoints dan 4 roles');
-  const [testResult, setTestResult] = useState<AIServiceResponse | null>(null);
-  const [generating, setGenerating] = useState(false);
-
-  // Edit Key states
-  const [editingKeys, setEditingKeys] = useState<Record<string, string>>({});
-  const [showKey, setShowKey] = useState<Record<string, boolean>>({});
-
-  const fetchConfigs = async () => {
-    try {
-      const res = await fetch('/api/ai/config');
-      const data = await res.json();
-      if (data.success) {
-        setConfigs(data.configs.sort((a: any, b: any) => a.priority - b.priority));
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchConfigs();
-  }, []);
-
-  const handleTestConnection = async (id: string) => {
-    setTestingId(id);
-    try {
-      const apiKey = editingKeys[id];
-      const res = await fetch('/api/ai/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'test', id, apiKey }),
-      });
-      const data = await res.json();
-      setSaveNotification(data.message);
-      fetchConfigs();
-    } catch (err: any) {
-      setSaveNotification(`Gagal: ${err.message}`);
-    } finally {
-      setTestingId(null);
-      setTimeout(() => setSaveNotification(null), 5000);
-    }
-  };
-
-  const handleSaveConfig = async (id: string) => {
-    const apiKey = editingKeys[id];
-    const target = configs.find(c => c.id === id);
-    if (!target) return;
-
-    try {
-      const res = await fetch('/api/ai/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id,
-          apiKey: apiKey !== undefined ? apiKey : target.apiKey,
-          model: target.model,
-          isEnabled: target.isEnabled,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setSaveNotification(`Berhasil memperbarui konfigurasi ${target.name}!`);
-        fetchConfigs();
-      }
-    } catch (e: any) {
-      setSaveNotification(`Gagal menyimpan: ${e.message}`);
-    }
-    setTimeout(() => setSaveNotification(null), 4000);
-  };
-
-  const handleToggleEnable = async (id: string, current: boolean) => {
-    try {
-      await fetch('/api/ai/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, isEnabled: !current }),
-      });
-      fetchConfigs();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleMovePriority = async (index: number, direction: 'up' | 'down') => {
-    const newIdx = direction === 'up' ? index - 1 : index + 1;
-    if (newIdx < 0 || newIdx >= configs.length) return;
-
-    const reordered = [...configs];
-    const [moved] = reordered.splice(index, 1);
-    reordered.splice(newIdx, 0, moved);
-
-    const orderedIds = reordered.map(c => c.id);
-    try {
-      await fetch('/api/ai/config', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'reorder', orderedIds }),
-      });
-      fetchConfigs();
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleRunPlayground = async () => {
-    if (!testPrompt.trim()) return;
-    setGenerating(true);
-    setTestResult(null);
-    try {
-      const res = await fetch('/api/ai/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: testPrompt }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setTestResult(data);
-      } else {
-        alert(`AI Error: ${data.message}`);
-      }
-    } catch (e: any) {
-      alert(`Gagal memanggil AI: ${e.message}`);
-    } finally {
-      setGenerating(false);
-    }
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-purple-600 to-indigo-700 text-white shadow-md shadow-purple-500/20">
-              <Sparkles className="h-5 w-5 text-cyan-300" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-                AI Engine & Multi-Source API Key Settings
-              </h1>
-              <p className="text-xs text-slate-500">
-                Pusat konfigurasi multi-provider AI (Google Gemini, OpenAI, Claude, Groq) dengan rantai prioritas bertahap dan auto-failover.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {saveNotification && (
-        <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 text-xs font-bold text-blue-900 flex items-center gap-2 animate-in fade-in">
-          <Info className="h-4 w-4 text-blue-600" />
-          <span>{saveNotification}</span>
-        </div>
-      )}
-
-      {/* Priority Cascade Explanation */}
-      <div className="rounded-xl border border-indigo-100 bg-gradient-to-br from-indigo-50/70 to-blue-50/40 p-4 text-xs text-slate-700 space-y-1.5">
-        <div className="flex items-center gap-2 font-bold text-indigo-950">
-          <Layers className="h-4 w-4 text-indigo-600" />
-          <span>Mekanisme Cascading Failover AI (Prioritas Admin)</span>
-        </div>
-        <p className="text-[11px] leading-relaxed text-slate-600">
-          Ketika fitur cerdas (Smart Scoping, Pricing Advisor, RKS Extraction, Chatbot) dipanggil, sistem akan mengeksekusi provider dengan <strong>Prioritas 1</strong> terlebih dahulu. Jika kuota habis, terjadi rate limit (HTTP 429), atau offline, sistem otomatis beralih ke <strong>Prioritas 2</strong>, dan seterusnya, hingga <strong>Built-in Offline Engine</strong> sehingga operasional bisnis dijamin <strong>100% tidak pernah gagal</strong>.
-        </p>
-      </div>
-
-      {/* Provider List */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-            <span>Daftar Sumber AI Terdaftar</span>
-            <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">
-              {configs.length} Providers
-            </span>
-          </h2>
-          <span className="text-[11px] text-slate-400">Gunakan panah naik/turun untuk mengatur prioritas eksekusi</span>
-        </div>
-
-        <div className="space-y-3">
-          {configs.map((config, index) => {
-            const isLocal = config.provider === 'local';
-            const isTesting = testingId === config.id;
-
-            return (
-              <div
-                key={config.id}
-                className={`rounded-xl border bg-white p-4 shadow-2xs transition-all ${
-                  config.isEnabled
-                    ? 'border-slate-200 hover:border-slate-300'
-                    : 'border-slate-200/60 bg-slate-50/50 opacity-75'
-                }`}
-              >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                  <div className="flex items-center gap-3">
-                    {/* Priority Badge & Move Buttons */}
-                    <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-                      <span className="h-6 w-6 flex items-center justify-center rounded bg-slate-900 text-white font-extrabold text-xs">
-                        #{config.priority}
-                      </span>
-                      <button
-                        disabled={index === 0}
-                        onClick={() => handleMovePriority(index, 'up')}
-                        className="p-1 text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-500"
-                        title="Naikkan Prioritas"
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        disabled={index === configs.length - 1}
-                        onClick={() => handleMovePriority(index, 'down')}
-                        className="p-1 text-slate-500 hover:text-slate-900 disabled:opacity-30 disabled:hover:text-slate-500"
-                        title="Turunkan Prioritas"
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-extrabold text-slate-900 text-sm">{config.name}</span>
-                        {isLocal && (
-                          <span className="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.2 rounded border border-emerald-200">
-                            Offline Guaranteed
-                          </span>
-                        )}
-                        <span className={`text-[10px] font-bold px-2 py-0.2 rounded ${
-                          config.status === 'active'
-                            ? 'bg-emerald-100 text-emerald-800'
-                            : config.status === 'standby'
-                            ? 'bg-amber-100 text-amber-800'
-                            : config.status === 'error'
-                            ? 'bg-rose-100 text-rose-800'
-                            : 'bg-slate-100 text-slate-500'
-                        }`}>
-                          {config.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-400 mt-0.5">
-                        Model: <span className="font-mono text-slate-600 font-semibold">{config.model}</span>
-                        {config.statusMessage && (
-                          <span className="ml-2 text-slate-500 italic">&bull; {config.statusMessage}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleToggleEnable(config.id, config.isEnabled)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg border transition-colors ${
-                        config.isEnabled
-                          ? 'border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                          : 'border-slate-200 bg-slate-100 text-slate-600 hover:bg-slate-200'
-                      }`}
-                    >
-                      {config.isEnabled ? 'Aktif' : 'Nonaktif'}
-                    </button>
-                    {!isLocal && (
-                      <button
-                        disabled={isTesting}
-                        onClick={() => handleTestConnection(config.id)}
-                        className="flex items-center gap-1 px-3 py-1 text-xs font-semibold rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                      >
-                        <RefreshCw className={`h-3 w-3 ${isTesting ? 'animate-spin text-blue-600' : ''}`} />
-                        <span>{isTesting ? 'Testing...' : 'Tes Koneksi'}</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* API Key Input Row (if not local) */}
-                {!isLocal && (
-                  <div className="pt-3 grid grid-cols-1 sm:grid-cols-3 gap-3 items-center text-xs">
-                    <div className="sm:col-span-2">
-                      <label className="text-[11px] font-bold text-slate-500 block mb-1">
-                        API Key ({config.name}):
-                      </label>
-                      <div className="relative">
-                        <input
-                          type={showKey[config.id] ? 'text' : 'password'}
-                          placeholder={config.apiKey ? '••••••••••••••••' : 'Masukkan API Key resmi...'}
-                          value={editingKeys[config.id] !== undefined ? editingKeys[config.id] : config.apiKey}
-                          onChange={e => setEditingKeys({ ...editingKeys, [config.id]: e.target.value })}
-                          className="w-full rounded-lg border border-slate-200 px-3 py-1.5 font-mono text-xs text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 pr-16"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => setShowKey({ ...showKey, [config.id]: !showKey[config.id] })}
-                          className="absolute right-2 top-2 text-[10px] text-slate-400 hover:text-slate-600 font-semibold"
-                        >
-                          {showKey[config.id] ? 'Sembunyikan' : 'Lihat'}
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-end h-full">
-                      <button
-                        onClick={() => handleSaveConfig(config.id)}
-                        className="w-full rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-bold py-1.5 px-3 transition-colors text-xs"
-                      >
-                        Simpan Key & Model
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Interactive AI Playground & Testing Console */}
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-          <div className="flex items-center gap-2">
-            <Zap className="h-4 w-4 text-amber-500" />
-            <h2 className="text-sm font-bold text-slate-900">Uji Coba Eksekusi Rantai AI (Live Test Console)</h2>
-          </div>
-          <span className="text-[10px] text-slate-400">Verifikasi respons failover cascade</span>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-slate-700 block mb-1">
-              Prompt Pengujian:
-            </label>
-            <textarea
-              rows={2}
-              value={testPrompt}
-              onChange={e => setTestPrompt(e.target.value)}
-              className="w-full rounded-lg border border-slate-200 p-2.5 text-xs text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            disabled={generating}
-            onClick={handleRunPlayground}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 text-xs transition-colors shadow-xs"
-          >
-            <Send className="h-3.5 w-3.5" />
-            <span>{generating ? 'Mengeksekusi Rantai AI...' : 'Kirim Uji Coba'}</span>
-          </button>
-        </div>
-
-        {/* AI Result Box */}
-        {testResult && (
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-2.5 animate-in fade-in">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 pb-2 text-xs">
-              <div className="flex items-center gap-2">
-                <span className="font-bold text-slate-700">Provider Digunakan:</span>
-                <span className="rounded bg-blue-100 text-blue-900 font-extrabold px-2 py-0.5">
-                  {testResult.providerUsed}
-                </span>
-                <span className="text-slate-500 font-mono text-[11px]">({testResult.modelUsed})</span>
-              </div>
-              <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                <span>Latensi: <strong>{testResult.latencyMs}ms</strong></span>
-                <span>Estimasi Token: <strong>~{testResult.tokensEstimate}</strong></span>
-                {testResult.isFallback && (
-                  <span className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded font-bold border border-amber-200">
-                    Fallback Chain
-                  </span>
-                )}
-              </div>
-            </div>
-
-            <div className="text-xs text-slate-800 whitespace-pre-line leading-relaxed font-sans bg-white p-3 rounded-lg border border-slate-200/80">
-              {testResult.content}
-            </div>
-          </div>
-        )}
-      </div>
+export default function AISettingsPage(){
+ const [configs,setConfigs]=useState<AIProviderPublic[]>([]);
+ const [loading,setLoading]=useState(true);
+ const [blocked,setBlocked]=useState('');
+ const [busy,setBusy]=useState('');
+ const [notice,setNotice]=useState('');
+ const [noticeError,setNoticeError]=useState(false);
+ const [keys,setKeys]=useState<Record<string,string>>({});
+ const [models,setModels]=useState<Record<string,string>>({});
+ const [prompt,setPrompt]=useState('Jelaskan secara ringkas perbedaan VAPT dan Managed SOC dalam tiga kalimat.');
+ const [result,setResult]=useState<ApiResponse|null>(null);
+ const refresh=useCallback(async()=>{
+  try{
+   const response=await fetch('/api/ai/config',{cache:'no-store',credentials:'same-origin'});
+   const data:ApiResponse=await response.json();
+   if(!response.ok||!data.success){setBlocked(data.message||'Tidak bisa membuka pengaturan AI.');return;}
+   setConfigs(data.configs||[]);
+   setBlocked('');
+  }catch{setBlocked('Koneksi ke backend INDIA gagal.');}
+  finally{setLoading(false);}
+ },[]);
+ useEffect(()=>{void refresh();},[refresh]);
+ const action=async(name:string,payload:Record<string,unknown>,successMessage:string)=>{
+  setBusy(name);setNotice('');setNoticeError(false);
+  try{
+   const response=await fetch('/api/ai/config',{method:'POST',headers:secureHeaders,
+    credentials:'same-origin',cache:'no-store',body:JSON.stringify(payload)});
+   const data:ApiResponse=await response.json();
+   setNotice(data.message||(data.success?successMessage:'Operasi gagal.'));
+   setNoticeError(!response.ok||!data.success);
+   if(response.ok&&data.success){
+    if(data.configs)setConfigs(data.configs);
+    if(payload.action==='save'&&typeof payload.id==='string')setKeys(prev=>({...prev,[payload.id as string]:''}));
+   }
+  }catch{setNotice('Permintaan gagal, pastikan koneksi dan sesi login masih aktif.');setNoticeError(true);}
+  finally{setBusy('');}
+ };
+ const save=(p:AIProviderPublic,enabled=p.enabled)=>{
+  const pending=keys[p.id]?.trim();
+  const model=(models[p.id]??p.model).trim();
+  void action('save-'+p.id,{action:'save',id:p.id,model,enabled,
+   ...(pending?{apiKey:pending}:{})},'Pengaturan tersimpan.');
+ };
+ const order=(idx:number,dir:-1|1)=>{
+  const next=idx+dir;if(next<0||next>=configs.length)return;
+  const ids=configs.map(p=>p.id);[ids[idx],ids[next]]=[ids[next],ids[idx]];
+  void action('priority',{action:'reorder',orderedIds:ids},'Prioritas diperbarui.');
+ };
+ const check=(id:ProviderId)=>void action('test-'+id,{action:'test',id},'Koneksi diuji.');
+ const clear=(id:ProviderId)=>{
+  if(!window.confirm('Hapus API key '+id+' dari D1? Koneksi akan dinonaktifkan.'))return;
+  void action('delete-'+id,{action:'deleteKey',id},'API key dihapus.');
+ };
+ const runTest=async()=>{
+  setBusy('playground');setResult(null);setNotice('');
+  try{
+   const response=await fetch('/api/ai/generate',{method:'POST',headers:secureHeaders,
+    credentials:'same-origin',cache:'no-store',body:JSON.stringify({prompt})});
+   const data:ApiResponse=await response.json();
+   if(!response.ok||!data.success){setNoticeError(true);setNotice(data.message||'Pengujian gagal.');}
+   else {setNoticeError(false);setResult(data);}
+  }catch{setNoticeError(true);setNotice('Tidak dapat menghubungi API AI.');}
+  finally{setBusy('');}
+ };
+ const connected=configs.filter(x=>x.hasKey).length;
+ const active=configs.filter(x=>x.enabled&&x.hasKey).length;
+ return <main className="mx-auto max-w-6xl space-y-5 pb-24">
+  <header className="rounded-2xl border border-violet-100 bg-gradient-to-r from-white to-violet-50 p-5 sm:p-6">
+   <div className="flex items-center gap-3"><span className="rounded-xl bg-violet-800 p-3 text-white"><PlugZap className="h-5 w-5"/></span>
+    <div className="min-w-0"><h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">AI Connections & API Keys</h1>
+     <p className="mt-1 text-xs leading-relaxed text-slate-600">Kelola provider, model, API key terenkripsi, tes koneksi dan urutan AI pada sistem INDIA.</p>
+    </div></div>
+   <div className="mt-4 flex flex-wrap gap-2 text-xs">
+    <span className="rounded-lg border border-violet-200 bg-white px-3 py-2 font-semibold text-violet-800">Providers: {configs.length||6}</span>
+    <span className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700">API key terpasang: {connected}</span>
+    <span className="rounded-lg border border-slate-200 bg-white px-3 py-2 font-semibold text-slate-700">Aktif: {active}</span>
+   </div>
+  </header>
+  <div className="flex items-start gap-3 rounded-xl border border-slate-200 bg-white p-4 text-xs leading-relaxed text-slate-600">
+    <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-violet-700"/>
+    <p><strong className="text-slate-900">Khusus Admin terverifikasi.</strong> API key dikirim hanya ke backend melalui HTTPS, dienkripsi AES-GCM di D1 dan tidak pernah ditampilkan ulang.
+    Akun tanpa izin Admin akan ditolak oleh server. Penggunaan AI eksternal mengirimkan isi prompt ke penyedia yang dipilih; jangan memasukkan data rahasia klien tanpa otorisasi.</p>
+  </div>
+  {notice&&<div role="status" className={'rounded-lg border px-4 py-3 text-xs font-semibold '+(noticeError?
+    'border-rose-200 bg-rose-50 text-rose-900':'border-emerald-200 bg-emerald-50 text-emerald-800')}>{notice}</div>}
+  {loading&&<div className="flex items-center gap-2 rounded-lg bg-white p-5 text-sm text-slate-600">
+    <LoaderCircle className="h-4 w-4 animate-spin"/> Memverifikasi sesi Administrator dan konfigurasi D1...</div>}
+  {!loading&&blocked&&<div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
+    <div className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4"/> Pengaturan AI belum dapat diakses</div>
+    <p className="mt-2 text-xs leading-relaxed">{blocked}</p>
+    <p className="mt-2 text-xs">Pastikan login Cloudflare Access, peran Admin pada INDIA, D1 migration dan konfigurasi Worker tersedia.</p>
+    <button type="button" onClick={()=>{setLoading(true);void refresh();}} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold"><RefreshCcw className="h-3.5 w-3.5"/>Coba lagi</button>
+  </div>}
+  {!loading&&!blocked&&<>
+   <section className="space-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-2">
+     <h2 className="text-sm font-extrabold text-slate-900">Daftar penyedia AI</h2>
+     <p className="text-[11px] text-slate-500">Prioritas terkecil dipilih terlebih dahulu; provider gagal akan dilewati.</p>
     </div>
-  );
+    {configs.map((p,idx)=><article key={p.id} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+     <div className="flex flex-wrap items-start justify-between gap-3 border-b border-slate-100 pb-3">
+      <div className="flex min-w-0 items-start gap-3">
+       <div className="flex flex-col items-center gap-1">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-100 text-xs font-black text-violet-800">{p.priority}</span>
+        <div className="flex">
+         <button type="button" aria-label={'Naikkan prioritas '+p.name} disabled={!!busy||idx===0}
+           onClick={()=>order(idx,-1)} className="p-1 text-slate-500 disabled:opacity-30"><ArrowUp className="h-3.5 w-3.5"/></button>
+         <button type="button" aria-label={'Turunkan prioritas '+p.name} disabled={!!busy||idx===configs.length-1}
+           onClick={()=>order(idx,1)} className="p-1 text-slate-500 disabled:opacity-30"><ArrowDown className="h-3.5 w-3.5"/></button>
+        </div>
+       </div>
+       <div className="min-w-0"><h3 className="text-sm font-extrabold text-slate-900">{p.name}</h3>
+        <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px]">
+         <span className={'rounded-md px-2 py-0.5 font-semibold '+(p.hasKey?'bg-emerald-50 text-emerald-700':'bg-slate-100 text-slate-600')}>
+          {p.hasKey?'Key tersimpan':'Belum dikonfigurasi'}</span>
+         <span className={'rounded-md px-2 py-0.5 font-semibold '+(p.testedOk===true?'bg-emerald-50 text-emerald-700':p.testedOk===false?'bg-rose-50 text-rose-700':'bg-slate-100 text-slate-600')}>
+          {p.testedOk===true?'Koneksi lulus':p.testedOk===false?'Tes gagal':'Belum diuji'}</span>
+        </div>
+       </div>
+      </div>
+      <label className="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-800">
+       <input type="checkbox" className="h-4 w-4 accent-violet-700" checked={p.enabled}
+         disabled={!!busy||!p.hasKey}
+         onChange={e=>save(p,e.target.checked)}/> Aktifkan
+      </label>
+     </div>
+     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <label className="block min-w-0 text-xs font-bold text-slate-700">Model AI
+       <input list={'models-'+p.id} value={models[p.id]??p.model}
+        onChange={e=>setModels(x=>({...x,[p.id]:e.target.value}))} className={'mt-1 '+smallInput}/>
+       <datalist id={'models-'+p.id}>{p.availableModels.map(m=><option key={m} value={m}/>)}</datalist>
+      </label>
+      <label className="block min-w-0 text-xs font-bold text-slate-700">API Key (isi untuk menambah/rotasi)
+       <input type="password" autoComplete="new-password" spellCheck={false}
+        placeholder={p.hasKey?'Key telah disimpan aman - masukkan baru untuk mengganti':'Masukkan API key provider'}
+        value={keys[p.id]||''} onChange={e=>setKeys(x=>({...x,[p.id]:e.target.value}))}
+        className={'mt-1 '+smallInput}/>
+      </label>
+     </div>
+     <div className="mt-4 flex flex-wrap gap-2">
+      <button type="button" disabled={!!busy} onClick={()=>save(p)} className="inline-flex items-center gap-2 rounded-lg bg-violet-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">
+       <Save className="h-3.5 w-3.5"/> Simpan model & key</button>
+      <button type="button" disabled={!!busy||!p.hasKey} onClick={()=>check(p.id)} className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-800 disabled:opacity-40">
+       <RefreshCcw className={'h-3.5 w-3.5 '+(busy==='test-'+p.id?'animate-spin':'')}/> Test koneksi</button>
+      <button type="button" disabled={!!busy||!p.hasKey} onClick={()=>clear(p.id)} className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-40">
+       <Trash2 className="h-3.5 w-3.5"/> Hapus key</button>
+     </div>
+     {p.testedAt&&<p className="mt-2 text-[11px] text-slate-500">Pengujian terakhir: {new Date(p.testedAt+'Z').toLocaleString('id-ID')}</p>}
+    </article>)}
+   </section>
+   <section className="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+    <div className="flex items-center gap-2"><Bot className="h-4 w-4 text-violet-700"/><h2 className="text-sm font-extrabold text-slate-900">AI Live Test Console</h2></div>
+    <p className="mt-1 text-xs text-slate-500">Pengujian mengikuti provider yang diaktifkan, berdasarkan urutan prioritas. Hanya gunakan informasi nonrahasia.</p>
+    <label className="mt-4 block text-xs font-bold text-slate-700">Prompt pengujian
+     <textarea rows={3} maxLength={2000} value={prompt} onChange={e=>setPrompt(e.target.value)}
+       className={'mt-1 '+smallInput} />
+    </label>
+    <button type="button" disabled={!!busy||prompt.trim().length<2} onClick={runTest}
+       className="mt-3 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">
+       <Send className="h-3.5 w-3.5"/>{busy==='playground'?'Meminta respons...':'Jalankan tes AI'}</button>
+    {result?.content&&<div className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-4 text-xs leading-relaxed text-slate-800">
+      <p className="mb-2 font-bold">Provider: {result.providerUsed} · {result.modelUsed} · {result.latencyMs} ms {result.isFallback?'(Failover)':''}</p>
+      <p className="whitespace-pre-wrap">{result.content}</p>
+    </div>}
+   </section>
+  </>}
+ </main>;
 }
