@@ -8,7 +8,7 @@ import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProba
 type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_number:string;status:string;project_name:string}[];
  poCheck:{verified_by:string;verified_at:string}|null;checklist:{registration:string[];project:string[]};
  history:{action:string;from_stage:string|null;to_stage:string|null;actor_email:string;created_at:string}[];
- activities:{kind:string;subject:string;detail:string;created_at:string}[];role:string};
+ activities:{kind:string;subject:string;detail:string;created_at:string}[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500';
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
@@ -117,7 +117,9 @@ export default function SalesPipelinePage(){
  const idx=detail?ordered.indexOf(detail.deal.stage):-1;
  const isMaker=['sales','admin'].includes(role);
  // Admin can always move stage, Sales ownership is enforced by API and client-created list.
- const mayMove=role==='admin'||(role==='sales'&&detail?.deal.created_by!==undefined);
+ const owner=detail&&detail.deal.created_by?.toLowerCase()===detail.identityEmail.toLowerCase();
+ const mayMove=role==='admin'||(role==='sales'&&!!owner);
+ const mayEditAccount=role==='admin'||(role==='sales'&&detail?.account.created_by?.toLowerCase()===detail?.identityEmail.toLowerCase());
  return <div className="min-w-0 space-y-5 pb-24">
  <header className="flex flex-wrap items-center justify-between gap-3">
   <div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">INDIA • DefendIT360</p>
@@ -186,16 +188,16 @@ export default function SalesPipelinePage(){
   </section>
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
-    <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!isMaker} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!isMaker} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
-    <button disabled={busy||!isMaker} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
+    <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!mayEditAccount} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
+    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+    <button disabled={busy||!mayEditAccount} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
    </details>
   </section>
   <section className="space-y-4 rounded-xl border bg-white p-4">
    <h3 className="text-sm font-bold">Sales Form • Discovery, Technical, Commercial, Negotiation & PO</h3>
-   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Nama proyek<input className={inputClass} disabled={!isMaker} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
-   <label className="text-xs font-semibold">Nilai pipeline (IDR)<input type="number" className={inputClass} disabled={!isMaker} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
-   <FormFields fields={DEAL_FIELDS} values={dealFields} readOnly={k=>!isMaker&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
+   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold">Nama proyek<input className={inputClass} disabled={!mayMove} value={dealTitle} onChange={e=>setDealTitle(e.target.value)}/></label>
+   <label className="text-xs font-semibold">Nilai pipeline (IDR)<input type="number" className={inputClass} disabled={!mayMove} value={amount} onChange={e=>setAmount(e.target.value)}/></label></div>
+   <FormFields fields={DEAL_FIELDS} values={dealFields} readOnly={k=>!mayMove&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
    <div className="flex flex-wrap items-center gap-3">
     <button disabled={busy||!['admin','sales','presales'].includes(role)||['closed_won','closed_lost'].includes(detail.deal.stage)} onClick={updateDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">{role==='presales'?'Simpan Parameter Teknis':'Simpan Semua Perubahan'}</button>
     <p className="text-xs text-amber-700">Simpan perubahan sebelum pindah stage. Edit detail membatalkan verifikasi PO sebelumnya.</p>
@@ -203,7 +205,7 @@ export default function SalesPipelinePage(){
   </section>
   <div className="grid gap-4 lg:grid-cols-2">
    <section className="space-y-3 rounded-xl border bg-white p-4"><h3 className="text-sm font-bold">BoQ & Persetujuan Terkait</h3>
-    {detail.boqs.length?detail.boqs.map(b=><button disabled={!isMaker} key={b.id} className={'block w-full rounded-lg border p-3 text-left text-xs '+(dealFields.boq_id===b.id?'border-blue-500 bg-blue-50':'')} onClick={()=>setDealFields(f=>({...f,boq_id:b.id,quotation_number:b.quotation_number}))}><b>{b.quotation_number}</b> · {b.status}<span className="mt-1 block text-slate-500">{b.project_name}</span><span className="text-blue-700">Pilih (lalu simpan form)</span></button>):
+    {detail.boqs.length?detail.boqs.map(b=><button disabled={!mayMove} key={b.id} className={'block w-full rounded-lg border p-3 text-left text-xs '+(dealFields.boq_id===b.id?'border-blue-500 bg-blue-50':'')} onClick={()=>setDealFields(f=>({...f,boq_id:b.id,quotation_number:b.quotation_number}))}><b>{b.quotation_number}</b> · {b.status}<span className="mt-1 block text-slate-500">{b.project_name}</span><span className="text-blue-700">Pilih (lalu simpan form)</span></button>):
     <p className="text-xs text-slate-500">Belum ada BoQ D1 terhubung. Buat di menu BoQ dan cantumkan Opportunity ID.</p>}
    </section>
    <section className="space-y-2 rounded-xl border bg-white p-4"><h3 className="text-sm font-bold">Kelengkapan Form Post-PO</h3>
