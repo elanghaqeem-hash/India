@@ -24,7 +24,7 @@ export type SalesDeal={
  estimated_value:number; fields:SalesFields; created_at:string; created_by?:string;
 };
 export const ACCOUNT_FIELDS=[
- ['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],
+ ['client_tier','Segmentasi pelanggan'],['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],
  ['npwp','NPWP'],['company_phone','Nomor telepon perusahaan'],['fax','Nomor fax / N/A'],
  ['hq_address','Alamat kantor pusat'],['hq_province','Provinsi'],['hq_postal','Kode pos'],
  ['billing_same_as_hq','Alamat penagihan sama dengan kantor pusat (ya/tidak)'],
@@ -52,6 +52,10 @@ export const DEAL_FIELDS=[
  ['license_or_sku','SKU, lisensi / perangkat'],['asset_profile','Web/Mobile/API/IP/Endpoint/Log/EPS'],
  ['boq_id','BoQ D1 yang terhubung'],['costing_notes','HPP, pricing, margin (referensi tanpa angka rahasia)'],
  ['quotation_number','Nomor quotation final'],['quotation_sent_at','Tanggal submission quotation'],
+ ['quotation_valid_days','Masa berlaku quotation (hari)'],['quotation_valid_until','Tanggal akhir berlaku quotation'],
+ ['quotation_terms','Syarat & ketentuan quotation'],['quotation_payment_notes','Ketentuan penagihan/invoice'],
+ ['methodology','Metodologi / Rule of Engagement'],['exclusions','Pengecualian lingkup'],
+ ['team_composition','Komposisi tim yang disepakati'],
  ['next_action','Rencana follow-up'],['next_action_at','Tanggal follow-up'],
  ['negotiation_notes','Hasil negosiasi'],['customer_decision','Keputusan pelanggan (approved/pending/rejected)'],
  ['payment_terms','Termin pembayaran'],['payment_va','Rekening VA disetujui Finance'],
@@ -68,7 +72,7 @@ export const REQUIRED_BY_STAGE:Record<string,string[]>={
  discovery:['discovery_notes','technical_scope','technical_specifications','scope_quantity','deliverables','delivery_model'],
  solution_design:['boq_id','implementation_timeline','contract_model','project_site'],
  commercial_review:['costing_notes'],
- quotation_sent:['quotation_number','quotation_sent_at'],
+ quotation_sent:['quotation_number','quotation_sent_at','quotation_valid_days','quotation_valid_until'],
  negotiation:['next_action','next_action_at','negotiation_notes'],
  pending_po:['customer_decision'],
  closed_won:['po_number','po_date','po_reference','po_amount_before_vat','scope_reconciliation'],
@@ -114,6 +118,9 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
  }
  if(deal.fields.expected_closing_date&&!dateValid(deal.fields.expected_closing_date))missing.push('expected_closing_date (format)');
  if(deal.fields.next_action_at&&!dateValid(deal.fields.next_action_at))missing.push('next_action_at (format)');
+ if(deal.fields.quotation_valid_until&&!dateValid(deal.fields.quotation_valid_until))missing.push('quotation_valid_until (format)');
+ if(deal.fields.quotation_valid_days&&!(/^[0-9]{1,3}$/.test(deal.fields.quotation_valid_days)&&Number(deal.fields.quotation_valid_days)>0&&Number(deal.fields.quotation_valid_days)<=365))
+  missing.push('quotation_valid_days (1-365)');
  if(stage==='pending_po'&&deal.fields.customer_decision!=='approved')missing.push('customer_decision (harus approved)');
  if(stage==='closed_won'){
   if(!dateValid(deal.fields.po_date||''))missing.push('po_date (format)');
