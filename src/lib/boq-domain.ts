@@ -1,5 +1,5 @@
 // DefendIT360 India - BoQ validation and RBAC rules. No demo data or implicit HPP.
-export type BoQRole = 'admin'|'finance'|'presales'|'sales'|'approver'|'viewer';
+export type BoQRole = 'admin'|'marketing'|'finance'|'presales'|'sales'|'approver'|'viewer';
 export type BoQStatus = 'draft'|'submitted'|'approved'|'rejected'|'archived';
 export type BoQLine = {description:string; quantity:number; unit:string; unit_price:number; service_type:string};
 export type CostLine = {code:'A'|'B'|'C'|'D'|'E'; amount:number};
