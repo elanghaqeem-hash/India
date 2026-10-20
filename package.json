@@ -7,13 +7,14 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
     "test:pricing": "node --test tests/pricing-technical-writer.test.cjs",
     "test:boq": "node --test tests/boq-export.test.cjs",
-    "test:quotation-docx": "node --experimental-strip-types --test tests/quotation-docx.test.cjs"
+    "test:quotation-docx": "node --experimental-strip-types --test tests/quotation-docx.test.cjs",
+    "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
