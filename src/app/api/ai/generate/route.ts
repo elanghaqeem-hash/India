@@ -13,9 +13,11 @@ export async function POST(req:Request){
  if(req.headers.get('x-india-ai-admin')!=='1')return json({success:false,message:'Permintaan AI tidak valid.'},403);
  let body:unknown;
  try{body=await req.json();}catch{return json({success:false,message:'Format permintaan tidak valid.'},400);}
- const prompt=(body as {prompt?:unknown})?.prompt;
- if(typeof prompt!=='string'||prompt.trim().length<2||prompt.length>2000)
-  return json({success:false,message:'Prompt harus 2 sampai 2000 karakter.'},400);
+ const payload=body as {prompt?:unknown;task_type?:unknown}|null;
+ const prompt=payload?.prompt;
+ const maxChars=payload?.task_type==='scoping_analysis'?12000:2000;
+ if(typeof prompt!=='string'||prompt.trim().length<2||prompt.length>maxChars)
+  return json({success:false,message:`Prompt harus 2 sampai ${maxChars} karakter.`},400);
  try{
   const result=await runPriorityChain(auth.identity.db,prompt);
   return json({success:true,...result});
