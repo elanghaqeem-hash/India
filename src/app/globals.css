@@ -115,3 +115,143 @@ body {
     break-inside: auto;
   }
 }
+
+
+/* DefendIT360 2026 A4 letterhead quotation, based on the three reference documents. */
+.quotation-reference-document {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 22px;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #171717;
+  overflow: visible;
+}
+.quotation-sheet {
+  position: relative;
+  box-sizing: border-box;
+  width: 210mm;
+  max-width: 100%;
+  min-height: 297mm;
+  overflow: hidden;
+  padding: 11mm 12.5mm 12mm;
+  background: #fff;
+  box-shadow: 0 9px 38px rgba(34, 24, 54, .12);
+  font-size: 10.2px;
+  line-height: 1.48;
+}
+.quote-paper-content { position: relative; z-index: 1; min-width: 0; }
+.quote-watermark {
+  position: absolute;
+  z-index: 0;
+  right: -5%; bottom: -1%;
+  width: 68%;
+  opacity: 1;
+  pointer-events: none;
+}
+.quote-watermark svg { display: block; width: 100%; }
+.quote-corner {
+  position: absolute;
+  right: 0; bottom: 0;
+  z-index: 1;
+  width: 0; height: 0;
+  border-left: 53px solid transparent;
+  border-bottom: 53px solid #5c2a89;
+  opacity: .87; pointer-events: none;
+}
+.quote-brand {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 96px;
+  margin-bottom: 18px;
+}
+.quote-brand-logo { display: flex; align-items: flex-start; gap: 4px; min-width: 0; padding-top: 0; }
+.quote-brand-logo svg { flex-shrink: 0; width: 38px; height: 46px; }
+.quote-logo-text { color: #151515; font-size: 22px; font-weight: 900; letter-spacing: -.8px; line-height: 1.15; white-space: nowrap; }
+.quote-logo-text span { color: #5c2787; }
+.quote-logo-member { font-size: 10px; color: #333; font-weight: 700; line-height: 1.2; white-space: nowrap; }
+.quote-logo-member b { color: #28438e; font-style: italic; margin-left: 2px; }
+.quote-logo-member b span { color: #bf2762; }
+.quote-brand-address { font-size: 8.5px; line-height: 1.28; text-align: right; color: #121212; }
+.quote-brand-address b:first-child { font-size: 9px; }
+.quote-meta { display: grid; gap: 1px; margin: 20px 0 25px 7px; }
+.quote-meta-row { display: grid; grid-template-columns: 67px 10px minmax(0,1fr); gap: 5px; }
+.quote-meta-row strong { font-weight: 400; overflow-wrap: anywhere; }
+.quote-recipient { margin: 17px 0 22px; }
+.quote-subject { display: grid; grid-template-columns: 58px 10px minmax(0,1fr); gap: 5px; margin-bottom: 24px; }
+.quote-letter-body p { margin: 0 0 13px; text-align: justify; }
+.quote-signature { margin-top: 50px; }
+.quote-signature p { margin-bottom: 0; }
+.quote-signature-space { height: 55px; }
+.quote-signature b, .quote-signature span { display: block; }
+.quote-document-title { text-align: center; margin: 8px 0 16px; display: grid; gap: 2px; }
+.quote-document-title > b { font-size: 11px; }
+.quote-document-title > span { font-weight: 700; }
+.quote-document-title > u { font-size: 11px; font-weight: 700; margin-top: 6px; }
+.quote-table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 9.4px; }
+.quote-table th, .quote-table td { border: 1px solid #3d3048; padding: 5px 5px; vertical-align: middle; overflow-wrap: anywhere; }
+.quote-table th { color: #fff; background: #683b98; font-weight: 700; text-align: center; }
+.quote-table td.quote-product { text-align: center; }
+.quote-table td.quote-price { text-align: right; white-space: nowrap; font-size: 9px; }
+.quote-table td.quote-center { text-align: center; }
+.quote-table td.quote-total-label { font-weight: 700; }
+.quote-table td[colspan="3"] { text-align: center; }
+.quote-summary { margin: 23px 0 26px; display: grid; gap: 7px; width: max-content; max-width: 100%; }
+.quote-summary div { display: grid; grid-template-columns: 120px 1fr; gap: 6px; }
+.quote-summary b { font-weight: 700; }
+.quote-section { margin-top: 10px; break-inside: auto; }
+.quote-section h3 { margin: 0 0 4px; color: #151515; font-size: 10.2px; font-weight: 700; text-decoration: underline; }
+.quote-section ul { list-style-type: disc; padding-left: 39px; margin: 3px 0 0; }
+.quote-section li { margin-bottom: 3px; padding-left: 2px; text-align: left; }
+.quote-section p { margin: 2px 0 7px 13px; }
+.quote-unset { font-style: italic; color: #7b5e8c; }
+.quote-warning { padding: 5px 7px; border-left: 3px solid #b45309; color: #9a3412; font-weight: 700; }
+.quote-end-note { margin-top: 18px; }
+.quote-draft-label { margin-top: 18px; font-size: 8px; color: #76508b; font-style: italic; }
+.quote-terms-page .quote-section { margin-bottom: 13px; }
+@media (max-width: 767px) {
+  .quotation-reference-document { gap: 13px; }
+  .quotation-sheet {
+    min-height: 0;
+    width: 100%;
+    padding: 18px 14px 28px;
+    font-size: 10px;
+  }
+  .quote-brand { min-height: 78px; gap: 6px; }
+  .quote-brand-logo { gap: 1px; }
+  .quote-brand-logo svg { width: 24px; height: 31px; }
+  .quote-logo-text { font-size: clamp(11px, 3.8vw, 18px); letter-spacing: -.5px; }
+  .quote-logo-member { font-size: 7px; }
+  .quote-brand-address { font-size: 6.7px; flex-shrink: 0; }
+  .quote-brand-address b:first-child { font-size: 7px; }
+  .quote-meta { margin-top: 12px; margin-bottom: 20px; }
+  .quote-meta-row { grid-template-columns: 54px 8px minmax(0,1fr); }
+  .quote-subject { grid-template-columns: 45px 8px minmax(0,1fr); }
+  .quote-table { font-size: 8.2px; }
+  .quote-table th, .quote-table td { padding: 4px 3px; }
+  .quote-table td.quote-price { font-size: 7.5px; }
+  .quote-summary div { grid-template-columns: 110px 1fr; }
+  .quote-watermark { width: 83%; bottom: -2%; }
+}
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  html, body { margin: 0 !important; padding: 0 !important; }
+  .quotation-reference-document { display: block !important; margin: 0 !important; width: 100% !important; }
+  .quotation-sheet {
+    width: 210mm !important; max-width: 210mm !important; height: 297mm !important;
+    min-height: 297mm !important; overflow: hidden !important;
+    margin: 0 !important; padding: 11mm 12.5mm 12mm !important;
+    border: 0 !important; box-shadow: none !important;
+    font-size: 10.2px !important; break-after: page; page-break-after: always;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  .quotation-sheet:last-child { break-after: auto; page-break-after: auto; }
+  .quote-brand-logo svg { width: 38px !important; height: 46px !important; }
+  .quote-logo-text { font-size: 22px !important; }
+  .quote-logo-member { font-size: 10px !important; }
+  .quote-brand-address { font-size: 8.5px !important; }
+  .quote-table { font-size: 9.4px !important; }
+  .quote-table td.quote-price { font-size: 9px !important; }
+}
