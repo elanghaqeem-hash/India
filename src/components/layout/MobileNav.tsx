@@ -21,7 +21,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
     { label: 'Approval', href: '/approvals', icon: Stamp, badge: pendingApprovalsCount },
     { label: 'Quotation', href: '/proposals', icon: FileSpreadsheet },
     { label: 'Post-PO', href: '/post-po', icon: ClipboardCheck },
-    { label: 'AI Keys', href: '/settings/ai', icon: KeyRound },
+    { label: 'AI Keys', href: '/settings/ai', icon: KeyRound, BriefcaseBusiness },
   ];
 
   return (
