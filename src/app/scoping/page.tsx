@@ -91,11 +91,14 @@ export default function SmartScopingPage() {
   const [uploadedDocument, setUploadedDocument] = useState<{ name: string; format: string; chars: number; truncated: boolean } | null>(null);
   const [uploadError, setUploadError] = useState('');
   const [aiConsent, setAiConsent] = useState(false);
+  const [aiAnalysisSucceeded, setAiAnalysisSucceeded] = useState(false);
 
 
   const handleDocumentUpload = async (file?: File) => {
     if (!file) return;
     setAiExtractionResult(null);
+    setAiAnalysisSucceeded(false);
+    setAiConsent(false);
     setUploadError('');
     setUploadedDocument(null);
     setAiDocText('');
@@ -131,6 +134,7 @@ export default function SmartScopingPage() {
     if (!aiDocText.trim() || uploadingDocument || !aiConsent) return;
     setAiExtracting(true);
     setAiExtractionResult(null);
+    setAiAnalysisSucceeded(false);
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
@@ -148,6 +152,7 @@ export default function SmartScopingPage() {
       const data = await res.json();
       if (data.success) {
         setAiExtractionResult(data.content);
+        setAiAnalysisSucceeded(true);
         // Heuristic auto-adjust
         const lower = aiDocText.toLowerCase();
         if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
@@ -228,8 +233,42 @@ export default function SmartScopingPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Tempelkan cuplikan teks Kerangka Acuan Kerja (KAK), RKS, TOR, atau deskripsi scope tender dari klien. Multi-Source AI Engine (Gemini/OpenAI/Claude/Local) akan menganalisis parameter teknis dan otomatis mengisi formulir scoping.
+              Unggah file RKS, KAK, atau TOR untuk membaca teks, atau tempelkan isi dokumen secara manual. Periksa teks sebelum mengirimkannya ke AI yang dikonfigurasi di India.
             </p>
+
+            <div className="space-y-3 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/40 p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <UploadCloud className="h-5 w-5 text-indigo-600" />
+                Upload Dokumen RKS / KAK
+              </div>
+              <label className={`flex min-h-[64px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-3 text-center text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-50 ${uploadingDocument ? 'pointer-events-none opacity-60' : ''}`}>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  disabled={uploadingDocument || aiExtracting}
+                  onChange={e => { void handleDocumentUpload(e.target.files?.[0]); e.target.value = ''; }}
+                  className="sr-only"
+                  aria-label="Pilih dokumen RKS atau KAK dari perangkat"
+                />
+                <span>{uploadingDocument ? 'Membaca dokumen...' : 'Pilih file dari HP / komputer'}</span>
+                <span className="font-normal text-slate-500">PDF, DOCX, TXT • maksimal 8 MB</span>
+              </label>
+              {uploadedDocument && (
+                <div className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-200 bg-white p-3 text-xs" aria-live="polite">
+                  <FileText className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-slate-800" title={uploadedDocument.name}>{uploadedDocument.name}</p>
+                    <p className="text-slate-500">{uploadedDocument.format} • {uploadedDocument.chars.toLocaleString('id-ID')} karakter terbaca</p>
+                    {uploadedDocument.truncated && <p className="mt-1 text-amber-700">Teks dipotong pada 60.000 karakter. Periksa kelengkapan isinya.</p>}
+                  </div>
+                  <button type="button" aria-label="Hapus dokumen yang dipilih" title="Hapus dokumen" className="rounded p-1 text-slate-500 hover:text-rose-600" onClick={() => { setUploadedDocument(null); setAiDocText(''); setAiExtractionResult(null); setAiAnalysisSucceeded(false); }}>
+                    &times;
+                  </button>
+                </div>
+              )}
+              {uploadError && <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-rose-700"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{uploadError}</p>}
+              <p className="text-[11px] leading-relaxed text-slate-500">File hanya dibaca untuk mengekstrak teks, tidak disimpan sebagai lampiran. PDF hasil scan tanpa teks memerlukan OCR terlebih dahulu.</p>
+            </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -237,14 +276,21 @@ export default function SmartScopingPage() {
               </label>
               <textarea
                 value={aiDocText}
-                onChange={e => setAiDocText(e.target.value)}
+                onChange={e => { setAiDocText(e.target.value); setAiExtractionResult(null); setAiAnalysisSucceeded(false); }}
                 placeholder="Contoh: Dibutuhkan uji penetrasi keamanan Web Application Core Banking dan Mobile Banking iOS & Android dengan metodologi Grey-Box sesuai POJK No. 11/POJK.03/2022, mencakup 30 API endpoint dan 25 halaman layar..."
                 rows={6}
                 className="w-full rounded-xl border border-slate-200 p-3 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
-            <div className="flex justify-end gap-2">
+            {aiDocText.length > 11000 && (
+              <p className="text-[11px] text-amber-700">Analisis AI hanya menggunakan 11.000 karakter pertama. Ringkas atau edit teks untuk memastikan seluruh parameter penting tercakup.</p>
+            )}
+            <label className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-600">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300" checked={aiConsent} onChange={e => setAiConsent(e.target.checked)} />
+              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi India dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
+            </label>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 onClick={() => setShowAiModal(false)}
                 className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
@@ -252,7 +298,7 @@ export default function SmartScopingPage() {
                 Batal
               </button>
               <button
-                disabled={aiExtracting || !aiDocText.trim()}
+                disabled={aiExtracting || uploadingDocument || !aiDocText.trim() || !aiConsent}
                 onClick={handleAiExtract}
                 className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
               >
@@ -274,15 +320,16 @@ export default function SmartScopingPage() {
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-xs space-y-2 mt-4 animate-in fade-in">
                 <div className="flex items-center gap-2 font-bold text-indigo-950">
                   <CheckCircle2 className="h-4 w-4 text-indigo-600" />
-                  <span>Hasil Analisis AI & Rekomendasi Parameter:</span>
+                  <span>{aiAnalysisSucceeded ? "Hasil Analisis AI & Rekomendasi Parameter:" : "Analisis belum berhasil:"}</span>
                 </div>
                 <div className="prose prose-xs text-slate-800 whitespace-pre-wrap leading-relaxed text-[11px] bg-white p-3 rounded-lg border border-indigo-100 max-h-56 overflow-y-auto">
                   {aiExtractionResult}
                 </div>
                 <div className="flex justify-end pt-2">
                   <button
+                    disabled={!aiAnalysisSucceeded}
                     onClick={() => setShowAiModal(false)}
-                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+                    className="disabled:opacity-50 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
                   >
                     Terapkan Nilai ke Formulir
                   </button>
