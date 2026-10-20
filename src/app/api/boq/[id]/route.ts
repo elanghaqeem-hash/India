@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { validateBoQ,can } from '@/lib/boq-domain';
 import { checkTransition } from '@/lib/boq-workflow';
+import { checkBoqLink } from '@/lib/sales-boq-link';
 export const dynamic='force-dynamic';
 type Stored={id:string;tenant_id:string;status:string;version:number;quotation_number:string;line_items_json:string;cost_items_json:string;vat_rate:number;project_name:string;customer_name:string;service_type:string;opportunity_id:string|null;payment_terms:string;notes:string|null;created_by:string;updated_at:string;edit_seq:number};
 const answer=(x:unknown,s=200)=>NextResponse.json(x,{status:s,headers:privateHeaders});
@@ -23,6 +24,12 @@ export async function PATCH(req:Request,ctx:{params:Promise<{id:string}>}){
    const previous={...row,line_items:JSON.parse(row.line_items_json),cost_items:JSON.parse(row.cost_items_json)};
    if(p.payload?.cost_items!==undefined&&!can(i.role,'edit_cost'))return err('Tidak memiliki izin mengubah HPP',403);
    const v=validateBoQ({...previous,...p.payload});
+   if(!v.opportunity_id||v.opportunity_id!==row.opportunity_id)
+    return err('Opportunity ID yang sudah ditautkan ke BoQ tidak boleh diubah. Buat BoQ baru untuk proyek lain.',409);
+   const deal=await i.db.prepare('SELECT id,company_id,title,stage,created_by,data_json FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind('defendit360',v.opportunity_id).first<{id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string}>();
+   const account=deal?await i.db.prepare('SELECT id,legal_name FROM india_sales_accounts WHERE tenant_id=? AND id=?').bind('defendit360',deal.company_id).first<{id:string;legal_name:string}>():null;
+   const linkError=checkBoqLink(v,deal,account,i.role,i.email);
+   if(linkError)return err(linkError,409);
    const changed=await i.db.prepare("UPDATE india_boq SET project_name=?,customer_name=?,quotation_number=?,service_type=?,opportunity_id=?,vat_rate=?,payment_terms=?,line_items_json=?,cost_items_json=?,notes=?,updated_by=?,updated_at=?,edit_seq=edit_seq+1 WHERE id=? AND tenant_id=? AND status='draft' AND edit_seq=?")
    .bind(v.project_name,v.customer_name,v.quotation_number,v.service_type,v.opportunity_id||null,v.vat_rate,
     v.payment_terms,JSON.stringify(v.line_items),JSON.stringify(v.cost_items||[]),v.notes||null,
