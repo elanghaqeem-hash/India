@@ -1,3 +1,17 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Production & Build
+.next/
+out/
+build/
+dist/
+
+# Env
+.env*.local
+
 # Temporary Microsoft Word / Office lock files
 ~$*
 *.~*

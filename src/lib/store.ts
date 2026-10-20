@@ -1,0 +1,349 @@
+// ICOP CyberBusiness 360 In-Memory Persistent Store
+// Seeded with realistic data from BRD v2.0 & DefendIT360 test scenarios
+
+import {
+  Company,
+  Opportunity,
+  PricingSession,
+  Proposal,
+  ApprovalRequest,
+  FlexGuardWallet,
+} from './types';
+
+export interface AppStore {
+  companies: Company[];
+  opportunities: Opportunity[];
+  pricingSessions: PricingSession[];
+  proposals: Proposal[];
+  approvals: ApprovalRequest[];
+  wallets: FlexGuardWallet[];
+}
+
+// Initial Seed Data
+const INITIAL_COMPANIES: Company[] = [
+  {
+    id: 'comp-01',
+    name: 'PT Bank Central Nusantara Tbk',
+    legal_name: 'PT Bank Central Nusantara Tbk',
+    customer_id: 'DEIT-2026-001',
+    npwp: '01.234.567.8-012.000',
+    industry: 'Banking',
+    client_tier: 'A',
+    address: 'Jl. Jend. Sudirman Kav. 52-53, SCBD',
+    city: 'Jakarta Selatan',
+    contacts: [
+      { id: 'c-1', name: 'Budi Santoso', email: 'budi.santoso@bcn.co.id', phone: '0811987654', role_title: 'Head of Information Security', is_primary: true },
+      { id: 'c-2', name: 'Dewi Lestari', email: 'dewi.lestari@bcn.co.id', phone: '0812345678', role_title: 'Procurement Specialist', is_primary: false },
+    ],
+    created_at: '2026-01-15T09:00:00Z',
+  },
+  {
+    id: 'comp-02',
+    name: 'PT Telco Mandiri Solusindo (BUMN)',
+    legal_name: 'PT Telco Mandiri Solusindo',
+    customer_id: 'DEIT-2026-002',
+    npwp: '02.345.678.9-023.000',
+    industry: 'BUMN',
+    client_tier: 'S',
+    address: 'Menara Mandiri Lt. 18, Jl. Gatot Subroto',
+    city: 'Jakarta Selatan',
+    contacts: [
+      { id: 'c-3', name: 'Rian Pratama', email: 'rian.pratama@telcoms.id', phone: '0813998877', role_title: 'VP Technology & Risk', is_primary: true },
+    ],
+    created_at: '2026-02-10T10:30:00Z',
+  },
+  {
+    id: 'comp-03',
+    name: 'PT Dompet Kilat Nusantara (PayFintech)',
+    legal_name: 'PT Dompet Kilat Nusantara',
+    customer_id: 'DEIT-2026-003',
+    npwp: '03.456.789.0-034.000',
+    industry: 'Fintech',
+    client_tier: 'C',
+    address: 'Pacific Century Place Lt. 21, SCBD',
+    city: 'Jakarta Selatan',
+    contacts: [
+      { id: 'c-4', name: 'Michael Chen', email: 'michael@dompetkilat.id', phone: '0818223344', role_title: 'Chief Technology Officer', is_primary: true },
+    ],
+    created_at: '2026-03-05T14:15:00Z',
+  },
+  {
+    id: 'comp-04',
+    name: 'BPR Sejahtera Abadi Mandiri',
+    legal_name: 'PT BPR Sejahtera Abadi Mandiri',
+    customer_id: 'DEIT-2026-004',
+    npwp: '04.567.890.1-045.000',
+    industry: 'Banking',
+    client_tier: 'E',
+    address: 'Jl. Pemuda No. 88',
+    city: 'Semarang',
+    contacts: [
+      { id: 'c-5', name: 'Agus Wijaya', email: 'agus@bprs-abadi.co.id', phone: '0856112233', role_title: 'Direktur Kepatuhan & IT', is_primary: true },
+    ],
+    created_at: '2026-04-12T11:00:00Z',
+  },
+];
+
+const INITIAL_OPPORTUNITIES: Opportunity[] = [
+  {
+    id: 'opp-01',
+    company_id: 'comp-01',
+    company_name: 'PT Bank Central Nusantara Tbk',
+    name: 'Annual Mobile & Internet Banking VAPT 2026',
+    stage: 'quotation_sent',
+    service_type: 'VAPT',
+    estimated_value: 175000000,
+    probability: 60,
+    expected_closing_date: '2026-11-30',
+    account_manager: 'M. Nadhil',
+    notes: 'Kebutuhan pemenuhan POJK & SEOJK tahunan untuk core digital banking',
+    created_at: '2026-10-01T08:00:00Z',
+  },
+  {
+    id: 'opp-02',
+    company_id: 'comp-02',
+    company_name: 'PT Telco Mandiri Solusindo (BUMN)',
+    name: '24x7 SOC/MDR Monitoring & Threat Hunting (12 Bulan)',
+    stage: 'negotiation',
+    service_type: 'SOC',
+    estimated_value: 780000000,
+    probability: 75,
+    expected_closing_date: '2026-12-15',
+    account_manager: 'M. Nadhil',
+    notes: 'Monitoring 500 endpoint + 80 server BUMN, SLA 24x7 15 menit',
+    created_at: '2026-09-15T09:30:00Z',
+  },
+  {
+    id: 'opp-03',
+    company_id: 'comp-03',
+    company_name: 'PT Dompet Kilat Nusantara (PayFintech)',
+    name: 'FlexGuard Cybersecurity Token Wallet (100 MD)',
+    stage: 'qualified',
+    service_type: 'VAPT',
+    estimated_value: 243000000,
+    probability: 50,
+    expected_closing_date: '2026-11-20',
+    account_manager: 'Siti Sarah',
+    notes: 'Model token wallet on-demand untuk security sprint release setiap 2 minggu',
+    created_at: '2026-10-10T14:00:00Z',
+  },
+];
+
+const INITIAL_PROPOSALS: Proposal[] = [
+  {
+    id: 'prop-01',
+    opportunity_id: 'opp-01',
+    opportunity_name: 'Annual Mobile & Internet Banking VAPT 2026',
+    company_id: 'comp-01',
+    company_name: 'PT Bank Central Nusantara Tbk',
+    quotation_number: '014/DEIT-RCS/X/2026',
+    version: 1,
+    status: 'approved',
+    subtotal: 155000000,
+    vat_amount: 17050000,
+    grand_total: 172050000,
+    discount_pct: 0,
+    payment_terms: '30-50-20',
+    valid_days: 14,
+    valid_until: '2026-11-03',
+    client_tier: 'A',
+    selected_price_range: 'standard',
+    line_items: [
+      {
+        line_number: 1,
+        service_type: 'VAPT',
+        description: 'Penetration Testing Mobile Banking Application (Android & iOS) Grey-Box',
+        quantity: 1,
+        unit: 'Paket',
+        unit_price: 85000000,
+        line_total: 85000000,
+      },
+      {
+        line_number: 2,
+        service_type: 'VAPT',
+        description: 'Penetration Testing Internet Banking Web App & Microservice APIs Grey-Box',
+        quantity: 1,
+        unit: 'Paket',
+        unit_price: 70000000,
+        line_total: 70000000,
+      },
+    ],
+    created_by: 'M. Nadhil (Sales)',
+    submitted_at: '2026-10-18T10:00:00Z',
+    approved_by: 'Reza Fahlevi (Head Sales)',
+    approved_at: '2026-10-19T11:30:00Z',
+    notes: 'Disetujui oleh Head Sales. Memenuhi margin target 38.5%.',
+    created_at: '2026-10-18T09:00:00Z',
+  },
+  {
+    id: 'prop-02',
+    opportunity_id: 'opp-02',
+    opportunity_name: '24x7 SOC/MDR Monitoring & Threat Hunting (12 Bulan)',
+    company_id: 'comp-02',
+    company_name: 'PT Telco Mandiri Solusindo (BUMN)',
+    quotation_number: '015/DEIT-RCS/X/2026',
+    version: 1,
+    status: 'pending_approval',
+    subtotal: 680000000,
+    vat_amount: 74800000,
+    grand_total: 754800000,
+    discount_pct: 8.5,
+    payment_terms: '30-60-10',
+    valid_days: 30,
+    valid_until: '2026-11-19',
+    client_tier: 'S',
+    selected_price_range: 'standard',
+    line_items: [
+      {
+        line_number: 1,
+        service_type: 'SOC',
+        description: 'Managed Detection & Response (MDR) 24x7 Service Subscription - 12 Bulan',
+        quantity: 12,
+        unit: 'Bulan',
+        unit_price: 56666666.67,
+        line_total: 680000000,
+      },
+    ],
+    created_by: 'M. Nadhil (Sales)',
+    submitted_at: '2026-10-20T08:30:00Z',
+    notes: 'Menunggu otorisasi Direktur karena nilai total > Rp 500 Juta dan diskon > 5%.',
+    created_at: '2026-10-20T08:00:00Z',
+  },
+];
+
+const INITIAL_APPROVALS: ApprovalRequest[] = [
+  {
+    id: 'appr-01',
+    entity_type: 'quotation',
+    entity_id: 'prop-02',
+    title: 'Quotation #015/DEIT-RCS/X/2026 - PT Telco Mandiri Solusindo',
+    requestor_name: 'M. Nadhil',
+    requestor_role: 'sales',
+    required_level: 'director',
+    status: 'pending',
+    transaction_value: 754800000,
+    discount_pct: 8.5,
+    gross_margin_pct: 34.2,
+    reason: 'Nilai proyek melebihi Rp 500 Juta dan diskon komersial 8.5% melebihi wewenang Manager (5%).',
+    created_at: '2026-10-20T08:30:00Z',
+  },
+];
+
+const INITIAL_WALLETS: FlexGuardWallet[] = [
+  {
+    id: 'w-01',
+    company_id: 'comp-01',
+    company_name: 'PT Bank Central Nusantara Tbk',
+    contract_number: 'PKS-VAPT/DEIT-BCN/2026/04',
+    purchased_mandays: 162,
+    unit_rate: 1500000,
+    total_contract_value: 243000000,
+    available_balance: 114,
+    reserved_balance: 18,
+    consumed_balance: 30,
+    expiry_date: '2027-05-15',
+    transactions: [
+      {
+        id: 'tx-01',
+        tx_type: 'ISSUANCE',
+        mandays: 162,
+        service_scope: 'Aktivasi Kontrak Tahunan FlexGuard (162 Mandays)',
+        reference_code: 'INV-2026-089',
+        executed_by: 'Finance DEIT',
+        created_at: '2026-05-15T10:00:00Z',
+      },
+      {
+        id: 'tx-02',
+        tx_type: 'DEBIT',
+        mandays: 30,
+        service_scope: 'Eksekusi VAPT Mobile Banking Sprint Q2',
+        reference_code: 'BAST-2026-042',
+        executed_by: 'Project Manager (Bambang)',
+        created_at: '2026-07-20T16:00:00Z',
+      },
+      {
+        id: 'tx-03',
+        tx_type: 'RESERVE',
+        mandays: 18,
+        service_scope: 'Reservasi VAPT API Gateway Integration',
+        reference_code: 'SR-2026-105',
+        executed_by: 'Pre-Sales (Hendri)',
+        created_at: '2026-10-15T09:00:00Z',
+      },
+    ],
+  },
+];
+
+// Persistent state singleton for the app session
+class StoreService {
+  private static instance: StoreService;
+  private state: AppStore = {
+    companies: INITIAL_COMPANIES,
+    opportunities: INITIAL_OPPORTUNITIES,
+    pricingSessions: [],
+    proposals: INITIAL_PROPOSALS,
+    approvals: INITIAL_APPROVALS,
+    wallets: INITIAL_WALLETS,
+  };
+
+  private constructor() {}
+
+  public static getInstance(): StoreService {
+    if (!StoreService.instance) {
+      StoreService.instance = new StoreService();
+    }
+    return StoreService.instance;
+  }
+
+  public getState(): AppStore {
+    return this.state;
+  }
+
+  public addCompany(company: Company): Company {
+    this.state.companies.unshift(company);
+    return company;
+  }
+
+  public addOpportunity(opp: Opportunity): Opportunity {
+    this.state.opportunities.unshift(opp);
+    return opp;
+  }
+
+  public addProposal(prop: Proposal): Proposal {
+    this.state.proposals.unshift(prop);
+    return prop;
+  }
+
+  public addApproval(appr: ApprovalRequest): ApprovalRequest {
+    this.state.approvals.unshift(appr);
+    return appr;
+  }
+
+  public updateApproval(id: string, status: 'approved' | 'rejected' | 'revision_requested', approverName: string, comments?: string): ApprovalRequest | undefined {
+    const item = this.state.approvals.find(a => a.id === id);
+    if (item) {
+      item.status = status;
+      item.approved_by = approverName;
+      item.approved_at = new Date().toISOString();
+      item.comments = comments;
+
+      // Also update related proposal if matched
+      if (item.entity_type === 'quotation') {
+        const prop = this.state.proposals.find(p => p.id === item.entity_id);
+        if (prop) {
+          if (status === 'approved') {
+            prop.status = 'approved';
+            prop.approved_by = approverName;
+            prop.approved_at = new Date().toISOString();
+          } else if (status === 'rejected') {
+            prop.status = 'rejected';
+            prop.rejection_reason = comments;
+          }
+        }
+      }
+    }
+    return item;
+  }
+}
+
+export const appStore = StoreService.getInstance();
