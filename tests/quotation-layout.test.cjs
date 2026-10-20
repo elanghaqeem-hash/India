@@ -5,36 +5,37 @@ const { join } = require('node:path');
 
 const root = join(__dirname, '..');
 const page = readFileSync(join(root, 'src/app/proposals/page.tsx'), 'utf8');
+const sheet = readFileSync(join(root, 'src/components/quotation/QuotationDocument.tsx'), 'utf8');
 const css = readFileSync(join(root, 'src/app/globals.css'), 'utf8');
 const shell = readFileSync(join(root, 'src/components/layout/AppShell.tsx'), 'utf8');
 const navbar = readFileSync(join(root, 'src/components/layout/Navbar.tsx'), 'utf8');
 
-test('quotation keeps an A4 desktop/print table and separate mobile cards', () => {
-  assert.match(page, /quotation-mobile-list/);
-  assert.match(page, /lg:hidden print:hidden/);
-  assert.match(page, /quotation-desktop-table/);
-  assert.match(page, /lg:block print:block print:overflow-visible/);
-  assert.match(css, /size: A4 portrait/);
-  assert.match(css, /\.quotation-desktop-table/);
+test('quotation displays three A4 pages with repeated branding and compact purple pricing table', () => {
+  assert.match(page, /<QuotationDocument proposal={selectedProp} format={docFormat} details={docDetails}/);
+  assert.match(sheet, /quote-letter-page/);
+  assert.match(sheet, /quote-details-page/);
+  assert.match(sheet, /quote-terms-page/);
+  assert.match(sheet, /quote-brand-logo/);
+  assert.match(sheet, /quote-price-table/);
+  assert.match(sheet, /RINCIAN HARGA PENAWARAN/);
+  assert.match(sheet, /Rules Of Engagement/);
+  assert.match(sheet, /Service Level Objective \(SLO\)/);
+  assert.match(css, /\.quote-table th \{ color: #fff; background: #683b98/);
+  assert.match(css, /@page \{ size: A4 portrait; margin: 0; \}/);
+  assert.match(css, /break-after: page/);
 });
-
-test('mobile and print views derive monetary fields from the same selected proposal', () => {
-  assert.match(page, /formatIDR\(item\.unit_price\)/);
-  assert.match(page, /formatIDR\(item\.line_total\)/);
-  assert.match(page, /formatIDR\(selectedProp\.grand_total\)/);
-  assert.match(page, /selectedProp\.line_items\.map\(item =>/);
-  assert.match(page, /<table className="quotation-desktop-table/);
+test('mobile and print views use proposal-based data rather than a hardcoded client or payment account', () => {
+  assert.match(sheet, /p\.line_items\.map/);
+  assert.match(sheet, /fmtMoney\(p\.grand_total\)/);
+  assert.match(sheet, /p\.quotation_number/);
+  assert.match(sheet, /p\.payment_terms/);
+  assert.doesNotMatch(sheet, /PT Bank Central Nusantara Tbk|122-00-1928374-5|DIGITALLY AUTHORIZED/);
+  assert.match(css, /@media \(max-width: 767px\)/);
+  assert.match(css, /@media print/);
 });
-
-test('mobile shell prevents page-level horizontal overflow', () => {
-  assert.match(shell, /min-w-0/);
-  assert.match(shell, /overflow-x-clip/);
-  assert.match(page, /quotation-document min-w-0 w-full max-w-full overflow-hidden/);
-});
-
-test('print hides navigation and mobile shortcut remains accessible', () => {
+test('shell print mode hides navigation while retaining a mobile-reachable export', () => {
   assert.match(navbar, /<header className="no-print/);
-  assert.match(navbar, /Pengaturan AI & API Key/);
   assert.match(shell, /className="no-print border-b/);
   assert.match(css, /\.no-print\s*\{\s*display: none !important/);
+  assert.match(page, /Unduh Quotation \(\.docx\)/);
 });

@@ -104,10 +104,21 @@ function table(rows: Array<Array<string | number>>, widths: number[], header = t
 }
 function page(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function brand(): string {
-  return p('◆ DEFENDIT360', { bold: true, size: 36, color: '55258C', after: 35 }) +
-    p('PT DATA ENKRIPSI INFORMASI TEKNOLOGI', { bold: true, size: 17, after: 20 }) +
-    p('Sudirman 7.8, Tower 1, Lt. 27 | Jl. Jenderal Sudirman No. 10 | Jakarta 10220', { size: 14, after: 45 }) +
-    p('info@defendit360.co.id  |  www.defendit360.co.id', { size: 14, color: '545454', after: 180 });
+  const left = p('DEFENDIT360', { bold: true, size: 33, color: '572A89', after: 15 }) +
+    p('member of XLSMART', { bold: true, size: 16, color: '394A8C', after: 10 });
+  const right = p('PT. DATA ENKRIPSI INFORMASI TEKNOLOGI', { bold: true, size: 14, align: 'right', after: 4 }) +
+    p('Head Office', { bold: true, size: 13, align: 'right', after: 3 }) +
+    p('Sudirman 7.8, Tower 1, Lt. 27', { size: 13, align: 'right', after: 3 }) +
+    p('Jl. Jenderal Sudirman No. 10', { size: 13, align: 'right', after: 3 }) +
+    p('Karet Tengsin, Jakarta - 10220', { size: 13, align: 'right', after: 3 }) +
+    p('info@defendit360.co.id | www.defendit360.co.id', { size: 12, align: 'right', after: 0 });
+  const block = (content: string, width: number) => '<w:tc><w:tcPr><w:tcW w:w="' + width +
+    '" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>' + content + '</w:tc>';
+  return '<w:tbl><w:tblPr><w:tblW w:w="10100" w:type="dxa"/>' +
+    '<w:tblBorders><w:top w:val="nil"/><w:bottom w:val="nil"/>' +
+    '<w:left w:val="nil"/><w:right w:val="nil"/><w:insideH w:val="nil"/><w:insideV w:val="nil"/></w:tblBorders></w:tblPr>' +
+    '<w:tblGrid><w:gridCol w:w="5000"/><w:gridCol w:w="5100"/></w:tblGrid>' +
+    '<w:tr>' + block(left, 5000) + block(right, 5100) + '</w:tr></w:tbl>' + p(' ', { after: 120 });
 }
 
 function validate(proposal: Proposal): void {
@@ -129,19 +140,23 @@ function productName(fmt: 'mobile'|'vapt'|'soc', proposal: Proposal): string {
   if (fmt === 'mobile') return 'Mobile Application Penetration Testing';
   return quotationPillar(proposal) + ' - ' + proposal.opportunity_name;
 }
-function lineTable(items: ProposalLineItem[]): string {
-  const rows: Array<Array<string | number>> = [['Product / Layanan', 'Qty', 'Harga Satuan', 'Total Harga']];
-  items.forEach(item => rows.push([clean(item.description), clean(item.quantity) + ' ' + clean(item.unit),
-    money(item.unit_price), money(item.line_total)]));
-  return table(rows, [4560, 1310, 2080, 2150]);
+function lineTable(items: ProposalLineItem[], product: string): string {
+  const rows: Array<Array<string | number>> = [['Product', 'Layanan', 'Qty', 'Price']];
+  items.forEach((item, i) => rows.push([
+    i === 0 ? product : '',
+    clean(item.description),
+    clean(item.quantity) + ' ' + clean(item.unit),
+    money(item.line_total),
+  ]));
+  return table(rows, [2500, 4220, 1260, 2120]);
 }
 function amountTable(prop: Proposal): string {
   const rate = prop.subtotal > 0 ? (prop.vat_amount / prop.subtotal * 100).toFixed(2).replace(/\.00$/, '') : UNKNOWN;
-  return table([['Keterangan', 'Nominal'],
-    ['Subtotal sebelum pajak', money(prop.subtotal)],
-    ['PPN (' + rate + '% - berdasarkan nominal proposal)', money(prop.vat_amount)],
-    ['Total penawaran', money(prop.grand_total)]], [7050, 3050]);
+  return p('Subtotal Harga : ' + money(prop.subtotal), { bold: true, size: 18, before: 190, after: 70 }) +
+    p('PPN (' + rate + '%) : ' + money(prop.vat_amount), { size: 18, after: 70 }) +
+    p('Total : ' + money(prop.grand_total), { bold: true, size: 19, after: 170 });
 }
+
 function paymentText(terms: string): string {
   const values: Record<string,string> = {
     '50-50': 'Termin 1: 50%; Termin 2: 50%. Milestone penagihan dikonfirmasi di PO/kontrak.',
@@ -182,8 +197,9 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
 
   body += page() + brand() +
     p('RINCIAN HARGA PENAWARAN', { bold: true, size: 25, align: 'center', after: 80 }) +
-    p(subject, { size: 19, bold: true, align: 'center', after: 110 }) +
-    lineTable(prop.line_items) +
+    p(pillar + ' - ' + subject, { size: 19, bold: true, align: 'center', after: 80 }) +
+    p('Quotation', { size: 19, bold: true, align: 'center', after: 110 }) +
+    lineTable(prop.line_items, pillar + ' - ' + subject) +
     amountTable(prop);
   if (amountMismatch) body += p('PERLU REKONSILIASI: jumlah line item tidak sama dengan subtotal proposal.', { bold: true, color: 'A00000' });
   if (totalMismatch) body += p('PERLU REKONSILIASI: subtotal + PPN tidak sama dengan grand total proposal.', { bold: true, color: 'A00000' });
