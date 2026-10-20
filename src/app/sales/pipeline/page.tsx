@@ -7,6 +7,7 @@ import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProba
 
 type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_number:string;status:string;project_name:string}[];
  poCheck:{verified_by:string;verified_at:string}|null;checklist:{registration:string[];project:string[]};
+ originLead:{lead_id:string;lead_number:string;source:string;campaign:string}|null;
  history:{action:string;from_stage:string|null;to_stage:string|null;actor_email:string;created_at:string}[];
  activities:{kind:string;subject:string;detail:string;created_at:string}[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
@@ -217,6 +218,10 @@ export default function SalesPipelinePage(){
     {detail.deal.stage==='closed_won'&&<Link href={'/post-po?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Isi Form Post-PO →</Link>}
     {detail.deal.stage==='closed_lost'&&<a href={'/api/sales/loss-report?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Unduh Lost Analysis (.docx)</a>}
    </div>
+   {detail.originLead&&<div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
+    <span className="text-slate-600">Lead asal: <b>{detail.originLead.lead_number}</b> · {detail.originLead.source}{detail.originLead.campaign?' · '+detail.originLead.campaign:''}</span>
+    <Link href={'/sales/leads?lead_id='+encodeURIComponent(detail.originLead.lead_id)} className="font-bold text-blue-700 hover:underline">Buka Lead Marketing →</Link>
+   </div>}
    {detail.poCheck&&<p className="mt-2 text-xs text-emerald-700">PO diverifikasi oleh {detail.poCheck.verified_by} • {detail.poCheck.verified_at}</p>}
   </section>
   <section className="rounded-xl border bg-white p-4">
