@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   ChevronDown,
   Info,
+  Sparkles,
 } from 'lucide-react';
 import {
   calculateDAI,
@@ -69,6 +70,10 @@ function PricingEngineContent() {
   const [selectedRange, setSelectedRange] = useState<PriceRange>('standard');
   const [customPriceOverride, setCustomPriceOverride] = useState<number | null>(null);
   const [discountPct, setDiscountPct] = useState<number>(0);
+
+  // AI Pricing Advisor State
+  const [aiAdvice, setAiAdvice] = useState<string | null>(null);
+  const [aiAdvising, setAiAdvising] = useState<boolean>(false);
 
   // Sync staffing total if query MD changed
   useEffect(() => {
