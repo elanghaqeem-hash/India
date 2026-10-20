@@ -93,8 +93,8 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <>
-      <header className="sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
-        <div className="flex h-16 items-center justify-between px-4 sm:px-6">
+      <header className="no-print sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
+        <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-6">
           {/* Brand Logo & Name */}
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
@@ -126,11 +126,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Header Actions: AI Trigger, Settings, Approvals, Profile */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             {/* AI Assistant Quick Trigger */}
             <button
               onClick={() => setAiAssistantOpen(true)}
-              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:from-purple-700 hover:to-indigo-700 transition-all"
+              className="flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-indigo-600 px-2.5 sm:px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:from-purple-700 hover:to-indigo-700 transition-all"
               title="Buka AI Business Assistant"
             >
               <Sparkles className="h-3.5 w-3.5 text-cyan-300 animate-pulse" />
@@ -140,7 +140,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             {/* AI API Settings Shortcut */}
             <Link
               href="/settings/ai"
-              className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-purple-600 transition-colors"
+              className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-purple-600 transition-colors"
               title="Konfigurasi API Key & Prioritas AI"
             >
               <Key className="h-4 w-4" />
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white py-1.5 px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors focus:outline-none"
+                className="flex items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white py-1.5 px-2 sm:px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors focus:outline-none"
               >
                 <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-indigo-700">
                   <UserCheck className="h-3.5 w-3.5" />
@@ -181,6 +181,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
                     Pilih Profil & Role (RBAC Simulation)
                   </div>
+                  <Link href="/settings/ai" onClick={() => setDropdownOpen(false)} className="mb-1 block rounded-lg px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 sm:hidden">Pengaturan AI & API Key</Link>
                   {roles.map(r => (
                     <button
                       key={r.role}
