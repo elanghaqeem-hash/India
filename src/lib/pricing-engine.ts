@@ -23,6 +23,7 @@ export const RATE_CARD_COST: Record<LocationType, Record<RoleLevel, number>> = {
     soc_analyst_l1: 700000,
     soc_analyst_l2: 1200000,
     cti_analyst: 1500000,
+    technical_writer: 0, // Tarif belum disetujui: isi manual di Pricing.
   },
   jabotabek: {
     project_manager: 1500000,
@@ -34,6 +35,7 @@ export const RATE_CARD_COST: Record<LocationType, Record<RoleLevel, number>> = {
     soc_analyst_l1: 700000,
     soc_analyst_l2: 1200000,
     cti_analyst: 1500000,
+    technical_writer: 0, // Tarif belum disetujui: isi manual di Pricing.
   },
   luar_jabotabek: {
     project_manager: 1500000,
@@ -45,6 +47,7 @@ export const RATE_CARD_COST: Record<LocationType, Record<RoleLevel, number>> = {
     soc_analyst_l1: 850000,
     soc_analyst_l2: 1400000,
     cti_analyst: 1500000,
+    technical_writer: 0, // Tarif belum disetujui: isi manual di Pricing.
   },
   overseas: {
     project_manager: 4000000,
@@ -56,6 +59,7 @@ export const RATE_CARD_COST: Record<LocationType, Record<RoleLevel, number>> = {
     soc_analyst_l1: 2500000,
     soc_analyst_l2: 3500000,
     cti_analyst: 4000000,
+    technical_writer: 0, // Tarif belum disetujui: isi manual di Pricing.
   },
 };
 
@@ -70,6 +74,7 @@ export const BASE_SELLING_RATE: Record<RoleLevel, number> = {
   soc_analyst_l1: 2000000,
   soc_analyst_l2: 3500000,
   cti_analyst: 4500000,
+  technical_writer: 0, // Tarif jual Technical Writer perlu ditetapkan.
 };
 
 // Client Tier Multipliers (BRD 3.1 & PreDev 01)
@@ -97,15 +102,16 @@ export function calculateDAI(indices: DAIIndices): number {
 
 // Calculate Component A (HR Cost)
 export function calculateHRCost(
-  hrStaffing: Array<{ role_level: RoleLevel; mandays: number }>,
+  hrStaffing: Array<{ role_level: RoleLevel; mandays: number; cost_rate_override?: number; selling_rate_override?: number }>,
   location: LocationType = 'remote'
 ): { details: BoQHRDetail[]; totalHRCost: number; totalSellingBaseline: number } {
   let totalHRCost = 0;
   let totalSellingBaseline = 0;
 
   const details: BoQHRDetail[] = hrStaffing.map(item => {
-    const costRate = RATE_CARD_COST[location][item.role_level] || 1000000;
-    const sellingRate = BASE_SELLING_RATE[item.role_level] || 3500000;
+    // Explicit zero is valid for an unconfigured role; do not silently apply another role's rate.
+    const costRate = Math.max(0, item.cost_rate_override ?? RATE_CARD_COST[location][item.role_level]);
+    const sellingRate = Math.max(0, item.selling_rate_override ?? BASE_SELLING_RATE[item.role_level]);
     const subtotal = item.mandays * costRate;
     totalHRCost += subtotal;
     totalSellingBaseline += item.mandays * sellingRate;
