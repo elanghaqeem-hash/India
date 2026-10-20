@@ -5,8 +5,6 @@
  * Amounts are integer centi-mandays (100 units = 1.00 MD). D1 AFTER INSERT
  * trigger updates balances atomically and rejects overdrafts/duplicates.
  */
-import 'server-only';
-
 type Statement<Row = Record<string, unknown>> = {
   bind(...values: (string | number)[]): Statement<Row>;
   first(): Promise<Row | null>;
