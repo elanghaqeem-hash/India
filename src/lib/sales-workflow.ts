@@ -156,4 +156,4 @@ export function documentChecklist(deal:SalesDeal,account:SalesAccount){
   'implementation_timeline','scope_reconciliation','po_amount_before_vat'].filter(k=>!has(d[k]));
  return {registration:[...new Set(registration)],project};
 }
-export const safeID=(s:unknown)=>typeof s==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(s);
+export const safeID=(s:unknown):s is string=>typeof s==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(s);
