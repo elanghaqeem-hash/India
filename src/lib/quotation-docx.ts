@@ -140,19 +140,23 @@ function productName(fmt: 'mobile'|'vapt'|'soc', proposal: Proposal): string {
   if (fmt === 'mobile') return 'Mobile Application Penetration Testing';
   return quotationPillar(proposal) + ' - ' + proposal.opportunity_name;
 }
-function lineTable(items: ProposalLineItem[]): string {
-  const rows: Array<Array<string | number>> = [['Product / Layanan', 'Qty', 'Harga Satuan', 'Total Harga']];
-  items.forEach(item => rows.push([clean(item.description), clean(item.quantity) + ' ' + clean(item.unit),
-    money(item.unit_price), money(item.line_total)]));
-  return table(rows, [4560, 1310, 2080, 2150]);
+function lineTable(items: ProposalLineItem[], product: string): string {
+  const rows: Array<Array<string | number>> = [['Product', 'Layanan', 'Qty', 'Price']];
+  items.forEach((item, i) => rows.push([
+    i === 0 ? product : '',
+    clean(item.description),
+    clean(item.quantity) + ' ' + clean(item.unit),
+    money(item.line_total),
+  ]));
+  return table(rows, [2500, 4220, 1260, 2120]);
 }
 function amountTable(prop: Proposal): string {
   const rate = prop.subtotal > 0 ? (prop.vat_amount / prop.subtotal * 100).toFixed(2).replace(/\.00$/, '') : UNKNOWN;
-  return table([['Keterangan', 'Nominal'],
-    ['Subtotal sebelum pajak', money(prop.subtotal)],
-    ['PPN (' + rate + '% - berdasarkan nominal proposal)', money(prop.vat_amount)],
-    ['Total penawaran', money(prop.grand_total)]], [7050, 3050]);
+  return p('Subtotal Harga : ' + money(prop.subtotal), { bold: true, size: 18, before: 190, after: 70 }) +
+    p('PPN (' + rate + '%) : ' + money(prop.vat_amount), { size: 18, after: 70 }) +
+    p('Total : ' + money(prop.grand_total), { bold: true, size: 19, after: 170 });
 }
+
 function paymentText(terms: string): string {
   const values: Record<string,string> = {
     '50-50': 'Termin 1: 50%; Termin 2: 50%. Milestone penagihan dikonfirmasi di PO/kontrak.',
@@ -193,8 +197,9 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
 
   body += page() + brand() +
     p('RINCIAN HARGA PENAWARAN', { bold: true, size: 25, align: 'center', after: 80 }) +
-    p(subject, { size: 19, bold: true, align: 'center', after: 110 }) +
-    lineTable(prop.line_items) +
+    p(pillar + ' - ' + subject, { size: 19, bold: true, align: 'center', after: 80 }) +
+    p('Quotation', { size: 19, bold: true, align: 'center', after: 110 }) +
+    lineTable(prop.line_items, pillar + ' - ' + subject) +
     amountTable(prop);
   if (amountMismatch) body += p('PERLU REKONSILIASI: jumlah line item tidak sama dengan subtotal proposal.', { bold: true, color: 'A00000' });
   if (totalMismatch) body += p('PERLU REKONSILIASI: subtotal + PPN tidak sama dengan grand total proposal.', { bold: true, color: 'A00000' });
