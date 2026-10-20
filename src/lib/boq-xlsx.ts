@@ -11,7 +11,7 @@ import type { Proposal, PricingSession } from './types';
 
 export type BoQExportFormat = 'standard' | 'onsite' | 'customer';
 type Cell = string | number | null | { formula: string };
-type Sheet = { name: string; rows: Cell[][]; headers?: number[]; freeze?: number };
+type Sheet = { name: string; rows: Cell[][]; headers?: number[]; freeze?: number; percentCells?: string[]; decimalCells?: string[] };
 
 const f = (formula: string): Cell => ({ formula });
 const esc = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -224,11 +224,14 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ['Status', 'DRAFT / REQUIRES REVIEW'],
   ];
   return [
-    { name: 'Ringkasan P&L', rows: summary, headers: [7], freeze: 7 },
-    { name: 'BoQ Internal', rows: b, headers: [8, total], freeze: 8 },
-    { name: 'Parameter', rows: params, headers: [7], freeze: 7 },
+    { name: 'Ringkasan P&L', rows: summary, headers: [7], freeze: 7, percentCells: ['B12'] },
+    { name: 'BoQ Internal', rows: b, headers: [8, total], freeze: 8,
+      percentCells: [...Array.from({length: proposal.line_items.slice(0, 100).length + PRODUCT_CATALOG.length}, (_,i) => 'J' + (i + 9)), 'J' + total] },
+    { name: 'Parameter', rows: params, headers: [7], freeze: 7,
+      percentCells: ['C8', 'C9', 'C10', 'C15', 'C16', 'C17'], decimalCells: ['C11', 'C12', 'C13'] },
     { name: onsite ? 'Biaya Onsite' : 'Lingkup & Sizing', rows: scope, headers: [7], freeze: 7 },
-    { name: 'Jadwal & Alokasi', rows: allocation, headers: [7], freeze: 7 },
+    { name: 'Jadwal & Alokasi', rows: allocation, headers: [7], freeze: 7,
+      percentCells: Array.from({length: 65}, (_,i) => col(3 + i % 13) + (8 + Math.floor(i / 13))) },
     { name: 'Cash Flow', rows: flow, headers: [7], freeze: 7 },
     { name: 'Asumsi', rows: assumptions, headers: [7], freeze: 7 },
   ];
@@ -303,16 +306,18 @@ function makeCustomer(proposal: Proposal): Sheet[] {
     ['SECURITY', 'Dokumen ini tidak memuat informasi HPP dan margin internal.'],
   ];
   return [
-    { name: 'Summary', rows: s, headers: [7, 10, 15], freeze: 7 },
+    { name: 'Summary', rows: s, headers: [7, 10, 15], freeze: 7,
+      percentCells: ['C16', 'C17', 'C18', 'C19'] },
     { name: 'BoQ Quotation', rows: b, headers: [8, final], freeze: 8 },
-    { name: 'Parameters', rows: p, headers: [6, optionRow], freeze: 6 },
+    { name: 'Parameters', rows: p, headers: [6, optionRow], freeze: 6,
+      percentCells: ['C' + (optionRow + 2)] },
   ];
 }
 
 const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">'
-  + '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;[Red](#,##0);-"/>'
-  + '<numFmt numFmtId="165" formatCode="0.0%"/></numFmts>'
+  + '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0;[Red](#,##0);-"/>'
+  + '<numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="0.00"/></numFmts>'
   + '<fonts count="3"><font><sz val="10"/><name val="Aptos"/></font>'
   + '<font><b/><color rgb="FFFFFFFF"/><sz val="13"/><name val="Aptos"/></font>'
   + '<font><b/><color rgb="FF15223B"/><sz val="10"/><name val="Aptos"/></font></fonts>'
@@ -322,22 +327,26 @@ const stylesXml = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
   + '<fill><patternFill patternType="solid"><fgColor rgb="FFEFF6FF"/><bgColor indexed="64"/></patternFill></fill></fills>'
   + '<borders count="1"><border><left/><right/><top/><bottom/><diagonal/></border></borders>'
   + '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>'
-  + '<cellXfs count="5"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
+  + '<cellXfs count="7"><xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>'
   + '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFill="1" applyFont="1"/>'
   + '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFill="1" applyFont="1"/>'
   + '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
   + '<xf numFmtId="0" fontId="2" fillId="3" borderId="0" xfId="0" applyFill="1" applyFont="1"/>'
+  + '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
+  + '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>'
   + '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 
 function sheetXml(sheet: Sheet): string {
   const headers = new Set(sheet.headers || []);
+  const percentCells = new Set(sheet.percentCells || []);
+  const decimalCells = new Set(sheet.decimalCells || []);
   const rows = sheet.rows.map((cells, ri) => {
     if (!cells.length) return '';
     const row = ri + 1;
     const xml = cells.map((cell, ci) => {
       if (cell === null || cell === undefined) return '';
       const ref = col(ci + 1) + row;
-      const fmt = row === 1 ? 1 : headers.has(row) ? 2 : (typeof cell === 'number' || (typeof cell === 'object' && cell !== null)) ? 3 : 0;
+      const fmt = row === 1 ? 1 : headers.has(row) ? 2 : percentCells.has(ref) ? 5 : decimalCells.has(ref) ? 6 : (typeof cell === 'number' || (typeof cell === 'object' && cell !== null)) ? 3 : 0;
       if (typeof cell === 'object') return '<c r="' + ref + '" s="' + fmt + '"><f>' + esc(cell.formula.replace(/^=/, '')) + '</f><v/></c>';
       if (typeof cell === 'number') return '<c r="' + ref + '" s="' + fmt + '"><v>' + (Number.isFinite(cell) ? cell : 0) + '</v></c>';
       return '<c r="' + ref + '" s="' + fmt + '" t="inlineStr"><is><t>' + esc(safeText(cell)) + '</t></is></c>';
