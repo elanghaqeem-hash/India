@@ -50,6 +50,7 @@ export default function MarketingLeads(){
   setNewMode(false);
  };
  useEffect(()=>{void refresh();},[refresh]);
+ useEffect(()=>{const id=new URLSearchParams(window.location.search).get('lead_id');if(id)void load(id);},[]);
  const run=async(fn:()=>Promise<unknown>,result:string,next?:string)=>{
   setBusy(true);setMessage('');
   try{const j=await fn() as {id?:string;opportunity_id?:string};await refresh();
