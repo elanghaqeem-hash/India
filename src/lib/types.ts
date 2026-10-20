@@ -327,3 +327,49 @@ export interface FlexGuardTransaction {
   notes?: string;
   created_at: string;
 }
+
+// AI Multi-Provider Configuration (Admin Priority Controlled)
+export type AIProviderType = 'gemini' | 'openai' | 'anthropic' | 'groq' | 'local';
+
+export interface AIProviderConfig {
+  id: string;
+  provider: AIProviderType;
+  name: string;
+  apiKey: string;
+  model: string;
+  priority: number; // 1 = highest priority, cascading downwards
+  isEnabled: boolean;
+  status: 'active' | 'standby' | 'error' | 'unconfigured';
+  lastTestedAt?: string;
+  statusMessage?: string;
+}
+
+export interface AIServiceResponse {
+  providerUsed: string;
+  modelUsed: string;
+  content: string;
+  latencyMs: number;
+  tokensEstimate: number;
+  isFallback: boolean;
+}
+
+// Tender Management Models (Modul 2)
+export type TenderSource = 'SiRUP' | 'LPSE' | 'BUMN' | 'Swasta' | 'Undangan Langsung' | 'Lainnya';
+export type BidDecision = 'pending' | 'go' | 'conditional_go' | 'no_go';
+
+export interface Tender {
+  id: string;
+  code: string;
+  title: string;
+  source: TenderSource;
+  agency_name: string;
+  pagu_budget: number;
+  hps_budget: number;
+  service_type: ServiceType;
+  deadline_submission: string;
+  eligibility_status: 'qualified' | 'needs_partner' | 'disqualified';
+  bid_decision: BidDecision;
+  bid_score: number;
+  summary?: string;
+  created_at: string;
+}
