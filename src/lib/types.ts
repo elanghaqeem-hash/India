@@ -81,7 +81,8 @@ export type RoleLevel =
   | 'sme_external'
   | 'soc_analyst_l1'
   | 'soc_analyst_l2'
-  | 'cti_analyst';
+  | 'cti_analyst'
+  | 'technical_writer';
 
 export type VaptType =
   | 'web_app'
