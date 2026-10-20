@@ -88,7 +88,7 @@ test('internal format produces seven sheets, linked aggregate HPP only if opport
   const unrelated = { ...pricing, opportunity_id: 'other-opportunity' };
   const rejected = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard', unrelated));
   assert.ok(!rejected.get('xl/worksheets/sheet2.xml').includes('1111111'));
-  assert.ok(rejected.get('xl/worksheets/sheet2.xml').includes('BELUM ADA HPP'));
+  assert.ok(rejected.get('xl/worksheets/sheet2.xml').includes('LENGKAPI KOMPONEN A-E'));
 });
 
 test('onsite export preserves onsite travel worksheet and costs separated', () => {
