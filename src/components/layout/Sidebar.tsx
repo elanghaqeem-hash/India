@@ -17,7 +17,6 @@ import {
   ClipboardCheck,
   ClipboardList,
   Sparkles,
-  BriefcaseBusiness,
   KanbanSquare,
 } from 'lucide-react';
 
@@ -30,7 +29,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
 
   const navigation = [
     { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
-    { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: BriefcaseBusiness, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
     {
       name: 'Deal 360 Workspace',
