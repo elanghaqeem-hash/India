@@ -14,6 +14,7 @@ import {
   TrendingUp,
   FileCheck2,
   FileText,
+  ClipboardCheck,
   Sparkles,
 } from 'lucide-react';
 
@@ -61,6 +62,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       href: '/proposals',
       icon: FileSpreadsheet,
       badge: null,
+    },
+    {
+      name: 'Post-PO Forms & Kick Off',
+      href: '/post-po',
+      icon: ClipboardCheck,
+      badge: '2 Word',
     },
     {
       name: 'Tender Management',
