@@ -16,6 +16,7 @@ import {
 import { appStore } from '@/lib/store';
 import { formatIDR, formatDate } from '@/lib/formatters';
 import { Proposal } from '@/lib/types';
+import { downloadProposalBoQ, BoQExportFormat } from '@/lib/boq-xlsx';
 
 export default function ProposalsPage() {
   const store = appStore.getState();
@@ -27,6 +28,19 @@ export default function ProposalsPage() {
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handleExportBoQ = (format: BoQExportFormat) => {
+    try {
+      // SECURITY: do not pass internal pricing data until finance/presales RBAC
+      // has been implemented and enforced server-side. Cost cells remain blank.
+      downloadProposalBoQ(selectedProp, format);
+      if (format !== 'customer') {
+        setActionMsg('BoQ internal draft diunduh. HPP harus dilengkapi/diotorisasi oleh Finance; belum diekspor dari pricing.');
+      }
+    } catch (err) {
+      setActionMsg('Ekspor BoQ gagal: ' + (err instanceof Error ? err.message : 'Kesalahan tidak diketahui'));
+    }
   };
 
   const reloadProposals = async () => {
@@ -148,6 +162,11 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
             >
               <span>+ Buat Revisi (REV-N)</span>
             </button>
+            <div className="flex flex-wrap items-center gap-2" aria-label="Ekspor BoQ Excel DefendIT360">
+              <button type="button" onClick={() => handleExportBoQ('standard')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">BoQ Internal (.xlsx)</button>
+              <button type="button" onClick={() => handleExportBoQ('onsite')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">BoQ Onsite (.xlsx)</button>
+              <button type="button" onClick={() => handleExportBoQ('customer')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800">BoQ Customer (.xlsx)</button>
+            </div>
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs"
