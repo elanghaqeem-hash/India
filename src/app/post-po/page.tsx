@@ -78,8 +78,8 @@ export default function PostPoPage(){
    try {downloadPostPoDocx(data,kind);setMessage('Dokumen Word berhasil disiapkan di browser. Dokumen tetap perlu tanda tangan pihak berwenang.');}
    catch(err){setMessage(err instanceof Error?err.message:'Pembuatan dokumen gagal');}
  };
- const commonInput=(label:string,key:keyof RegistrationData,help?:string)=>(
-  <Field label={label} value={String(r[key]??'')} onChange={v=>reg(key,v as never)} help={help}/>
+ const commonInput=(label:string,key:keyof RegistrationData,help?:string,inputType='text')=>(
+  <Field label={label} value={String(r[key]??'')} onChange={v=>reg(key,v as never)} help={help} type={inputType}/>
  );
  return <div className="mx-auto max-w-6xl space-y-5 pb-24">
   <header className="rounded-2xl border border-violet-100 bg-gradient-to-br from-white via-white to-violet-50 p-5 sm:p-6">
@@ -168,7 +168,7 @@ export default function PostPoPage(){
      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {commonInput('NPWP Badan Usaha','npwp')}
       {commonInput('Telepon Perusahaan','companyPhone')}
-      {commonInput('No. KTP PIC Utama','primaryKtpNumber','Data pribadi sensitif; jangan diisi pada preview publik.')}
+      {commonInput('No. KTP PIC Utama','primaryKtpNumber','Data pribadi sensitif; jangan diisi pada preview publik.','password')}
       {commonInput('Fax / Konfirmasi N/A','fax','Di referensi V.0426 fax bertanda wajib; N/A hanya jika ditinjau.')}
      </div>
     </div>
