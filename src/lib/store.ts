@@ -1,6 +1,9 @@
-// ICOP CyberBusiness 360 In-Memory Persistent Store
-// Seeded with realistic data from BRD v2.0 & DefendIT360 test scenarios
+// ICOP CyberBusiness 360 In-Memory & File-Persistent Store
+// Seeded with realistic data from BRD v2.0 & DefendIT360 test scenarios.
+// Automatically persists state to disk (data/icop_database.json) when running in server environment.
 
+import fs from 'fs';
+import path from 'path';
 import {
   Company,
   Opportunity,
@@ -8,7 +11,12 @@ import {
   Proposal,
   ApprovalRequest,
   FlexGuardWallet,
+  Tender,
+  AIProviderConfig,
+  FlexGuardTransaction,
+  ProposalStatus,
 } from './types';
+import { DEFAULT_AI_CONFIGS } from './ai-engine';
 
 export interface AppStore {
   companies: Company[];
@@ -17,6 +25,8 @@ export interface AppStore {
   proposals: Proposal[];
   approvals: ApprovalRequest[];
   wallets: FlexGuardWallet[];
+  tenders: Tender[];
+  aiConfigs: AIProviderConfig[];
 }
 
 // Initial Seed Data
@@ -274,19 +284,67 @@ const INITIAL_WALLETS: FlexGuardWallet[] = [
   },
 ];
 
+const INITIAL_TENDERS: Tender[] = [
+  {
+    id: 'tnd-01',
+    code: 'TND-LPSE-2026-881',
+    title: 'Pengadaan Jasa Asesmen Kerentanan & Penetration Testing Aplikasi Core Perbankan',
+    source: 'LPSE',
+    agency_name: 'PT Bank Pembangunan Daerah Jawa Tengah',
+    pagu_budget: 450000000,
+    hps_budget: 420000000,
+    service_type: 'VAPT',
+    deadline_submission: '2026-11-15T15:00:00Z',
+    eligibility_status: 'qualified',
+    bid_decision: 'go',
+    bid_score: 92,
+    summary: 'Ruang lingkup 2 web apps, 2 mobile apps, 40 API endpoints. Persyaratan: Terdaftar LK SMPI BSSN & ISO 27001.',
+    created_at: '2026-10-14T08:00:00Z',
+  },
+  {
+    id: 'tnd-02',
+    code: 'TND-BUMN-2026-412',
+    title: 'Layanan Managed Security Operations Center (SOC) 24x7 Berbasis AI & Threat Intelligence',
+    source: 'BUMN',
+    agency_name: 'PT Industri Telekomunikasi Indonesia (Persero)',
+    pagu_budget: 1250000000,
+    hps_budget: 1180000000,
+    service_type: 'SOC',
+    deadline_submission: '2026-12-01T12:00:00Z',
+    eligibility_status: 'qualified',
+    bid_decision: 'conditional_go',
+    bid_score: 84,
+    summary: 'Monitoring 1000 endpoints + integrasi SIEM & EDR. Membutuhkan izin khusus distributor teknologi.',
+    created_at: '2026-10-18T11:00:00Z',
+  },
+  {
+    id: 'tnd-03',
+    code: 'TND-SWT-2026-109',
+    title: 'Asesmen Kepatuhan UU PDP & Implementasi ISO 27701 Privacy Information Management',
+    source: 'Swasta',
+    agency_name: 'PT Asuransi Jiwa Mega Proteksi',
+    pagu_budget: 350000000,
+    hps_budget: 330000000,
+    service_type: 'PDP',
+    deadline_submission: '2026-11-25T16:00:00Z',
+    eligibility_status: 'qualified',
+    bid_decision: 'pending',
+    bid_score: 78,
+    summary: 'Audit kesiapan perlindungan data pribadi nasabah dan penyusunan Data Protection Impact Assessment (DPIA).',
+    created_at: '2026-10-19T13:30:00Z',
+  },
+];
+
 // Persistent state singleton for the app session
 class StoreService {
   private static instance: StoreService;
-  private state: AppStore = {
-    companies: INITIAL_COMPANIES,
-    opportunities: INITIAL_OPPORTUNITIES,
-    pricingSessions: [],
-    proposals: INITIAL_PROPOSALS,
-    approvals: INITIAL_APPROVALS,
-    wallets: INITIAL_WALLETS,
-  };
+  private state: AppStore;
+  private storageFilePath: string;
 
-  private constructor() {}
+  private constructor() {
+    this.storageFilePath = path.join(process.cwd(), 'data', 'icop_database.json');
+    this.state = this.loadFromDisk();
+  }
 
   public static getInstance(): StoreService {
     if (!StoreService.instance) {
@@ -295,31 +353,109 @@ class StoreService {
     return StoreService.instance;
   }
 
+  private loadFromDisk(): AppStore {
+    try {
+      if (typeof window === 'undefined' && fs.existsSync(this.storageFilePath)) {
+        const raw = fs.readFileSync(this.storageFilePath, 'utf8');
+        const parsed = JSON.parse(raw);
+        return {
+          companies: parsed.companies || INITIAL_COMPANIES,
+          opportunities: parsed.opportunities || INITIAL_OPPORTUNITIES,
+          pricingSessions: parsed.pricingSessions || [],
+          proposals: parsed.proposals || INITIAL_PROPOSALS,
+          approvals: parsed.approvals || INITIAL_APPROVALS,
+          wallets: parsed.wallets || INITIAL_WALLETS,
+          tenders: parsed.tenders || INITIAL_TENDERS,
+          aiConfigs: parsed.aiConfigs || DEFAULT_AI_CONFIGS,
+        };
+      }
+    } catch (e) {
+      console.warn('[Store] Could not load from disk, using initial seeds:', e);
+    }
+
+    return {
+      companies: INITIAL_COMPANIES,
+      opportunities: INITIAL_OPPORTUNITIES,
+      pricingSessions: [],
+      proposals: INITIAL_PROPOSALS,
+      approvals: INITIAL_APPROVALS,
+      wallets: INITIAL_WALLETS,
+      tenders: INITIAL_TENDERS,
+      aiConfigs: DEFAULT_AI_CONFIGS,
+    };
+  }
+
+  private saveToDisk(): void {
+    if (typeof window === 'undefined') {
+      try {
+        const dir = path.dirname(this.storageFilePath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+        fs.writeFileSync(this.storageFilePath, JSON.stringify(this.state, null, 2), 'utf8');
+      } catch (e) {
+        console.warn('[Store] Could not save to disk:', e);
+      }
+    }
+  }
+
   public getState(): AppStore {
     return this.state;
   }
 
+  // Companies
   public addCompany(company: Company): Company {
     this.state.companies.unshift(company);
+    this.saveToDisk();
     return company;
   }
 
+  // Opportunities
   public addOpportunity(opp: Opportunity): Opportunity {
     this.state.opportunities.unshift(opp);
+    this.saveToDisk();
     return opp;
   }
 
+  public updateOpportunity(id: string, partial: Partial<Opportunity>): Opportunity | undefined {
+    const opp = this.state.opportunities.find(o => o.id === id);
+    if (opp) {
+      Object.assign(opp, partial);
+      this.saveToDisk();
+    }
+    return opp;
+  }
+
+  // Proposals
   public addProposal(prop: Proposal): Proposal {
     this.state.proposals.unshift(prop);
+    this.saveToDisk();
     return prop;
   }
 
+  public updateProposalStatus(id: string, status: ProposalStatus, extra?: Partial<Proposal>): Proposal | undefined {
+    const prop = this.state.proposals.find(p => p.id === id);
+    if (prop) {
+      prop.status = status;
+      if (extra) Object.assign(prop, extra);
+      this.saveToDisk();
+    }
+    return prop;
+  }
+
+  // Approvals
   public addApproval(appr: ApprovalRequest): ApprovalRequest {
     this.state.approvals.unshift(appr);
+    this.saveToDisk();
     return appr;
   }
 
-  public updateApproval(id: string, status: 'approved' | 'rejected' | 'revision_requested', approverName: string, comments?: string): ApprovalRequest | undefined {
+  public updateApproval(
+    id: string,
+    status: 'approved' | 'rejected' | 'revision_requested',
+    approverName: string,
+    comments?: string
+  ): ApprovalRequest | undefined {
     const item = this.state.approvals.find(a => a.id === id);
     if (item) {
       item.status = status;
@@ -327,7 +463,7 @@ class StoreService {
       item.approved_at = new Date().toISOString();
       item.comments = comments;
 
-      // Also update related proposal if matched
+      // Also cascade to related proposal
       if (item.entity_type === 'quotation') {
         const prop = this.state.proposals.find(p => p.id === item.entity_id);
         if (prop) {
@@ -341,8 +477,73 @@ class StoreService {
           }
         }
       }
+      this.saveToDisk();
     }
     return item;
+  }
+
+  // Tenders
+  public addTender(tender: Tender): Tender {
+    this.state.tenders.unshift(tender);
+    this.saveToDisk();
+    return tender;
+  }
+
+  public updateTender(id: string, partial: Partial<Tender>): Tender | undefined {
+    const item = this.state.tenders.find(t => t.id === id);
+    if (item) {
+      Object.assign(item, partial);
+      this.saveToDisk();
+    }
+    return item;
+  }
+
+  // FlexGuard Wallets
+  public addFlexGuardTransaction(walletId: string, tx: FlexGuardTransaction): FlexGuardTransaction | undefined {
+    const wallet = this.state.wallets.find(w => w.id === walletId);
+    if (wallet) {
+      wallet.transactions.unshift(tx);
+      if (tx.tx_type === 'ISSUANCE' || tx.tx_type === 'TOPUP') {
+        wallet.purchased_mandays += tx.mandays;
+        wallet.available_balance += tx.mandays;
+      } else if (tx.tx_type === 'RESERVE') {
+        wallet.available_balance -= tx.mandays;
+        wallet.reserved_balance += tx.mandays;
+      } else if (tx.tx_type === 'RELEASE') {
+        wallet.reserved_balance -= tx.mandays;
+        wallet.available_balance += tx.mandays;
+      } else if (tx.tx_type === 'DEBIT') {
+        wallet.reserved_balance -= tx.mandays;
+        wallet.consumed_balance += tx.mandays;
+      }
+      this.saveToDisk();
+      return tx;
+    }
+    return undefined;
+  }
+
+  // AI Configurations
+  public getAIConfigs(): AIProviderConfig[] {
+    return this.state.aiConfigs;
+  }
+
+  public updateAIConfig(id: string, partial: Partial<AIProviderConfig>): AIProviderConfig | undefined {
+    const config = this.state.aiConfigs.find(c => c.id === id);
+    if (config) {
+      Object.assign(config, partial);
+      this.saveToDisk();
+    }
+    return config;
+  }
+
+  public setAIPriorities(orderedIds: string[]): void {
+    orderedIds.forEach((id, idx) => {
+      const config = this.state.aiConfigs.find(c => c.id === id);
+      if (config) {
+        config.priority = idx + 1;
+      }
+    });
+    this.saveToDisk();
   }
 }
 
