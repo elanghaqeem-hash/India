@@ -62,14 +62,15 @@ export async function GET(req:Request){
   if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
-   const [boqs,po,history,activities]=await Promise.all([
+   const [boqs,po,history,activities,originLead]=await Promise.all([
     db.prepare('SELECT id,quotation_number,status,project_name FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
     db.prepare('SELECT * FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<PoRow>(),
     db.prepare('SELECT action,from_stage,to_stage,actor_email,summary,created_at FROM india_sales_audit WHERE tenant_id=? AND entity_id=? ORDER BY created_at DESC LIMIT 50').bind(TENANT,id).all(),
-    db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all()
+    db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all(),
+    db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first()
    ]);
    return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,
-    checklist:documentChecklist(d,account(acct)),role:auth.identity.role,identityEmail:auth.identity.email});
+    checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
  }catch{return fail('Database Sales belum siap, periksa migrasi 0003 dan login.',503);}
