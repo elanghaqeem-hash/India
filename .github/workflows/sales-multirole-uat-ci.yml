@@ -1,0 +1,36 @@
+name: INDIA Sales Multirole UAT
+
+on:
+  push:
+    branches:
+      - feat/india-sales-pipeline-workflow-20261020
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  multirole-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Seven-role UAT domain and document simulations
+        run: npm run test:sales
+      - name: BoQ maker checker and quotation tests
+        run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
+      - name: TypeScript verification
+        run: npm run typecheck
+      - name: Next production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Cloudflare adapter bundle
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
