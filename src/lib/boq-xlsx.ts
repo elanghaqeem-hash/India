@@ -267,7 +267,7 @@ function makeCustomer(proposal: Proposal): Sheet[] {
     const r = b.length + 1;
     const pr = i + 7;
     const [type, label, unit] = catalogue[i];
-    push(b, [type, label, f('INDEX(Parameters!D' + pr + ':F' + pr + ',1,Summary!$C$7)'),
+    push(b, [type, label, f('INDEX(Parameters!D' + pr + ':F' + pr + ',1,Summary!$C$8)'),
       unit, f('IF(Parameters!C' + pr + '="","",Parameters!C' + pr + ')'),
       f('IF(OR(C' + r + '=0,E' + r + '=""),"",C' + r + '*E' + r + ')'), type]);
   }
