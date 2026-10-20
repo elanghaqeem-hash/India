@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
+import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -52,12 +53,13 @@ export async function GET(req:Request){
    const rows=await db.prepare('SELECT * FROM opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
    const companies=await db.prepare('SELECT * FROM companies WHERE tenant_id=?').bind(TENANT).all<AcctRow>();
    const refs=new Map(companies.results.map(r=>[r.id,account(r)]));
-   return answer({success:true,deals:rows.results.filter(x=>refs.has(x.company_id)).map(x=>deal(x,refs.get(x.company_id)!)),role:auth.identity.role});
+   return answer({success:true,deals:rows.results.filter(x=>refs.has(x.company_id)&&canReadDeal(auth.identity.role,auth.identity.email,x.created_by)).map(x=>deal(x,refs.get(x.company_id)!)),role:auth.identity.role});
   }
   const id=u.searchParams.get('id');
   if(!safeID(id))return fail('ID opportunity tidak valid');
   const raw=await getDeal(db,id as string),acct=raw?await getAccount(db,raw.company_id):null;
   if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
+  if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
    const [boqs,po,history,activities]=await Promise.all([
@@ -108,7 +110,9 @@ export async function POST(req:Request){
   }
   if(kind==='activity'){
    if(!safeID(p.opportunity_id)||!['call','email','meeting','follow_up','tender','note'].includes(String(p.kind)))return fail('Opportunity / jenis aktivitas tidak valid');
-   if(!await getDeal(db,p.opportunity_id as string))return fail('Opportunity tidak ditemukan',404);
+   const activityDeal=await getDeal(db,p.opportunity_id as string);
+   if(!activityDeal)return fail('Opportunity tidak ditemukan',404);
+   if(!canReadDeal(role,email,activityDeal.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
    const subject=String(p.subject||'').trim(),detail=String(p.detail||'').trim(),date=String(p.next_action_at||'');
    if(!subject||subject.length>200||detail.length>2000||date.length>30)return fail('Aktivitas tidak valid');
    const id=crypto.randomUUID();
@@ -143,6 +147,7 @@ export async function POST(req:Request){
    if(!safeID(id))return fail('Opportunity tidak valid');
    const raw=await getDeal(db,id as string),acct=raw?await getAccount(db,raw.company_id):null;
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
+   if(!canReadDeal(role,email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
    const d=deal(raw,account(acct)),checklist=documentChecklist(d,account(acct));
    const doc=String(p.document_kind||''),ref=String(p.reference||'').trim();
    if(!['boq','quotation','customer_registration','project_form','sales_handover','loss_analysis'].includes(doc)||!ref||ref.length>200)return fail('Jenis / referensi dokumen tidak valid');
@@ -171,6 +176,7 @@ export async function PATCH(req:Request){
    if(!allowed(role,salesPerms))return fail('Perubahan pelanggan hanya Sales/Admin',403);
    const row=await getAccount(db,p.id as string);
    if(!row)return fail('Pelanggan tidak ditemukan',404);
+   if(!canEditAccount(role,email,row.created_by))return fail('Hanya pembuat Customer Account atau Admin yang dapat memperbarui master data',403);
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim();
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
@@ -184,14 +190,16 @@ export async function PATCH(req:Request){
    if(!allowed(role,['admin','sales','presales','finance','approver']))return fail('Role tidak diizinkan',403);
    const row=await getDeal(db,p.id as string),a=row?await getAccount(db,row.company_id):null;
    if(!row||!a)return fail('Opportunity / pelanggan tidak ditemukan',404);
+   if(!canReadDeal(role,email,row.created_by))return fail('Opportunity bukan milik akun Sales ini',403);
    const d=deal(row,account(a));
    if(p.entity==='deal'){
     if(d.stage==='closed_won'||d.stage==='closed_lost')return fail('Opportunity sudah ditutup, gunakan prosedur reopen atau koreksi',409);
-    if(!allowed(role,['admin','sales','presales']))return fail('Hanya Sales/Presales boleh ubah detail',403);
+    const allowedFields=cleanFields(p.fields||{},DEAL_KEYS);
+    if(!canEditDeal(role,email,row.created_by,allowedFields,p.title!==undefined||p.estimated_value!==undefined))return fail('Sales hanya boleh mengubah opportunity sendiri; Presales hanya boleh mengubah parameter teknis',403);
     const title=p.title===undefined?d.title:String(p.title).trim();
     const amount=p.estimated_value===undefined?d.estimated_value:Number(p.estimated_value);
     if(!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Judul dan nilai tidak valid');
-    const fields={...d.fields,...cleanFields(p.fields||{},DEAL_KEYS)};
+    const fields={...d.fields,...allowedFields};
     const updated=await db.prepare('UPDATE opportunities SET title=?,estimated_value_idr=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
      .bind(title,amount,JSON.stringify(fields),d.id,TENANT,row.data_json).run();
     if((updated as any).meta?.changes===0)return fail('Opportunity telah berubah, muat ulang',409);
@@ -199,7 +207,7 @@ export async function PATCH(req:Request){
     await audit(db,'deal',d.id,'UPDATE',email);
     return answer({success:true});
    }
-   if(!allowed(role,['admin','sales','approver']))return fail('Role tidak diizinkan memindahkan stage',403);
+   if(!canChangeStage(role,email,row.created_by))return fail('Hanya Sales pemilik deal atau Admin boleh mengubah stage',403);
    const stage=String(p.stage) as SalesStage;
    if(!SALES_STAGES.some(x=>x[0]===stage))return fail('Stage tidak terdaftar');
    const transition=stageTransition(d.stage,stage);
