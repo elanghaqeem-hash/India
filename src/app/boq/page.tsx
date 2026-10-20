@@ -2,13 +2,14 @@
 import React,{useEffect,useState} from 'react';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
-type Doc={id:string;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;opportunity_id?:string|null;cost_items?:{code:string;amount:number}[]};
+type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;opportunity_id?:string|null;cost_items?:{code:string;amount:number}[]};
 const blank=()=>({opportunity_id:'',quotation_number:'',customer_name:'',project_name:'',service_type:'VAPT',vat_rate:0,payment_terms:'30-50-20',line_items:[{description:'',quantity:1,unit:'Paket',unit_price:0,service_type:'VAPT'}] as Item[]});
 export default function BoQPage(){
  const [list,setList]=useState<Doc[]>([]),[selected,setSelected]=useState<Doc|null>(null);
  const [form,setForm]=useState(blank()),[role,setRole]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false);
  const [costs,setCosts]=useState<Record<string,string>>({});
  const [catalog,setCatalog]=useState<Catalog[]>([]),[sku,setSku]=useState('');
+ const [salesDeals,setSalesDeals]=useState<{id:string;title:string;company_name:string}[]>([]);
  const isFinance=['finance','admin'].includes(role);
  const canCreate=['finance','admin','presales','sales'].includes(role);
  const canEdit=canCreate&&(!selected||selected.status==='draft');
@@ -68,7 +69,10 @@ export default function BoQPage(){
    <label className="block text-xs font-semibold">Opportunity ID (wajib untuk workflow Sales)
      <input value={form.opportunity_id||''} onChange={e=>change('opportunity_id',e.target.value)} disabled={!canEdit} className="mt-1 w-full rounded-lg border p-2 text-sm" placeholder="Pilih dari Sales Pipeline"/>
    </label>
-   <div className="grid gap-3 sm:grid-cols-2">{([
+   <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold sm:col-span-2">Link ke Opportunity ID (untuk Won & dokumen)
+    <select disabled={!canEdit} value={form.opportunity_id||''} onChange={e=>{const id=e.target.value;const d=salesDeals.find(o=>o.id===id);setForm(p=>({...p,opportunity_id:id,...(d?{customer_name:d.company_name,project_name:d.title}:{})}));}} className="mt-1 w-full rounded-lg border p-2 text-sm">
+     <option value="">Tanpa Opportunity ID (draft belum terhubung)</option>{salesDeals.map(d=><option key={d.id} value={d.id}>{d.company_name} · {d.title}</option>)}
+    </select><span className="mt-1 block text-[11px] font-normal text-slate-500">BoQ harus terhubung ke opportunity dan approved untuk digunakan sebagai dasar Closed Won.</span></label>{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']
     ] as const).map(([k,l])=><label key={k} className="text-xs">{l}<input disabled={!canEdit} value={form[k]} onChange={e=>change(k,e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}
     <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>change('service_type',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['VAPT','SOC','CTI','ISO','PDP','Hardening','IR','GRC','DFIR','TECHNOLOGY','TRAINING','Lainnya'].map(x=><option key={x}>{x}</option>)}</select></label>
