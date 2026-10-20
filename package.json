@@ -11,7 +11,8 @@
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
-    "test:pricing": "node --test tests/pricing-technical-writer.test.cjs"
+    "test:pricing": "node --test tests/pricing-technical-writer.test.cjs",
+    "test:boq": "node --test tests/boq-export.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
