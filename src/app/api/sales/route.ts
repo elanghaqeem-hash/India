@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
 import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
+import { salesJourney } from '@/lib/sales-journey';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -62,14 +63,22 @@ export async function GET(req:Request){
   if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
-   const [boqs,po,history,activities,originLead]=await Promise.all([
+   const [boqs,po,history,activities,originLead,documents]=await Promise.all([
     db.prepare('SELECT id,quotation_number,status,project_name FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
     db.prepare('SELECT * FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<PoRow>(),
     db.prepare('SELECT action,from_stage,to_stage,actor_email,summary,created_at FROM india_sales_audit WHERE tenant_id=? AND entity_id=? ORDER BY created_at DESC LIMIT 50').bind(TENANT,id).all(),
     db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all(),
-    db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first()
+    db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first<{lead_id:string;lead_number:string;source:string;campaign:string}>(),
+    db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>()
    ]);
-   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,
+   const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;status:string}|undefined;
+   const journey=salesJourney(account(acct),d,{
+    lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
+    quotation_record:documents.results.some(x=>x.kind==='quotation'),
+    // A document reference/attestation is NOT equivalent to proof of submission or original PO.
+    submission_proof:false,po_check:!!po,po_original:false,legal_approved:false
+   });
+   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,journey,
     checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
