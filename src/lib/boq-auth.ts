@@ -33,7 +33,7 @@ export async function authorizeBoQ(request:Request):Promise<Result>{
    const email=String(verified.payload.email||'').trim().toLowerCase();
    if(!email.includes('@'))return deny(403,'Identitas email tidak valid.');
    const member=await db.prepare('SELECT role,active FROM india_members WHERE email=?').bind(email).first<{role:BoQRole;active:number}>();
-   if(!member||member.active!==1||!['admin','finance','presales','sales','approver','viewer'].includes(member.role))
+   if(!member||member.active!==1||!['admin','marketing','finance','presales','sales','approver','viewer'].includes(member.role))
     return deny(403,'Akun belum diberi akses sesuai peran.');
    return {ok:true,identity:{email,role:member.role,db}};
  }catch{return deny(401,'Token login Access tidak valid atau kedaluwarsa.');}
