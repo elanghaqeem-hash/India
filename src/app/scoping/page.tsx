@@ -199,26 +199,26 @@ export default function SmartScopingPage() {
         if (lower.includes('bank') || lower.includes('ojk') || lower.includes('fintech') || lower.includes('keuangan')) {
           setIsFinancial(true);
         }
-    // Numeric values are copied only when stated explicitly in the original RKS/KAK.
-    // AI prose is a suggestion, not a trusted value source.
-    const findCount = (name: string) => {
-      const escaped = name.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\
-  return (
-');
-      const first = aiDocText.match(new RegExp('\\b' + escaped + '\\s*[:=]?\\s*(\\d+)\\b', 'i'));
-      const second = aiDocText.match(new RegExp('\\b(\\d+)\\s+' + escaped + '\\b', 'i'));
-      const n = Number((first || second)?.[1]);
-      return Number.isSafeInteger(n) && n > 0 && n <= 100000 ? n : null;
+    // Only counts explicitly identified in source text are transferred to the form.
+    const numberFrom = (...patterns: RegExp[]) => {
+      for (const pattern of patterns) {
+        const match = aiDocText.match(pattern);
+        if (match) {
+          const count = Number(match[1]);
+          if (Number.isSafeInteger(count) && count > 0 && count <= 100000) return count;
+        }
+      }
+      return null;
     };
-    const api = findCount('api endpoint') ?? findCount('api endpoints') ?? findCount('endpoint api');
-    const screens = findCount('layar') ?? findCount('screens');
-    const servers = findCount('server') ?? findCount('servers');
-    const hosts = findCount('host') ?? findCount('hosts');
-    const roles = findCount('user roles') ?? findCount('role user');
+    const api = numberFrom(/(\\d+)\\s*api[ -]?endpoints?/i, /api[ -]?endpoints?\\s*[:=]?\\s*(\\d+)/i);
+    const hosts = numberFrom(/(\\d+)\\s*hosts?/i, /hosts?\\s*[:=]?\\s*(\\d+)/i);
+    const servers = numberFrom(/(\\d+)\\s*servers?/i, /servers?\\s*[:=]?\\s*(\\d+)/i);
+    const screens = numberFrom(/(\\d+)\\s*(?:layar|screens?)/i, /(?:layar|screens?)\\s*[:=]?\\s*(\\d+)/i);
+    const roles = numberFrom(/(\\d+)\\s*(?:user[ -]?roles?|hak akses)/i, /(?:user[ -]?roles?|hak akses)\\s*[:=]?\\s*(\\d+)/i);
     if (api !== null) setApiEndpoints(api);
-    if (screens !== null) setMobileScreens(screens);
-    if (servers !== null) setNServers(servers);
     if (hosts !== null) setInfraHosts(hosts);
+    if (servers !== null) setNServers(servers);
+    if (screens !== null) setMobileScreens(screens);
     if (roles !== null) setUserRoles(roles);
     setShowAiModal(false);
   };
