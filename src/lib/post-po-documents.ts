@@ -61,7 +61,7 @@ export interface ProjectData {
   notes: string;
   quotationReconciled: boolean;
 }
-export type PostPoPacket = { registration: RegistrationData; project: ProjectData };
+export type PostPoPacket = { registration: RegistrationData; project: ProjectData; isDemo?: boolean };
 export type ValidationFinding = { field: string; message: string; category: 'registration' | 'project' };
 export function emptyPic(): Pic { return {name:'', mobile:'', email:''}; }
 export function newPostPoPacket(): PostPoPacket {
@@ -163,7 +163,14 @@ export function validatePostPoPacket(data:PostPoPacket):ValidationFinding[] {
   if(p.completionDeadline && Number.isNaN(Date.parse(p.completionDeadline))) issues.push({field:'completionDeadline',message:'Tanggal selesai proyek tidak valid',category:'project'});
   return issues;
 }
-export function isReadyForKickoff(data:PostPoPacket):boolean{return validatePostPoPacket(data).length===0;}
+/** Demo previews ignore missing proof files but never authorize actual execution. */
+export function validatePostPoDemoPacket(data:PostPoPacket):ValidationFinding[]{
+  const unverifiable=new Set(['npwpAttachmentConfirmed','ktpAttachmentConfirmed','poVerified','quotationReconciled']);
+  return validatePostPoPacket(data).filter(issue=>!unverifiable.has(issue.field));
+}
+export function isReadyForKickoff(data:PostPoPacket):boolean{
+  return !data.isDemo && validatePostPoPacket(data).length===0;
+}
 const xml=(s:unknown)=>String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 const W='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
 function para(s:unknown,bold=false):string {return '<w:p><w:pPr><w:spacing w:after="95"/></w:pPr><w:r><w:rPr><w:rFonts w:ascii="Calibri" w:hAnsi="Calibri"/><w:sz w:val="18"/>'+(bold?'<w:b/>':'')+'</w:rPr><w:t xml:space="preserve">'+xml(s)+'</w:t></w:r></w:p>';}
@@ -171,7 +178,7 @@ function row(label:string,value:unknown):string {return '<w:tr>'+tc(label,true)+
 function tc(value:unknown,header=false):string{return '<w:tc><w:tcPr><w:tcW w:w="'+(header?'3350':'6450')+'" w:type="dxa"/><w:tcBorders><w:bottom w:val="single" w:sz="4" w:color="D2D7E0"/></w:tcBorders>'+(header?'<w:shd w:fill="F0EBF7"/>':'')+'</w:tcPr>'+para(value,header)+'</w:tc>';}
 function tbl(rows:string):string{return '<w:tbl><w:tblPr><w:tblW w:w="9800" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="A0A0A0"/><w:bottom w:val="single" w:sz="4" w:color="A0A0A0"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3350"/><w:gridCol w:w="6450"/></w:tblGrid>'+rows+'</w:tbl>';}
 function h(s:string):string{return '<w:p><w:pPr><w:shd w:fill="59318B"/><w:spacing w:before="180" w:after="110"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/><w:sz w:val="20"/></w:rPr><w:t>'+xml(s)+'</w:t></w:r></w:p>';}
-function brand(title:string):string {return para('DEFENDIT360 | PT DATA ENKRIPSI INFORMASI TEKNOLOGI',true)+para('CONFIDENTIAL  •  FORMULIR V.0426  •  '+title,true);}
+function brand(title:string,isDemo=false):string {return (isDemo?h('DATA DUMMY / SIMULASI — DILARANG DIGUNAKAN SEBAGAI DOKUMEN RESMI')+para('NOMOR PO, NPWP/KTP, HARGA, IDENTITAS, DAN NAMA PENANDATANGAN ADALAH CONTOH. BUKAN BUKTI PENGESAHAN.',true):'')+para('DEFENDIT360 | PT DATA ENKRIPSI INFORMASI TEKNOLOGI',true)+para('CONFIDENTIAL  •  FORMULIR V.0426  •  '+title,true);}
 function lines(value:string):string {return String(value).split(/\r?\n/).filter(Boolean).map(x=>para(x)).join('');}
 const clientTerms=[
   'PELANGGAN wajib melampirkan salinan dokumen pendukung antara lain NPWP & KTP (Penanggung Jawab Utama). The CUSTOMER is required to attach supporting copy document such as NPWP & KTP (Main Person in Charge).',
@@ -193,8 +200,8 @@ function wordDocument(body:string):string {
  '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="820" w:right="950" w:bottom="820" w:left="950"/></w:sectPr></w:body></w:document>';
 }
 function formatIDR(amount:number){return 'Rp '+new Intl.NumberFormat('id-ID').format(amount);}
-function registrationBody(data:RegistrationData):string {
- let s=brand('FORMULIR REGISTRASI PELANGGAN / CUSTOMER REGISTRATION FORM');
+function registrationBody(data:RegistrationData,isDemo=false):string {
+ let s=brand('FORMULIR REGISTRASI PELANGGAN / CUSTOMER REGISTRATION FORM',isDemo);
  s+=h('1. DATA PELANGGAN / CUSTOMER DATA')+tbl(
   row('Customer ID *',data.customerId)+row('Nama / Name *',data.customerName)+
   row('Jenis Bidang Usaha / Business Type *',data.businessType)+row('Jumlah Pegawai / Employees *',data.employeeBand)+
@@ -215,11 +222,11 @@ function registrationBody(data:RegistrationData):string {
   tbl(row('PELANGGAN / CUSTOMER',data.customerSignatory+' | '+data.customerSignatoryTitle)+row('DEFENDIT360',data.defenderSignatory+' | '+data.defenderSignatoryTitle)+
   row('Tanggal/Tanda Tangan/Cap','________________________________________')+
   row('Pembuat / Maker',data.maker)+row('Pemeriksa / Reviewer',data.reviewer)+row('Pelaksana / Executor',data.executor));
- return s+para('Form belum bertanda tangan. Tanda tangan dan pengesahan tetap diperlukan.');
+ return s+para(isDemo?'SIMULASI / DATA DUMMY - Tidak sah sebagai registrasi dan bukan persetujuan pelanggan.':'Form belum bertanda tangan. Tanda tangan dan pengesahan tetap diperlukan.',true);
 }
 function projectBody(data:PostPoPacket):string {
  const r=data.registration,p=data.project;
- let s=brand('FORMULIR PROYEK / PROJECT FORM');
+ let s=brand('FORMULIR PROYEK / PROJECT FORM',!!data.isDemo);
  s+=h('1. DATA PELANGGAN / CUSTOMER DATA')+
   tbl(row('Customer ID *',r.customerId)+row('Nama Pelanggan *',r.customerName));
  s+=h('2. DATA PROYEK / PROJECT DATA')+
@@ -245,7 +252,7 @@ function projectBody(data:PostPoPacket):string {
   row('Tanggal / Materai / Cap','________________________________________')+
   row('Customer ID',r.customerId)+row('Installation ID','Diisi internal saat penugasan')+
   row('Pembuat / Maker',r.maker)+row('Pemeriksa / Reviewer',r.reviewer)+row('Pelaksana / Executor',r.executor));
- return s+para('Dokumen belum ditandatangani. Kick Off hanya setelah verifikasi dan otorisasi internal.');
+ return s+para(data.isDemo?'SIMULASI / DATA DUMMY - Tidak sah sebagai PO, persetujuan kerja, atau dasar Kick Off.':'Dokumen belum ditandatangani. Kick Off hanya setelah verifikasi dan otorisasi internal.',true);
 }
 function crc32(data:Uint8Array):number{let c=0xFFFFFFFF;for(let j=0;j<data.length;j++){c^=data[j];for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xEDB88320:0);}return(c^0xFFFFFFFF)>>>0;}
 function zip(entries:Array<[string,string]>):Uint8Array{
@@ -269,18 +276,18 @@ function zip(entries:Array<[string,string]>):Uint8Array{
 }
 export type PostPoDocKind = 'registration'|'project';
 export function createPostPoDocx(packet:PostPoPacket,kind:PostPoDocKind):Uint8Array{
- const issues=validatePostPoPacket(packet);
+ const issues=packet.isDemo?validatePostPoDemoPacket(packet):validatePostPoPacket(packet);
  if(issues.length)throw new Error('Dokumen belum dapat diterbitkan. Ada '+issues.length+' parameter wajib belum valid.');
  const ct=W+'<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>';
  const rels=W+'<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>';
- return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/document.xml',wordDocument(kind==='registration'?registrationBody(packet.registration):projectBody(packet))]]);
+ return zip([['[Content_Types].xml',ct],['_rels/.rels',rels],['word/document.xml',wordDocument(kind==='registration'?registrationBody(packet.registration,!!packet.isDemo):projectBody(packet))]]);
 }
 export function downloadPostPoDocx(packet:PostPoPacket,kind:PostPoDocKind):void{
  const bytes=createPostPoDocx(packet,kind);const view=new Uint8Array(bytes.length);view.set(bytes);
  const url=URL.createObjectURL(new Blob([view.buffer],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
  const link=document.createElement('a');link.href=url;
  const safe=packet.project.poNumber.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60);
- link.download='INDIA_DefendIT360_'+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
+ link.download='INDIA_DefendIT360_'+(packet.isDemo?'DEMO_':'')+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
  document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
