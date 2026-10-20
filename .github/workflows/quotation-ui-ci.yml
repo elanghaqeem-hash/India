@@ -1,0 +1,29 @@
+name: India ICOP quotation UI validation
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  responsive-quotation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install project dependencies
+        run: npm install --no-audit --no-fund
+      - name: Mobile and print regression checks
+        run: npm run test:layout
+      - name: TypeScript verification
+        run: npm run typecheck
+      - name: Next production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
