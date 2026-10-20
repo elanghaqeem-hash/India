@@ -18,3 +18,13 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Execute negative UAT scenarios
         run: npm run test:india-negative
+      - name: TypeScript verification
+        run: npm run typecheck
+      - name: Next.js production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Cloudflare adapter packaging
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
