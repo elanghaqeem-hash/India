@@ -73,11 +73,19 @@ export async function GET(req:Request){
     db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>()
    ]);
    const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;status:string}|undefined;
+   let procurementGaps:string[]=[];
+   if(needsTenderGate(d.fields.procurement_process||'')){
+    const [bid,requirements]=await Promise.all([
+     db.prepare('SELECT * FROM india_sales_bids WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<ProcurementBid>(),
+     db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<RequirementEvidence>()
+    ]);
+    procurementGaps=procurementGate(d.fields.procurement_process||'',bid,requirements.results);
+   }
    const journey=salesJourney(account(acct),d,{
     lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
     quotation_record:documents.results.some(x=>x.kind==='quotation'),
     // A document reference/attestation is NOT equivalent to proof of submission or original PO.
-    submission_proof:false,po_check:!!po,po_original:false,legal_approved:false
+    submission_proof:false,po_check:!!po,po_original:false,legal_approved:false,procurement_gaps:procurementGaps
    });
    return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,journey,
     checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
