@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Sliders,
   Info,
+  UploadCloud,
+  FileText,
+  AlertCircle,
 } from 'lucide-react';
 import { calculateVaptMandays, calculateSocSizing } from '@/lib/scoping-calculator';
 import { VaptType, BoxMethod, ServiceType } from '@/lib/types';
@@ -84,18 +87,57 @@ export default function SmartScopingPage() {
   const [aiDocText, setAiDocText] = useState('');
   const [aiExtracting, setAiExtracting] = useState(false);
   const [aiExtractionResult, setAiExtractionResult] = useState<string | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [uploadedDocument, setUploadedDocument] = useState<{ name: string; format: string; chars: number; truncated: boolean } | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [aiConsent, setAiConsent] = useState(false);
+
+
+  const handleDocumentUpload = async (file?: File) => {
+    if (!file) return;
+    setAiExtractionResult(null);
+    setUploadError('');
+    setUploadedDocument(null);
+    setAiDocText('');
+    if (!/\\.(pdf|docx|txt)$/i.test(file.name)) {
+      setUploadError('Format tidak didukung. Pilih PDF, DOCX, atau TXT.');
+      return;
+    }
+    if (file.size === 0 || file.size > 8 * 1024 * 1024) {
+      setUploadError('File harus berisi data dan berukuran maksimal 8 MB.');
+      return;
+    }
+    setUploadingDocument(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/scoping/upload', {
+        method: 'POST',
+        headers: { 'x-india-document-upload': '1' },
+        body: form,
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.message || 'File gagal diproses.');
+      setAiDocText(data.text);
+      setUploadedDocument({ name: data.filename, format: data.format, chars: data.text.length, truncated: !!data.truncated });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Dokumen tidak dapat dibaca.');
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
 
   const handleAiExtract = async () => {
-    if (!aiDocText.trim()) return;
+    if (!aiDocText.trim() || uploadingDocument || !aiConsent) return;
     setAiExtracting(true);
     setAiExtractionResult(null);
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-india-ai-admin': '1' },
         body: JSON.stringify({
           task_type: 'scoping_analysis',
-          prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText}\n\nTentukan:
+          prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText.slice(0, 11000)}\n\nTentukan:
 1. Rekomendasi Service (VAPT Web, Mobile, API, Network, atau SOC MDR).
 2. Metodologi (Black Box / Grey Box / White Box).
 3. Estimasi kompleksitas, jumlah endpoint/host/servers.
