@@ -3,10 +3,25 @@
   "name": "india",
   "main": ".open-next/worker.js",
   "compatibility_date": "2026-10-20",
-  "compatibility_flags": ["nodejs_compat"],
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "observability": { "enabled": true }
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "INDIA_DB",
+      "database_name": "india-staging-db",
+      "database_id": "8395dd84-1b7d-4eaf-9990-1d8e75a42cb5"
+    }
+  ],
+  "vars": {
+    "INDIA_ACCESS_TEAM_DOMAIN": "green-heart-e2b0.cloudflareaccess.com",
+    "INDIA_ACCESS_AUD": "0411bb42ccf17d67c3e8b81d8e8c6d6124dbfec5025cab563e6a8aea68e70398"
+  }
 }

@@ -22,10 +22,15 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
       - name: Mobile and print regression checks
-        run: npm run test:layout && npm run test:boq && npm run test:quotation-docx && npm run test:post-po
+        run: npm run test:layout && npm run test:boq && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build
         run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Cloudflare Workers adapter packaging
+        run: npx opennextjs-cloudflare build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
