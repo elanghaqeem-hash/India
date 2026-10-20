@@ -42,6 +42,7 @@ async function requireBoq(db:D1DB,d:SalesDeal,a:SalesAccount):Promise<{boq:BoQRo
 export async function GET(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
  const db=auth.identity.db,u=new URL(req.url),entity=u.searchParams.get('entity')||'deals';
+ if(!allowed(auth.identity.role,servicePerms))return fail('Hak akses data Sales tidak tersedia untuk role ini',403);
  try{
   if(entity==='accounts'){
    const rows=await db.prepare('SELECT * FROM companies WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
