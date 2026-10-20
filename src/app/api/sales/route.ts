@@ -3,6 +3,7 @@ import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
 import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { salesJourney } from '@/lib/sales-journey';
+import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -232,6 +233,14 @@ export async function PATCH(req:Request){
    if(enteringOffer){
     const check=await requireBoq(db,d,account(a));
     if('problem' in check)return fail(String(check.problem),409);
+    if(needsTenderGate(d.fields.procurement_process||'')){
+     const [bid,reqs]=await Promise.all([
+      db.prepare('SELECT * FROM india_sales_bids WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,d.id).first<ProcurementBid>(),
+      db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,d.id).all<RequirementEvidence>()
+     ]);
+     const tenderGaps=procurementGate(d.fields.procurement_process||'',bid,reqs.results);
+     if(tenderGaps.length)return answer({success:false,message:'Bid/No-Bid dan persyaratan RKS/KAK harus lolos sebelum quotation',missing:tenderGaps},409);
+    }
    }
    if(stage==='closed_won'){
     const po=await db.prepare('SELECT * FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).first<PoRow>();
