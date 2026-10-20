@@ -42,3 +42,31 @@ test('document checklist never assumes KTP or evidence',()=>{
  assert.ok(check.registration.some(x=>x.includes('npwpAttachmentConfirmed')));
  assert.ok(check.project.includes('po_number'));
 });
+
+test('Closed Lost may capture an unqualified early loss without fabricated customer details',()=>{
+ const partial={...account,fields:{industry:'Teknologi Informasi'}};
+ const lost={...deal,fields:{lost_reason:'Tidak sesuai prioritas',lost_notes:'Pelanggan membatalkan inisiatif ini.'}};
+ assert.deepEqual(requiredForStage('closed_lost',lost,partial),[]);
+ assert.equal(stageTransition('prospecting','closed_lost'),null);
+});
+test('Won requires explicit customer approval, not merely filled PO fields',()=>{
+ const filled={...deal,fields:{...deal.fields,po_number:'PO-123',po_date:'2026-10-20',po_reference:'Dokumen PO-123',
+ po_amount_before_vat:'1000000',scope_reconciliation:'Scope sesuai penawaran',customer_decision:'pending'}};
+ assert.ok(requiredForStage('closed_won',filled,account).includes('customer_decision (harus approved)'));
+});
+test('authenticated D1 Sales and AI URLs are allowlisted; legacy demo APIs remain blocked',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const middleware=fs.readFileSync(path.join(__dirname,'../src/middleware.ts'),'utf8');
+ assert.match(middleware,/path==='\/api\/sales'/);
+ assert.match(middleware,/path\.startsWith\('\/api\/sales\/'\)/);
+ assert.match(middleware,/path==='\/api\/ai\/assist'/);
+ assert.match(middleware,/API demo nonpersisten dinonaktifkan/);
+});
+test('quotation export requires approved D1 BoQ linked to same account and opportunity',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const source=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/quotation/route.ts'),'utf8');
+ assert.match(source,/createQuotationDocx/);
+ assert.match(source,/boq\.status!=='approved'/);
+ assert.match(source,/opportunity_id=\?/);
+ assert.match(source,/quotation_valid_days/);
+});
