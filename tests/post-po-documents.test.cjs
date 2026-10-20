@@ -136,6 +136,7 @@ test('autofill respects pre-existing Sales and PO values and uses missing budget
  assert.equal(filled.project.milestones[1].amount,1500000);
  assert.equal(filled.project.milestones[0].trigger,'Saat PO');
  assert.match(filled.project.technicalSpecifications,/FortiSIEM/);
+ assert.equal(filled.project.durationUnit,'bulan');
  assert.equal(packet.registration.primary.mobile,'');
  assert.equal(packet.project.milestones[1].amount,0);
  assert.deepEqual(api.validatePostPoDemoPacket(filled),[]);
