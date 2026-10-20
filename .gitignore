@@ -1,0 +1,12 @@
+# Temporary Microsoft Word / Office lock files
+~$*
+*.~*
+
+# OS and system files
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Logs & temp
+*.log
+*.tmp
