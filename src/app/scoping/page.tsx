@@ -161,6 +161,19 @@ export default function SmartScopingPage() {
       if (data.success) {
         setAiExtractionResult(data.content);
         setAiAnalysisSucceeded(true);
+
+      } else {
+        setAiExtractionResult('Gagal menganalisis dokumen: ' + (data.message || 'Error'));
+      }
+    } catch (e: any) {
+      setAiExtractionResult('Koneksi AI gagal: ' + e.message);
+    } finally {
+      setAiExtracting(false);
+    }
+  };
+
+
+  const handleApplyAiScoping = () => {
         // Heuristic auto-adjust
         const lower = aiDocText.toLowerCase();
         if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
@@ -186,14 +199,28 @@ export default function SmartScopingPage() {
         if (lower.includes('bank') || lower.includes('ojk') || lower.includes('fintech') || lower.includes('keuangan')) {
           setIsFinancial(true);
         }
-      } else {
-        setAiExtractionResult('Gagal menganalisis dokumen: ' + (data.message || 'Error'));
-      }
-    } catch (e: any) {
-      setAiExtractionResult('Koneksi AI gagal: ' + e.message);
-    } finally {
-      setAiExtracting(false);
-    }
+    // Numeric values are copied only when stated explicitly in the original RKS/KAK.
+    // AI prose is a suggestion, not a trusted value source.
+    const findCount = (name: string) => {
+      const escaped = name.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\
+  return (
+');
+      const first = aiDocText.match(new RegExp('\\b' + escaped + '\\s*[:=]?\\s*(\\d+)\\b', 'i'));
+      const second = aiDocText.match(new RegExp('\\b(\\d+)\\s+' + escaped + '\\b', 'i'));
+      const n = Number((first || second)?.[1]);
+      return Number.isSafeInteger(n) && n > 0 && n <= 100000 ? n : null;
+    };
+    const api = findCount('api endpoint') ?? findCount('api endpoints') ?? findCount('endpoint api');
+    const screens = findCount('layar') ?? findCount('screens');
+    const servers = findCount('server') ?? findCount('servers');
+    const hosts = findCount('host') ?? findCount('hosts');
+    const roles = findCount('user roles') ?? findCount('role user');
+    if (api !== null) setApiEndpoints(api);
+    if (screens !== null) setMobileScreens(screens);
+    if (servers !== null) setNServers(servers);
+    if (hosts !== null) setInfraHosts(hosts);
+    if (roles !== null) setUserRoles(roles);
+    setShowAiModal(false);
   };
 
   return (
@@ -336,7 +363,7 @@ export default function SmartScopingPage() {
                 <div className="flex justify-end pt-2">
                   <button
                     disabled={!aiAnalysisSucceeded}
-                    onClick={() => setShowAiModal(false)}
+                    onClick={handleApplyAiScoping}
                     className="disabled:opacity-50 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
                   >
                     Terapkan Nilai ke Formulir
