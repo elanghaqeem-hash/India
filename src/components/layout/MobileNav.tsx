@@ -21,7 +21,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md lg:hidden">
+    <nav className="no-print fixed bottom-0 left-0 right-0 z-50 flex h-16 border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md lg:hidden">
       <div className="grid h-full w-full grid-cols-5 items-center">
         {items.map(item => {
           const isActive = pathname === item.href;
