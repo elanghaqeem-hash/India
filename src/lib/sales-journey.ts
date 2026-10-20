@@ -5,7 +5,7 @@ export type JourneyGate={key:string;label:string;owner:string;state:JourneyState
 export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
  lead_number?:string|null;boq_status?:string|null;boq_linked?:boolean;
  quotation_record?:boolean;submission_proof?:boolean;po_check?:boolean;po_original?:boolean;
- legal_approved?:boolean;procurement_gaps?:string[];
+ legal_approved?:boolean;procurement_gaps?:string[];procurement_required?:boolean;
 }):JourneyGate[]{
  const accountGaps=validateAccount(a);
  const phase=(step:'qualified'|'discovery'|'solution_design'|'commercial_review'|'quotation_sent'|'negotiation'|'pending_po'|'closed_won')=>
@@ -17,6 +17,7 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
  const negotiation=phase('negotiation').length===0;
  const signedProof=input.submission_proof===true;
  const poOriginal=input.po_original===true;
+ const tenderRequired=input.procurement_required??needsTenderGate(d.fields.procurement_process||'');
  return [
   gate('lead','Marketing / Lead','Marketing',input.lead_number?'complete':'manual_review',
    input.lead_number?[]:['Lead Number belum terhubung (direct Sales entry)'],
@@ -28,9 +29,9 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
   gate('scoping','Technical Scoping','Presales',phase('discovery').length?'blocked':'complete',phase('discovery'),
    'Scoping teknis, aset, deliverables, dan model delivery'),
   gate('bid','Tender / RKS-KAK / Bid GO','Sales / Presales / Approver',
-   needsTenderGate(d.fields.procurement_process||'')?
+   tenderRequired?
      (!input.procurement_gaps||input.procurement_gaps.length>0?'blocked':'complete'):'pending',
-   needsTenderGate(d.fields.procurement_process||'')?
+   tenderRequired?
      (input.procurement_gaps||['Bid/No-Bid dan RKS/KAK belum dievaluasi']):[],
    'Tender/RFQ/RFP harus lulus GO dan compliance review sebelum Quotation'),
   gate('commercial','BoQ & Commercial Approval','Finance / Approver',boqLinked?'complete':'blocked',
