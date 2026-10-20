@@ -110,7 +110,9 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
  if(!has(deal.title))missing.push('title');
  if(!Number.isFinite(deal.estimated_value)||deal.estimated_value<=0)missing.push('estimated_value');
  if(!account)missing.push('company_id (pelanggan harus terdaftar)');
- if(account)missing.push(...validateAccount(account).map(x=>'pelanggan.'+x));
+ // Closing Lost must remain possible for unqualified leads.
+ // Full customer validation is required for advancement, not for early rejection.
+ if(account&&stage!=='closed_lost')missing.push(...validateAccount(account).map(x=>'pelanggan.'+x));
  const ordered=SALES_STAGES.slice(0,9).map(x=>x[0]);
  const end=stage==='closed_lost'?0:stage==='closed_won'?ordered.length-1:ordered.indexOf(stage);
  for(let i=0;i<=end;i++)for(const field of REQUIRED_BY_STAGE[ordered[i]]||[]){
@@ -121,7 +123,7 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
  if(deal.fields.quotation_valid_until&&!dateValid(deal.fields.quotation_valid_until))missing.push('quotation_valid_until (format)');
  if(deal.fields.quotation_valid_days&&!(/^[0-9]{1,3}$/.test(deal.fields.quotation_valid_days)&&Number(deal.fields.quotation_valid_days)>0&&Number(deal.fields.quotation_valid_days)<=365))
   missing.push('quotation_valid_days (1-365)');
- if(stage==='pending_po'&&deal.fields.customer_decision!=='approved')missing.push('customer_decision (harus approved)');
+ if((stage==='pending_po'||stage==='closed_won')&&deal.fields.customer_decision!=='approved')missing.push('customer_decision (harus approved)');
  if(stage==='closed_won'){
   if(!dateValid(deal.fields.po_date||''))missing.push('po_date (format)');
   const n=Number(deal.fields.po_amount_before_vat);
