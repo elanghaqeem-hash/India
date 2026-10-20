@@ -65,7 +65,8 @@ export async function GET(req:Request){
   const bytes=createQuotationDocx(proposal,'auto',detail);
   await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
    .bind(crypto.randomUUID(),TENANT,'deal',id,'QUOTATION_EXPORT',auth.identity.email,'DOCX '+boq.quotation_number+' v'+boq.version).run();
-  return new Response(bytes,{status:200,headers:{...privateHeaders,
+  const output=new Uint8Array(bytes.length);output.set(bytes);
+  return new Response(output.buffer,{status:200,headers:{...privateHeaders,
    'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
    'Content-Disposition':'attachment; filename="INDIA_DefendIT360_Quotation_'+clean(boq.quotation_number)+'.docx"'}});
  }catch{return deny('Gagal membuat DOCX dari data Sales/BoQ. Periksa skema dan field quotation.',503);}
