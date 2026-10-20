@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
 import {
   Building2,
   Plus,
@@ -16,6 +17,7 @@ import {
 } from 'lucide-react';
 import { appStore } from '@/lib/store';
 import { formatDate } from '@/lib/formatters';
+import { auditExistingSalesCustomer } from '@/lib/post-po-documents';
 import { Company, ClientTier, IndustryType } from '@/lib/types';
 
 export default function CustomersPage() {
@@ -112,6 +114,7 @@ export default function CustomersPage() {
         {filteredCompanies.map(comp => {
           const activeOpps = appStore.getState().opportunities.filter(o => o.company_id === comp.id);
           const wallet = appStore.getState().wallets.find(w => w.company_id === comp.id);
+          const salesAudit = auditExistingSalesCustomer(comp);
 
           return (
             <div
@@ -159,6 +162,11 @@ export default function CustomersPage() {
                     ))}
                   </div>
                 )}
+
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
+                  <div className="font-semibold text-amber-900">Form Administrasi: {salesAudit.missing.length ? salesAudit.missing.length+' isian belum terpenuhi' : 'data master terisi'}</div>
+                  <Link href="/post-po" className="font-bold text-violet-700 underline underline-offset-2">Audit & Lengkapi</Link>
+                </div>
 
                 {/* Status Badges */}
                 <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
