@@ -94,3 +94,30 @@ test('PO verifier identity must differ from the opportunity creator even for adm
  assert.match(route,/Segregation of Duties/);
  assert.match(route,/confirmed_documents!==true/);
 });
+
+test('Sales can read/change only own deals and customer accounts, Presales is technical-only',()=>{
+ const a=load('sales-access');
+ assert.equal(a.canReadDeal('sales','sales.one@example.test','sales.one@example.test'),true);
+ assert.equal(a.canReadDeal('sales','sales.two@example.test','sales.one@example.test'),false);
+ assert.equal(a.canReadDeal('presales','presales@example.test','sales.one@example.test'),true);
+ assert.equal(a.canEditAccount('sales','sales.two@example.test','sales.one@example.test'),false);
+ assert.equal(a.canEditAccount('admin','admin@example.test','sales.one@example.test'),true);
+ assert.equal(a.canChangeStage('approver','approver@example.test','sales.one@example.test'),false);
+ assert.equal(a.canChangeStage('sales','sales.one@example.test','sales.one@example.test'),true);
+ assert.equal(a.canEditDeal('presales','eng@example.test','sales.one@example.test',
+  {technical_scope:'Test scope',methodology:'Grey-box'},false),true);
+ assert.equal(a.canEditDeal('presales','eng@example.test','sales.one@example.test',
+  {po_number:'PO-FAKE'},false),false);
+ assert.equal(a.canEditDeal('presales','eng@example.test','sales.one@example.test',
+  {technical_scope:'Test scope'},true),false);
+ assert.equal(a.canEditDeal('sales','sales.two@example.test','sales.one@example.test',
+  {quotation_number:'fake'},false),false);
+});
+test('server routes enforce authorization after looking up the Deal, not by trusting sent owner field',()=>{
+ const route=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/route.ts'),'utf8');
+ assert.match(route,/canReadDeal\(role,email,row\.created_by\)/);
+ assert.match(route,/canEditAccount\(role,email,row\.created_by\)/);
+ assert.match(route,/canEditDeal\(role,email,row\.created_by/);
+ assert.match(route,/canChangeStage\(role,email,row\.created_by\)/);
+ assert.match(route,/canReadDeal\(auth\.identity\.role,auth\.identity\.email,raw\.created_by\)/);
+});
