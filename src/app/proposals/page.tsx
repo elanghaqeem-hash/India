@@ -19,11 +19,99 @@ import { Proposal } from '@/lib/types';
 
 export default function ProposalsPage() {
   const store = appStore.getState();
-  const [proposals] = useState<Proposal[]>(store.proposals);
+  const [proposals, setProposals] = useState<Proposal[]>(store.proposals);
   const [selectedProp, setSelectedProp] = useState<Proposal>(proposals[0]);
+  const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [actionMsg, setActionMsg] = useState<string | null>(null);
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const reloadProposals = async () => {
+    try {
+      const res = await fetch('/api/proposals');
+      const data = await res.json();
+      if (data.success && data.proposals.length > 0) {
+        setProposals(data.proposals);
+        const curr = data.proposals.find((p: Proposal) => p.id === selectedProp.id) || data.proposals[0];
+        setSelectedProp(curr);
+      }
+    } catch (e) {
+      // fallback to store
+      setProposals([...appStore.getState().proposals]);
+    }
+  };
+
+  const handleUpdateStatus = async (status: 'sent' | 'accepted' | 'rejected') => {
+    try {
+      const res = await fetch('/api/proposals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedProp.id, status })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionMsg(`Status proposal berhasil diubah menjadi ${status.toUpperCase()}`);
+        await reloadProposals();
+        setTimeout(() => setActionMsg(null), 3000);
+      }
+    } catch (e: any) {
+      alert('Gagal update status: ' + e.message);
+    }
+  };
+
+  const handleCreateRevision = async () => {
+    try {
+      const res = await fetch('/api/proposals', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: selectedProp.id, action: 'create_revision' })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setActionMsg(`Berhasil menerbitkan versi revisi baru: ${data.proposal.quotation_number}`);
+        await reloadProposals();
+        setSelectedProp(data.proposal);
+        setTimeout(() => setActionMsg(null), 4000);
+      }
+    } catch (e: any) {
+      alert('Gagal membuat revisi: ' + e.message);
+    }
+  };
+
+  const handleGenerateAiSummary = async () => {
+    setAiLoading(true);
+    setAiSummary(null);
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_type: 'proposal_drafting',
+          prompt: `Susunkan Executive Summary & Commercial Cover Letter resmi berbahasa Indonesia untuk dokumen penawaran harga ini:
+- Nomor Quotation: ${selectedProp.quotation_number}
+- Perusahaan Klien: ${selectedProp.company_name} (Tier ${selectedProp.client_tier})
+- Nama Proyek: ${selectedProp.opportunity_name}
+- Total Nilai Komersial: ${formatIDR(selectedProp.grand_total)} (Termasuk PPN 11%)
+- Termin Pembayaran: ${selectedProp.payment_terms}
+- Masa Berlaku: ${selectedProp.valid_days} Hari Kalender
+
+Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cybersecurity consulting tone), berfokus pada value proposition mitigasi risiko dan kepatuhan regulasi.`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiSummary(data.content);
+      } else {
+        setAiSummary('Gagal menyusun ringkasan: ' + (data.message || 'Error'));
+      }
+    } catch (e: any) {
+      setAiSummary('Koneksi AI gagal: ' + e.message);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   return (
@@ -45,7 +133,21 @@ export default function ProposalsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={handleGenerateAiSummary}
+              disabled={aiLoading}
+              className="flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 px-3 py-2 text-xs font-bold transition-all"
+            >
+              <Shield className="h-3.5 w-3.5 text-indigo-600" />
+              <span>{aiLoading ? 'AI Menyusun...' : 'AI Executive Summary'}</span>
+            </button>
+            <button
+              onClick={handleCreateRevision}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 px-3 py-2 text-xs font-bold transition-all shadow-2xs"
+            >
+              <span>+ Buat Revisi (REV-N)</span>
+            </button>
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white px-3.5 py-2 text-xs font-bold transition-all shadow-xs"
@@ -55,6 +157,30 @@ export default function ProposalsPage() {
             </button>
           </div>
         </div>
+
+        {/* Action Status Message */}
+        {actionMsg && (
+          <div className="mt-3 rounded-lg bg-emerald-50 border border-emerald-200 p-2.5 text-xs font-bold text-emerald-800 flex items-center gap-2 animate-in fade-in">
+            <CheckCircle2 className="h-4 w-4 text-emerald-600" />
+            <span>{actionMsg}</span>
+          </div>
+        )}
+
+        {/* AI Summary Banner */}
+        {aiSummary && (
+          <div className="mt-4 rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-xs space-y-2 animate-in fade-in">
+            <div className="flex items-center justify-between text-indigo-950 font-bold border-b border-indigo-100 pb-2">
+              <span className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-indigo-600" />
+                <span>AI Executive Summary & Proposal Cover Letter Draft:</span>
+              </span>
+              <button onClick={() => setAiSummary(null)} className="text-slate-400 hover:text-slate-600 text-base font-bold">&times;</button>
+            </div>
+            <div className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap bg-white p-3 rounded-lg border border-indigo-100 max-h-52 overflow-y-auto">
+              {aiSummary}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

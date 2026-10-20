@@ -133,6 +133,42 @@ function PricingEngineContent() {
     grossMarginPct: boq.gross_margin_pct,
   });
 
+  // AI Pricing Advice Handler
+  const handleGetAiPricingAdvice = async () => {
+    setAiAdvising(true);
+    setAiAdvice(null);
+    try {
+      const res = await fetch('/api/ai/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          task_type: 'pricing_analysis',
+          prompt: `Berikan tinjauan komersial dan strategi win rate untuk penawaran harga ini:
+- Klien Tier: ${clientTier} (Multiplier: ${tierMultiplier}x)
+- Lokasi Pekerjaan: ${locationType}
+- Internal Cost (BoQ): ${formatIDR(totalCost)}
+- Quoted Price: ${formatIDR(finalQuotedPrice)} (Range: ${selectedRange}, Diskon: ${discountPct}%)
+- Gross Profit: ${formatIDR(boq.gross_profit)}
+- Gross Margin: ${formatPercent(boq.gross_margin_pct)} (Target minimal 25%)
+- DoA Level Diperlukan: ${doa.requiredLevel.toUpperCase()}
+- Rekomendasi 3 Ranges: Floor (${formatIDR(ranges.floor_price)}), Standard (${formatIDR(ranges.standard_price)}), Premium (${formatIDR(ranges.premium_price)})
+
+Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi mitigasi margin, dan taktik negosiasi.`
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiAdvice(data.content);
+      } else {
+        setAiAdvice('Gagal meminta saran AI: ' + (data.message || 'Error'));
+      }
+    } catch (e: any) {
+      setAiAdvice('Koneksi AI gagal: ' + e.message);
+    } finally {
+      setAiAdvising(false);
+    }
+  };
+
   // Handle Submit to Proposal & Approval
   const handleCreateQuotation = () => {
     const store = appStore.getState();
