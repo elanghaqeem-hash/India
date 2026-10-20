@@ -17,6 +17,7 @@ import { appStore } from '@/lib/store';
 import { formatIDR, formatDate } from '@/lib/formatters';
 import { Proposal } from '@/lib/types';
 import { downloadProposalBoQ, BoQExportFormat } from '@/lib/boq-xlsx';
+import { downloadQuotationDocx, QuotationDetails, QuotationFormat, resolveQuotationFormat } from '@/lib/quotation-docx';
 
 export default function ProposalsPage() {
   const store = appStore.getState();
@@ -25,6 +26,19 @@ export default function ProposalsPage() {
   const [aiSummary, setAiSummary] = useState<string | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState<string | null>(null);
+  const [docFormat, setDocFormat] = useState<QuotationFormat>('auto');
+  const [docDetails, setDocDetails] = useState<QuotationDetails>({});
+  const editDetail = (name: keyof QuotationDetails, value: string) => {
+    setDocDetails(prev => ({ ...prev, [name]: value }));
+  };
+  const handleExportWord = () => {
+    try {
+      downloadQuotationDocx(selectedProp, docFormat, docDetails);
+      setActionMsg('Draft Quotation Word dibuat dari proposal terpilih. Tinjau lingkup, klausul, pajak, dan approval sebelum dikirim.');
+    } catch (err) {
+      setActionMsg('Gagal membuat Word: ' + (err instanceof Error ? err.message : 'Kesalahan tidak diketahui'));
+    }
+  };
 
   const handlePrint = () => {
     window.print();
@@ -108,7 +122,7 @@ export default function ProposalsPage() {
 - Nomor Quotation: ${selectedProp.quotation_number}
 - Perusahaan Klien: ${selectedProp.company_name} (Tier ${selectedProp.client_tier})
 - Nama Proyek: ${selectedProp.opportunity_name}
-- Total Nilai Komersial: ${formatIDR(selectedProp.grand_total)} (Termasuk PPN 11%)
+- Total Nilai Komersial: ${formatIDR(selectedProp.grand_total)} (Termasuk PPN sesuai data quotation)
 - Termin Pembayaran: ${selectedProp.payment_terms}
 - Masa Berlaku: ${selectedProp.valid_days} Hari Kalender
 
@@ -142,7 +156,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                 Quotation & Commercial Offer Generator
               </h1>
               <p className="text-xs text-slate-500">
-                Penerbitan Surat Penawaran Harga resmi dengan klausul komersial POJK, PPN 11%, dan terms 30-50-20.
+                Susun draft penawaran terstruktur berdasarkan data quotation aktual, Scope of Work, dan persetujuan komersial.
               </p>
             </div>
           </div>
@@ -166,6 +180,23 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
               <button type="button" onClick={() => handleExportBoQ('standard')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">BoQ Internal (.xlsx)</button>
               <button type="button" onClick={() => handleExportBoQ('onsite')} className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100">BoQ Onsite (.xlsx)</button>
               <button type="button" onClick={() => handleExportBoQ('customer')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white hover:bg-emerald-800">BoQ Customer (.xlsx)</button>
+            </div>
+            <div className="flex flex-wrap items-center gap-2" aria-label="Ekspor Quotation Word">
+              <select
+                aria-label="Pilih format dokumen Quotation"
+                value={docFormat}
+                onChange={e => setDocFormat(e.target.value as QuotationFormat)}
+                className="max-w-full rounded-lg border border-violet-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-800"
+              >
+                <option value="auto">Word: Otomatis</option>
+                <option value="mobile">Word: Mobile Pentest</option>
+                <option value="vapt">Word: VAPT / Multi-Layanan</option>
+                <option value="soc">Word: Managed SOC</option>
+              </select>
+              <button type="button" onClick={handleExportWord}
+                className="flex items-center gap-1.5 rounded-lg bg-violet-700 px-3 py-2 text-xs font-bold text-white hover:bg-violet-800">
+                <Download className="h-3.5 w-3.5" /> Unduh Quotation (.docx)
+              </button>
             </div>
             <button
               onClick={handlePrint}
@@ -214,7 +245,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
               return (
                 <div
                   key={prop.id}
-                  onClick={() => setSelectedProp(prop)}
+                  onClick={() => { setSelectedProp(prop); setDocDetails({}); setDocFormat('auto'); }}
                   className={`p-3.5 rounded-xl border text-xs cursor-pointer transition-all ${
                     isSelected
                       ? 'border-blue-600 bg-blue-50/60 shadow-xs ring-1 ring-blue-600'
@@ -284,6 +315,44 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
             </div>
           </div>
 
+          <details className="no-print rounded-xl border border-violet-200 bg-violet-50/40 p-3.5 text-xs">
+            <summary className="cursor-pointer font-bold text-violet-900">
+              Lengkapi Data Quotation Word ({resolveQuotationFormat(selectedProp, docFormat).toUpperCase()}) - opsional, tidak tersimpan ke database
+            </summary>
+            <p className="mt-2 text-[11px] leading-relaxed text-slate-600">
+              Data pada contoh Dana Kini, LPS, dan Mitsubishi hanya dijadikan pola dokumen.
+              Isi SOW, aset, SLA, tim, ketentuan, serta lisensi sesuai proyek yang benar.
+              Field kosong akan ditandai memerlukan konfirmasi pada DOCX.
+            </p>
+            <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
+              {([
+                ['endUser', 'End User'],
+                ['methodology', 'Metode dan standar pengujian'],
+                ['technicalPlatform', 'Platform teknologi / SIEM / lisensi'],
+                ['scope', 'Scope of Work'],
+                ['assets', 'Daftar aset / target / endpoint'],
+                ['logSources', 'Daftar log source, EPS, dan retensi'],
+                ['serviceLevels', 'SLA / SLO / jam layanan'],
+                ['rules', 'Rules of Engagement'],
+                ['team', 'Struktur tim dan Technical Writer'],
+                ['deliverables', 'Deliverables dan re-test'],
+                ['terms', 'General Terms & Conditions'],
+                ['paymentNotes', 'Milestone pembayaran / TOP'],
+                ['exclusions', 'Exclusions dan asumsi'],
+              ] as Array<[keyof QuotationDetails, string]>).map(([key, label]) => (
+                <label key={key} className="min-w-0 space-y-1">
+                  <span className="block font-semibold text-slate-700">{label}</span>
+                  <textarea rows={key === 'scope' || key === 'terms' ? 3 : 2}
+                    className="w-full resize-y rounded-lg border border-slate-200 bg-white p-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-violet-300"
+                    placeholder="Isi sesuai dokumen SOW, quotation, atau kesepakatan"
+                    value={docDetails[key] || ''}
+                    onChange={e => editDetail(key, e.target.value)}
+                  />
+                </label>
+              ))}
+            </div>
+          </details>
+
           <div className="quotation-document min-w-0 w-full max-w-full overflow-hidden rounded-xl sm:rounded-2xl border border-slate-300 bg-white p-4 sm:p-7 lg:p-10 shadow-md print:overflow-visible print:border-none print:shadow-none print:p-0 text-slate-900 space-y-5 sm:space-y-6">
             {/* Letterhead */}
             <div className="border-b-2 border-slate-900 pb-5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 min-w-0">
@@ -296,10 +365,10 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                     PT DATA ENKRIPSI INFORMASI TEKNOLOGI
                   </h2>
                   <div className="text-[11px] text-slate-500 font-medium">
-                    DefendIT360 Enterprise Cybersecurity Solutions &bull; Terdaftar LK SMPI BSSN
+                    DefendIT360 &bull; Enterprise Cybersecurity Solutions
                   </div>
                   <div className="text-[10px] text-slate-400">
-                    Gedung Tower 01 Lt. 27, Jl. Jend. Sudirman Kav. 10, Jakarta Pusat 10220
+                    Sudirman 7.8, Tower 1 Lt. 27, Jl. Jenderal Sudirman No. 10, Jakarta 10220
                   </div>
                 </div>
               </div>
@@ -336,7 +405,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                       <div className="min-w-0 flex-1">
                         <h3 className="break-words text-sm font-bold leading-5 text-slate-900">{item.description}</h3>
                         <p className="mt-1.5 break-words text-[11px] leading-relaxed text-slate-500">
-                          Metodologi Grey-Box &bull; Reporting Standar OWASP / OJK &bull; Termasuk 1x Retest gratis dlm 30 hari
+                          Lingkup, metode, dan re-test mengikuti SOW yang disepakati
                         </p>
                       </div>
                     </div>
@@ -370,7 +439,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                       <td className="py-3 px-3">
                         <div className="font-bold text-slate-900">{item.description}</div>
                         <div className="text-[11px] text-slate-500 mt-0.5">
-                          Metodologi Grey-Box &bull; Reporting Standar OWASP / OJK &bull; Termasuk 1x Retest gratis dlm 30 hari
+                          Lingkup, metode, dan re-test mengikuti SOW yang disepakati
                         </div>
                       </td>
                       <td className="py-3 px-3 text-center font-semibold">{item.quantity}</td>
@@ -397,7 +466,7 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                     </div>
                   )}
                   <div className="flex justify-between text-slate-600">
-                    <span>PPN (11%):</span>
+                    <span>PPN (sesuai proposal):</span>
                     <span className="font-bold text-slate-900">{formatIDR(selectedProp.vat_amount)}</span>
                   </div>
                   <div className="flex justify-between items-center border-t border-slate-300 pt-2 text-sm font-black text-slate-900">
@@ -416,19 +485,19 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
               <ul className="list-decimal pl-4 space-y-1 text-slate-600 text-[11px]">
                 <li>
                   <span className="font-semibold text-slate-800">Termin Pembayaran ({selectedProp.payment_terms}): </span>
-                  Termin 1 (30%) uang muka setelah Kickoff Meeting; Termin 2 (50%) setelah penyerahan Laporan Pendahuluan; Termin 3 (20%) setelah BAST Final ditandatangani.
+                  Pembagian persentase mengikuti {selectedProp.payment_terms}. Milestone ditetapkan dalam kontrak/PO final.
                 </li>
                 <li>
                   <span className="font-semibold text-slate-800">Klausul Denda Keterlambatan: </span>
-                  Denda keterlambatan ditetapkan sebesar 1&permil; (satu permil / 0.1%) per hari kalender dengan batas akumulasi maksimum 5% dari total nilai kontrak.
+                  Denda hanya berlaku apabila disetujui dalam kontrak/PO final.
                 </li>
                 <li>
                   <span className="font-semibold text-slate-800">Rekening Resmi Pembayaran: </span>
-                  Bank Mandiri KC Jakarta Sudirman &bull; No. Rek: 122-00-1928374-5 &bull; A.n. PT Data Enkripsi Informasi Teknologi.
+                  Informasi rekening resmi harus diverifikasi oleh Finance pada invoice yang diterbitkan.
                 </li>
                 <li>
                   <span className="font-semibold text-slate-800">Retesting: </span>
-                  Verifikasi perbaikan (Retest) diberikan gratis sebanyak 1 (satu) kali dalam jangka waktu maksimal 30 hari kalender setelah laporan awal diserahkan.
+                  Cakupan dan periode retest mengikuti SOW dan kesepakatan tertulis.
                 </li>
               </ul>
             </div>
@@ -449,14 +518,14 @@ Tuliskan dalam gaya konsultan keamanan siber eksekutif terpercaya (Big 4 cyberse
                 <div className="font-bold text-slate-800 mt-0.5">PT DATA ENKRIPSI INFORMASI TEKNOLOGI</div>
                 <div className="h-16 flex items-end justify-end">
                   <div className="text-center">
-                    <span className="rounded bg-blue-50 border border-blue-200 px-2 py-0.5 text-[9px] font-bold text-blue-800 block mb-1">
-                      DIGITALLY AUTHORIZED
+                    <span className="text-[9px] text-slate-500 block mb-1">
+                      Menunggu persetujuan dan tanda tangan berwenang
                     </span>
                     <div className="w-48 border-b border-slate-400" />
                   </div>
                 </div>
-                <div className="font-bold text-slate-900 text-[11px] mt-1">Reza Fahlevi / Direksi</div>
-                <div className="text-slate-500 text-[10px]">Head of Sales & Commercial Operations</div>
+                <div className="font-bold text-slate-900 text-[11px] mt-1">Nama penandatangan yang berwenang</div>
+                <div className="text-slate-500 text-[10px]">Jabatan diisi setelah approval</div>
               </div>
             </div>
           </div>
