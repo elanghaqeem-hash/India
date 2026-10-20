@@ -101,7 +101,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     pricing ? f('G' + total + '-H' + total) : null,
     pricing ? f('IFERROR(I' + total + '/G' + total + ',"")') : null,
     pricing ? 'HPP agregat terhubung' : 'BELUM ADA HPP TERVERIFIKASI']);
-  push(b, ['', 'PPN', null, null, null, null, f('G' + total + '*Parameter!B9')]);
+  push(b, ['', 'PPN', null, null, null, null, f('G' + total + '*Parameter!C9')]);
   push(b, ['', 'TOTAL TERMASUK PPN', null, null, null, null, f('G' + total + '+G' + (total + 1))]);
   push(b, ['', 'VALIDASI: Harga/HPP/lingkup/otorisasi harus diperiksa sebelum dokumen digunakan.']);
 
@@ -120,9 +120,9 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ['Gross Profit', gross, 'Belum final sebelum approval'],
     ['Gross Profit %', pricing ? f('IFERROR(B11/B9,"")') : null, 'Guardrail margin'],
     ['Mandays', f("'BoQ Internal'!D" + total), 'MD yang tercantum dalam proposal'],
-    ['Floor (HPP/0,8)', pricing ? f('IFERROR(B10/Parameter!B11,0)') : null],
-    ['Standard price', pricing ? f('B14*Parameter!B12') : null],
-    ['Premium price', pricing ? f('B15*Parameter!B13') : null],
+    ['Floor (HPP/0,8)', pricing ? f('IFERROR(B10/Parameter!C11,0)') : null],
+    ['Standard price', pricing ? f('B14*Parameter!C12') : null],
+    ['Premium price', pricing ? f('B15*Parameter!C13') : null],
     ['PPN', f("'BoQ Internal'!G" + (total + 1))],
     ['Grand Total', f("'BoQ Internal'!G" + (total + 2))],
     [],
