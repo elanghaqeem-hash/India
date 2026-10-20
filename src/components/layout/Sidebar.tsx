@@ -13,6 +13,8 @@ import {
   Wallet,
   TrendingUp,
   FileCheck2,
+  FileText,
+  Sparkles,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -61,10 +63,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       badge: null,
     },
     {
+      name: 'Tender Management',
+      href: '/tender',
+      icon: FileText,
+      badge: 'LPSE/BUMN',
+    },
+    {
       name: 'FlexGuard Token Wallet',
       href: '/flexguard',
       icon: Wallet,
       badge: 'Ledger',
+    },
+    {
+      name: 'AI & API Key Settings',
+      href: '/settings/ai',
+      icon: Sparkles,
+      badge: 'Multi-AI',
     },
   ];
 
