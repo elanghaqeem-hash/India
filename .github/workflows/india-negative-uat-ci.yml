@@ -1,0 +1,30 @@
+name: India negative-path UAT (isolated)
+on:
+  push:
+    branches: [test/india-negative-uat-oct20]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  negative-uat:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Execute negative UAT scenarios
+        run: npm run test:india-negative
+      - name: TypeScript verification
+        run: npm run typecheck
+      - name: Next.js production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Cloudflare adapter packaging
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

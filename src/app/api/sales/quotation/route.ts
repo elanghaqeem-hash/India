@@ -2,11 +2,12 @@ import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine, type CostLine } from '@/lib/boq-domain';
 import { createQuotationDocx, type QuotationDetails } from '@/lib/quotation-docx';
 import { TENANT } from '@/lib/sales-workflow';
+import { canReadDeal } from '@/lib/sales-access';
 import type { Proposal, ProposalLineItem } from '@/lib/types';
 export const dynamic='force-dynamic';
 
 const deny=(message:string,status=400)=>Response.json({success:false,message},{status,headers:privateHeaders});
-type DealRow={id:string;company_id:string;title:string;stage:string;data_json:string};
+type DealRow={id:string;company_id:string;title:string;stage:string;data_json:string;created_by:string|null};
 type AccountRow={id:string;legal_name:string;data_json:string};
 type BoQRow={id:string;opportunity_id:string|null;customer_name:string;project_name:string;quotation_number:string;version:number;status:string;line_items_json:string;cost_items_json:string;vat_rate:number;payment_terms:string;approved_by:string|null;created_by:string;created_at:string;};
 const str=(v:unknown)=>typeof v==='string'?v.trim():'';
@@ -24,6 +25,8 @@ export async function GET(req:Request){
  try{
   const row=await db.prepare('SELECT * FROM india_sales_opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
   if(!row)return deny('Opportunity tidak ditemukan',404);
+  if(!canReadDeal(auth.identity.role,auth.identity.email,row.created_by))
+   return deny('Opportunity tidak tersedia untuk Sales ini',403);
   const acct=await db.prepare('SELECT * FROM india_sales_accounts WHERE id=? AND tenant_id=?').bind(row.company_id,TENANT).first<AccountRow>();
   if(!acct)return deny('Customer Account tidak ditemukan',404);
   const fields=JSON.parse(row.data_json||'{}') as Record<string,string>;
