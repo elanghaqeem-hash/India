@@ -34,6 +34,21 @@ import {
   DAIIndices,
 } from '@/lib/types';
 
+type StaffingRow = {
+  role_level: RoleLevel;
+  mandays: number;
+  cost_rate_override?: number;
+  selling_rate_override?: number;
+};
+
+const STAFFING_LABELS: Partial<Record<RoleLevel, string>> = {
+  project_manager: 'Project Manager',
+  lead: 'Lead',
+  senior: 'Senior',
+  junior: 'Junior',
+  technical_writer: 'Technical Writer',
+};
+
 function PricingEngineContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -53,11 +68,12 @@ function PricingEngineContent() {
   });
 
   // HR Staffing Mix for Component A
-  const [staffing, setStaffing] = useState<Array<{ role_level: RoleLevel; mandays: number }>>([
+  const [staffing, setStaffing] = useState<StaffingRow[]>([
     { role_level: 'project_manager', mandays: 2 },
     { role_level: 'lead', mandays: 4 },
     { role_level: 'senior', mandays: 8 },
     { role_level: 'junior', mandays: 4 },
+    { role_level: 'technical_writer', mandays: 0, cost_rate_override: 0, selling_rate_override: 0 },
   ]);
 
   // BoQ Other Components
@@ -83,6 +99,7 @@ function PricingEngineContent() {
         { role_level: 'lead', mandays: Math.max(1, Math.round(initMD * 0.25)) },
         { role_level: 'senior', mandays: Math.max(2, Math.round(initMD * 0.40)) },
         { role_level: 'junior', mandays: Math.max(1, Math.round(initMD * 0.20)) },
+        { role_level: 'technical_writer', mandays: 0, cost_rate_override: 0, selling_rate_override: 0 },
       ]);
     }
   }, [initMD]);
@@ -90,6 +107,22 @@ function PricingEngineContent() {
   // Dynamic Calculations
   const calculatedDAI = calculateDAI(daiIndices);
   const tierMultiplier = CLIENT_TIER_MULTIPLIERS[clientTier].default;
+
+  const updateMandays = (role: RoleLevel, nextValue: number) => {
+    const safeValue = Number.isFinite(nextValue) ? Math.max(0, Math.min(10000, nextValue)) : 0;
+    setStaffing(prev => prev.map(item => item.role_level === role ? { ...item, mandays: safeValue } : item));
+  };
+
+  const updateWriterRate = (field: 'cost_rate_override' | 'selling_rate_override', nextValue: number) => {
+    const safeValue = Number.isFinite(nextValue) ? Math.max(0, Math.round(nextValue)) : 0;
+    setStaffing(prev => prev.map(item =>
+      item.role_level === 'technical_writer' ? { ...item, [field]: safeValue } : item
+    ));
+  };
+
+  const technicalWriter = staffing.find(item => item.role_level === 'technical_writer');
+  const writerHasUnconfiguredRate = Boolean(technicalWriter && technicalWriter.mandays > 0 &&
+    (!technicalWriter.cost_rate_override || !technicalWriter.selling_rate_override));
 
   const hrCostResult = calculateHRCost(staffing, locationType);
   const compATotal = hrCostResult.totalHRCost;
@@ -171,6 +204,10 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
 
   // Handle Submit to Proposal & Approval
   const handleCreateQuotation = () => {
+    if (writerHasUnconfiguredRate) {
+      alert('Lengkapi cost rate dan selling rate Technical Writer sebelum membuat quotation.');
+      return;
+    }
     const store = appStore.getState();
     const seq = store.proposals.length + 1;
     const qNum = generateQuotationNumber(seq);
@@ -233,7 +270,7 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
   };
 
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-5">
       {/* Page Header */}
       <div className="border-b border-slate-200 pb-5">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -259,9 +296,9 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid min-w-0 grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
         {/* Left Column: Input Parameter & Staffing */}
-        <div className="lg:col-span-2 space-y-6">
+        <div className="min-w-0 space-y-5 lg:col-span-2">
           {/* Card 1: Client Tier & Market Index (DAI) */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -381,87 +418,182 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
             </div>
           </div>
 
-          {/* Card 2: Staffing Mix (Komponen A: HR Cost) */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div>
-                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                  <span>2. BoQ Komponen A: Human Resources (HR Cost)</span>
+          {/* Component A: cards on phones/tablets; a four-column table on larger displays. */}
+          <section aria-labelledby="hr-boq-heading" className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <div className="flex min-w-0 flex-col gap-3 border-b border-slate-100 pb-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <h2 id="hr-boq-heading" className="text-base font-bold leading-snug text-slate-900">
+                  2. BoQ Komponen A: Human Resources
                 </h2>
-                <p className="text-[11px] text-slate-500">Rate card resmi DefendIT360 per hari (Mandays)</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">
+                  Hitung biaya tenaga kerja berdasarkan role, mandays, dan tarif per MD.
+                </p>
               </div>
-              <div className="text-right">
-                <span className="text-[11px] text-slate-400 font-medium">Subtotal HR: </span>
-                <span className="text-xs font-black text-slate-900">{formatIDR(compATotal)}</span>
+              <div className="shrink-0 rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 sm:text-right">
+                <p className="text-[11px] font-semibold text-blue-700">Subtotal HR</p>
+                <p className="mt-1 text-lg font-extrabold tabular-nums text-blue-950">{formatIDR(compATotal)}</p>
+                <p className="mt-1 text-[11px] text-blue-700">
+                  {staffing.reduce((sum, item) => sum + item.mandays, 0)} total mandays
+                </p>
               </div>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs border-collapse">
+            {/* Technical Writer is optional. Its rates require explicit entry and are not represented as official rates. */}
+            <div className="min-w-0 space-y-3 rounded-xl border border-indigo-100 bg-indigo-50/40 p-3 sm:p-4">
+              <div>
+                <p className="text-sm font-bold text-indigo-950">Technical Writer</p>
+                <p className="mt-1 text-xs leading-relaxed text-slate-600">
+                  Peran penyusunan laporan, dokumentasi teknis, dan finalisasi deliverable.
+                  Tarif belum tersedia pada rate card; masukkan tarif sesuai persetujuan internal.
+                </p>
+              </div>
+              <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
+                <label htmlFor="writer-cost-rate" className="block min-w-0">
+                  <span className="mb-1 block text-xs font-semibold text-slate-700">Cost Rate / MD (Rp)</span>
+                  <input
+                    id="writer-cost-rate"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    step="1000"
+                    value={technicalWriter?.cost_rate_override ?? 0}
+                    onChange={event => updateWriterRate('cost_rate_override', Number(event.target.value))}
+                    className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold tabular-nums text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+                <label htmlFor="writer-selling-rate" className="block min-w-0">
+                  <span className="mb-1 block text-xs font-semibold text-slate-700">Selling Rate / MD (Rp)</span>
+                  <input
+                    id="writer-selling-rate"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    step="1000"
+                    value={technicalWriter?.selling_rate_override ?? 0}
+                    onChange={event => updateWriterRate('selling_rate_override', Number(event.target.value))}
+                    className="h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold tabular-nums text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                  />
+                </label>
+              </div>
+              {writerHasUnconfiguredRate && (
+                <p role="alert" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs leading-relaxed text-amber-900">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                  Technical Writer sudah memiliki mandays. Lengkapi kedua tarif sebelum membuat quotation.
+                </p>
+              )}
+            </div>
+
+            {/* Touch-friendly role cost cards on small and medium viewports. */}
+            <div className="space-y-2.5 xl:hidden">
+              {staffing.map((item, idx) => {
+                const detail = hrCostResult.details[idx];
+                const label = STAFFING_LABELS[item.role_level] || item.role_level.replace(/_/g, ' ');
+                return (
+                  <div key={item.role_level} className="min-w-0 rounded-xl border border-slate-200 bg-white p-3.5">
+                    <div className="flex min-w-0 items-center justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm font-bold text-slate-900">{label}</p>
+                        {item.role_level === 'technical_writer' && (
+                          <p className="mt-0.5 text-[11px] text-indigo-600">Dokumentasi & pelaporan</p>
+                        )}
+                      </div>
+                      <label className="w-24 shrink-0">
+                        <span className="mb-1 block text-right text-[11px] font-medium text-slate-500">Mandays</span>
+                        <input
+                          type="number"
+                          inputMode="decimal"
+                          min="0"
+                          max="10000"
+                          step="0.5"
+                          aria-label={`Mandays ${label}`}
+                          value={item.mandays}
+                          onChange={event => updateMandays(item.role_level, Number(event.target.value))}
+                          className="h-11 w-full rounded-lg border border-slate-200 bg-slate-50 px-2 text-center text-base font-bold tabular-nums text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
+                        />
+                      </label>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-100 pt-3">
+                      <div className="min-w-0">
+                        <p className="text-[11px] font-medium text-slate-500">Cost Rate / MD</p>
+                        <p className="mt-1 break-words text-xs font-semibold tabular-nums text-slate-700 sm:text-sm">{formatIDR(detail?.daily_cost_rate ?? 0)}</p>
+                      </div>
+                      <div className="min-w-0 text-right">
+                        <p className="text-[11px] font-medium text-slate-500">Subtotal</p>
+                        <p className="mt-1 break-words text-sm font-extrabold tabular-nums text-slate-900">{formatIDR(detail?.subtotal ?? 0)}</p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop table: isolated from narrow screens to avoid four overlapping columns. */}
+            <div className="hidden min-w-0 overflow-x-auto xl:block">
+              <table className="w-full min-w-[600px] border-collapse text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-100 text-slate-400 font-semibold">
-                    <th className="py-2">Role Level</th>
-                    <th className="py-2 text-center">Mandays (MD)</th>
-                    <th className="py-2 text-right">Cost Rate / MD</th>
-                    <th className="py-2 text-right">Subtotal Cost</th>
+                  <tr className="border-b border-slate-200 bg-slate-50 text-[11px] font-semibold text-slate-500">
+                    <th scope="col" className="rounded-tl-lg px-3 py-3">Role Level</th>
+                    <th scope="col" className="px-3 py-3 text-center">Mandays (MD)</th>
+                    <th scope="col" className="px-3 py-3 text-right">Cost Rate / MD</th>
+                    <th scope="col" className="rounded-tr-lg px-3 py-3 text-right">Subtotal Cost</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {staffing.map((item, idx) => {
                     const detail = hrCostResult.details[idx];
+                    const label = STAFFING_LABELS[item.role_level] || item.role_level.replace(/_/g, ' ');
                     return (
-                      <tr key={item.role_level}>
-                        <td className="py-2 font-medium capitalize text-slate-800">
-                          {item.role_level.replace('_', ' ')}
-                        </td>
-                        <td className="py-2 text-center">
+                      <tr key={item.role_level} className="hover:bg-slate-50/70">
+                        <th scope="row" className="px-3 py-3 text-xs font-semibold text-slate-800">{label}</th>
+                        <td className="px-3 py-3 text-center">
                           <input
                             type="number"
+                            inputMode="decimal"
                             min="0"
+                            max="10000"
+                            step="0.5"
+                            aria-label={`Mandays ${label}`}
                             value={item.mandays}
-                            onChange={e => {
-                              const updated = [...staffing];
-                              updated[idx].mandays = Math.max(0, Number(e.target.value));
-                              setStaffing(updated);
-                            }}
-                            className="w-16 rounded border border-slate-200 px-2 py-1 text-center font-bold text-slate-900"
+                            onChange={event => updateMandays(item.role_level, Number(event.target.value))}
+                            className="h-10 w-20 rounded-lg border border-slate-200 bg-white px-2 text-center text-sm font-bold tabular-nums text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-100"
                           />
                         </td>
-                        <td className="py-2 text-right text-slate-500">
-                          {formatIDR(detail?.daily_cost_rate || 0)}
-                        </td>
-                        <td className="py-2 text-right font-bold text-slate-900">
-                          {formatIDR(detail?.subtotal || 0)}
-                        </td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right tabular-nums text-slate-600">{formatIDR(detail?.daily_cost_rate ?? 0)}</td>
+                        <td className="whitespace-nowrap px-3 py-3 text-right font-bold tabular-nums text-slate-900">{formatIDR(detail?.subtotal ?? 0)}</td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
-          </div>
+          </section>
 
           {/* Card 3: BoQ Komponen B, C, D, E */}
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
-            <h2 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-3">
-              3. BoQ Komponen B, C, D & E (Non-HR Direct Cost)
+          <section className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
+            <h2 className="border-b border-slate-100 pb-3 text-base font-bold leading-snug text-slate-900">
+              3. BoQ Komponen B, C, D & E
             </h2>
+            <p className="text-xs text-slate-500">Biaya langsung non-SDM dan komisi dalam perhitungan total proyek.</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">
                   Komponen B: Komisi Sales & Partner (%)
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
                   <input
                     type="number"
+                    aria-label="Persentase komisi Sales dan Partner"
                     min="0"
                     max="20"
+                    step="0.5"
                     value={compBCommissionPct}
-                    onChange={e => setCompBCommissionPct(Number(e.target.value))}
-                    className="w-24 rounded-lg border border-slate-200 p-2 font-bold text-slate-900"
+                    onChange={e => setCompBCommissionPct(Math.max(0, Math.min(20, Number(e.target.value) || 0)))}
+                    className="h-11 w-full min-w-0 rounded-lg border border-slate-200 px-3 text-sm font-bold text-slate-900 sm:w-28"
                   />
-                  <span className="text-slate-500 font-semibold">= {formatIDR(compBTotal)}</span>
+                  <span className="min-w-0 break-words rounded-lg bg-slate-50 px-3 py-2.5 text-xs font-semibold tabular-nums text-slate-700">
+                    Biaya: {formatIDR(compBTotal)}
+                  </span>
                 </div>
               </div>
 
@@ -502,15 +634,15 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
               </div>
             </div>
 
-            <div className="rounded-lg bg-slate-50 p-3 flex justify-between items-center text-xs border border-slate-200/80">
-              <span className="font-bold text-slate-600">Total Direct Internal Cost (A + B + C + D + E):</span>
-              <span className="font-black text-sm text-slate-900">{formatIDR(totalCost)}</span>
+            <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <span className="text-xs font-bold leading-relaxed text-slate-600">Total Direct Internal Cost (A + B + C + D + E)</span>
+              <span className="break-words text-lg font-extrabold tabular-nums text-slate-900">{formatIDR(totalCost)}</span>
             </div>
-          </div>
+          </section>
         </div>
 
         {/* Right Column: 3-Range Output & Commercial Summary */}
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           {/* 3 Price Ranges Selector */}
           <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-4">
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-400">
@@ -690,7 +822,8 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
             {/* Submit to Quotation & Approval Button */}
             <button
               onClick={handleCreateQuotation}
-              className="w-full flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-600/25 hover:bg-blue-700 transition-all"
+              disabled={writerHasUnconfiguredRate}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-blue-600 px-3 py-3 text-xs font-bold text-white shadow-md shadow-blue-600/25 transition-all hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <FileSpreadsheet className="h-4 w-4" />
               <span>Generate Quotation Resmi & Submit</span>
