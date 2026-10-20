@@ -15,11 +15,11 @@ export async function GET(req:Request){
  const id=new URL(req.url).searchParams.get('opportunity_id')||'';
  if(!/^[a-zA-Z0-9_-]{1,100}$/.test(id))return error('ID opportunity tidak valid');
  try{
-  const raw=await db.prepare('SELECT * FROM opportunities WHERE tenant_id=? AND id=?').bind(TENANT,id).first<DBDeal>();
+  const raw=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT,id).first<DBDeal>();
   if(!raw)return error('Opportunity tidak ditemukan',404);
   if(!canReadDeal(role,email,raw.created_by))return error('Opportunity bukan milik akun Sales ini',403);
   if(raw.stage!=='closed_lost')return error('Report hanya dapat dibuat dari Closed Lost',409);
-  const account=await db.prepare('SELECT * FROM companies WHERE tenant_id=? AND id=?')
+  const account=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=? AND id=?')
    .bind(TENANT,raw.company_id).first<DBAccount>();
   if(!account)return error('Customer Account tidak ditemukan',404);
   const history=await db.prepare("SELECT created_at FROM india_sales_audit WHERE tenant_id=? AND entity_type='deal' AND entity_id=? AND action='STAGE' AND to_stage='closed_lost' ORDER BY created_at DESC LIMIT 1").bind(TENANT,id).first<DBStage>();
