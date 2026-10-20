@@ -212,7 +212,20 @@ export async function createOfficialPostPoDocxFromTemplate(
   if(!/\.docx$/i.test(template.name)||template.size>8*1024*1024){
     throw new Error('Unggah template Word .docx asli (maksimal 8 MB).');
   }
-  const zip=await JSZip.loadAsync(await template.arrayBuffer());
+  // Only the exact blank V.042026 source files are accepted. This prevents
+  // accidentally reusing another customer's prefilled NDA/PO identifiers,
+  // BSI-specific data, or tampered legal terms.
+  const templateBytes=await template.arrayBuffer();
+  const digested=await crypto.subtle.digest('SHA-256',templateBytes);
+  const sha256=Array.from(new Uint8Array(digested),b=>b.toString(16).padStart(2,'0')).join('');
+  const approvedHashes:Record<PostPoDocKind,string>={
+    registration:'abaf82e66e0cf854aa68397aa7ce299d5898fdaa137bd346d3a8663e84aa0e5c',
+    project:'d3b60f3debe5c2d952cd88a922fb6685f5dd2f5eedf53f5cdfe758e9cab056e3'
+  };
+  if(sha256!==approvedHashes[kind]){
+    throw new Error('Template berbeda dari dokumen kosong DefendIT360 V.042026 yang disetujui. Unduh dan gunakan template kosong asli, bukan dokumen pelanggan yang sudah diisi.');
+  }
+  const zip=await JSZip.loadAsync(templateBytes);
   const file=zip.file('word/document.xml');
   if(!file)throw new Error('Template Word tidak memiliki document.xml.');
   const xml=readDocXml(await file.async('string'));
