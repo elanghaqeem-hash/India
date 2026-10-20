@@ -1,6 +1,8 @@
 name: India ICOP quotation UI validation
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:
