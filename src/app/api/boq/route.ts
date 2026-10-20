@@ -5,7 +5,7 @@ export const dynamic='force-dynamic';
 type Row={id:string;tenant_id:string;customer_name:string;project_name:string;quotation_number:string;service_type:string;opportunity_id:string|null;version:number;status:string;vat_rate:number;payment_terms:string;line_items_json:string;cost_items_json:string;notes:string|null;created_by:string;updated_by:string;approved_by:string|null;created_at:string;updated_at:string};
 const respond=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 const problem=(message:string,status=400)=>respond({success:false,message},status);
-export function visible(row:Row,role:string){
+function visible(row:Row,role:string){
  const lines=JSON.parse(row.line_items_json),costs=JSON.parse(row.cost_items_json),totals=boqTotals(lines,costs,row.vat_rate);
  const {line_items_json,cost_items_json,...base}=row;
  return {...base,line_items:lines,subtotal:totals.subtotal,vat_amount:totals.vat_amount,grand_total:totals.grand_total,
