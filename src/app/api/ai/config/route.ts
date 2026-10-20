@@ -5,11 +5,11 @@ import { testAIProviderConnection } from '@/lib/ai-engine';
 export async function GET() {
   const configs = appStore.getAIConfigs();
   // Mask API keys for security
-  const safeConfigs = configs.map(c => ({
+  const safeConfigs = configs.map(({ apiKey, ...c }) => ({
     ...c,
-    apiKeyMasked: c.apiKey && c.apiKey.length > 8
-      ? `${c.apiKey.slice(0, 4)}••••••••${c.apiKey.slice(-4)}`
-      : c.apiKey ? '••••••••' : '',
+    apiKeyMasked: apiKey && apiKey.length > 8
+      ? `${apiKey.slice(0, 4)}••••••••${apiKey.slice(-4)}`
+      : apiKey ? '••••••••' : '',
   }));
   return NextResponse.json({ success: true, configs: safeConfigs });
 }

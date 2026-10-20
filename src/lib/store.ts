@@ -2,8 +2,6 @@
 // Seeded with realistic data from BRD v2.0 & DefendIT360 test scenarios.
 // Automatically persists state to disk (data/icop_database.json) when running in server environment.
 
-import fs from 'fs';
-import path from 'path';
 import {
   Company,
   Opportunity,
@@ -339,11 +337,22 @@ const INITIAL_TENDERS: Tender[] = [
 class StoreService {
   private static instance: StoreService;
   private state: AppStore;
-  private storageFilePath: string;
-
+  // Public preview only. No Node filesystem and no pretending writes are durable.
   private constructor() {
-    this.storageFilePath = path.join(process.cwd(), 'data', 'icop_database.json');
-    this.state = this.loadFromDisk();
+    this.state = {
+      companies: structuredClone(INITIAL_COMPANIES),
+      opportunities: structuredClone(INITIAL_OPPORTUNITIES),
+      pricingSessions: [],
+      proposals: structuredClone(INITIAL_PROPOSALS),
+      approvals: structuredClone(INITIAL_APPROVALS),
+      wallets: structuredClone(INITIAL_WALLETS),
+      tenders: structuredClone(INITIAL_TENDERS),
+      aiConfigs: DEFAULT_AI_CONFIGS.map(({ apiKey, ...config }) => ({
+        ...config,
+        apiKey: config.provider === 'local' ? 'INTERNAL_BUILTIN' : '',
+        status: config.provider === 'local' ? 'active' : 'unconfigured',
+      })),
+    };
   }
 
   public static getInstance(): StoreService {
@@ -353,50 +362,9 @@ class StoreService {
     return StoreService.instance;
   }
 
-  private loadFromDisk(): AppStore {
-    try {
-      if (typeof window === 'undefined' && fs.existsSync(this.storageFilePath)) {
-        const raw = fs.readFileSync(this.storageFilePath, 'utf8');
-        const parsed = JSON.parse(raw);
-        return {
-          companies: parsed.companies || INITIAL_COMPANIES,
-          opportunities: parsed.opportunities || INITIAL_OPPORTUNITIES,
-          pricingSessions: parsed.pricingSessions || [],
-          proposals: parsed.proposals || INITIAL_PROPOSALS,
-          approvals: parsed.approvals || INITIAL_APPROVALS,
-          wallets: parsed.wallets || INITIAL_WALLETS,
-          tenders: parsed.tenders || INITIAL_TENDERS,
-          aiConfigs: parsed.aiConfigs || DEFAULT_AI_CONFIGS,
-        };
-      }
-    } catch (e) {
-      console.warn('[Store] Could not load from disk, using initial seeds:', e);
-    }
-
-    return {
-      companies: INITIAL_COMPANIES,
-      opportunities: INITIAL_OPPORTUNITIES,
-      pricingSessions: [],
-      proposals: INITIAL_PROPOSALS,
-      approvals: INITIAL_APPROVALS,
-      wallets: INITIAL_WALLETS,
-      tenders: INITIAL_TENDERS,
-      aiConfigs: DEFAULT_AI_CONFIGS,
-    };
-  }
-
   private saveToDisk(): void {
-    if (typeof window === 'undefined') {
-      try {
-        const dir = path.dirname(this.storageFilePath);
-        if (!fs.existsSync(dir)) {
-          fs.mkdirSync(dir, { recursive: true });
-        }
-        fs.writeFileSync(this.storageFilePath, JSON.stringify(this.state, null, 2), 'utf8');
-      } catch (e) {
-        console.warn('[Store] Could not save to disk:', e);
-      }
-    }
+    // Deliberately non-persistent in public preview.
+    // Production must use a durable authenticated database.
   }
 
   public getState(): AppStore {

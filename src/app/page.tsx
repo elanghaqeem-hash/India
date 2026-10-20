@@ -159,7 +159,7 @@ Berikan penilaian kesehatan pipeline, deal yang paling berisiko / butuh akselera
             <h1 className="text-2xl font-black tracking-tight text-slate-900">Deal 360 Workspace</h1>
             <span className="rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-bold text-emerald-800 border border-emerald-200 flex items-center gap-1">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-pulse" />
-              Live Commercial Engine & Database
+              PRATINJAU / DEMO — DATA CONTOH
             </span>
           </div>
           <p className="text-xs text-slate-500 mt-1">
