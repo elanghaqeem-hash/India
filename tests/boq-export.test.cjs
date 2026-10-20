@@ -88,7 +88,7 @@ test('internal format produces seven sheets, linked aggregate HPP only if opport
   const unrelated = { ...pricing, opportunity_id: 'other-opportunity' };
   const rejected = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard', unrelated));
   assert.ok(!rejected.get('xl/worksheets/sheet2.xml').includes('1111111'));
-  assert.ok(rejected.get('xl/worksheets/sheet2.xml').includes('BELUM ADA HPP'));
+  assert.ok(rejected.get('xl/worksheets/sheet2.xml').includes('LENGKAPI KOMPONEN A-E'));
 });
 
 test('onsite export preserves onsite travel worksheet and costs separated', () => {
@@ -105,4 +105,48 @@ test('user-provided text is XML-safe, and customer option quantities are editabl
   assert.ok(files.get('xl/worksheets/sheet3.xml').includes('Essential'));
   assert.ok(files.get('xl/worksheets/sheet3.xml').includes('Recommended'));
   assert.ok(files.get('xl/worksheets/sheet3.xml').includes('Comprehensive'));
+});
+
+
+test('payment installments use grand total including tax and sum to quoted value', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'customer'));
+  const s = files.get('xl/worksheets/sheet1.xml');
+  assert.match(s, /C16\*B13/);
+  assert.match(s, /C17\*B13/);
+  assert.match(s, /C18\*B13/);
+  assert.ok(!s.includes('C16*B11'), 'must not calculate payments on pre-tax subtotal');
+});
+
+test('internal P&L requires all five cost buckets before showing aggregate margin', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard'));
+  const boq = files.get('xl/worksheets/sheet2.xml');
+  const pnl = files.get('xl/worksheets/sheet1.xml');
+  assert.match(boq, /COUNT\(H[0-9]+:H[0-9]+\)=5/);
+  assert.match(boq, /LENGKAPI KOMPONEN A-E/);
+  assert.match(pnl, /B10=&quot;&quot;/);
+});
+
+test('12-week cashflow includes late settlement and a 100-percent allocation gate', () => {
+  const files = unzipStored(exportsObj.createProposalBoQ(proposal, 'onsite', pricing));
+  const allocations = files.get('xl/worksheets/sheet5.xml');
+  const cashflow = files.get('xl/worksheets/sheet6.xml');
+  assert.match(allocations, /W12/);
+  assert.match(allocations, /O8:O12/);
+  assert.match(cashflow, /W12/);
+  assert.match(cashflow, /\$B\$14/);
+  assert.match(cashflow, /SUM\(B9:M9\)/);
+});
+
+
+test('percentage formatting preserves readable VAT, margins, installment shares and allocations', () => {
+  const internal = unzipStored(exportsObj.createProposalBoQ(proposal, 'standard', pricing));
+  const customer = unzipStored(exportsObj.createProposalBoQ(proposal, 'customer'));
+  const styles = internal.get('xl/styles.xml');
+  assert.match(styles, /<cellXfs count="7">/);
+  assert.match(styles, /numFmtId="165"/);
+  assert.match(internal.get('xl/worksheets/sheet1.xml'), /r="B12" s="5"/);
+  assert.match(internal.get('xl/worksheets/sheet3.xml'), /r="C9" s="5"/);
+  assert.match(internal.get('xl/worksheets/sheet5.xml'), /r="C8" s="5"/);
+  assert.match(customer.get('xl/worksheets/sheet1.xml'), /r="C16" s="5"/);
+  assert.match(customer.get('xl/worksheets/sheet3.xml'), /r="C[0-9]+" s="5"/);
 });
