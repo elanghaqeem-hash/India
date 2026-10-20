@@ -112,7 +112,7 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
  if(!account)missing.push('company_id (pelanggan harus terdaftar)');
  if(account)missing.push(...validateAccount(account).map(x=>'pelanggan.'+x));
  const ordered=SALES_STAGES.slice(0,9).map(x=>x[0]);
- const end=stage==='closed_lost'?0:ordered.indexOf(stage);
+ const end=stage==='closed_lost'?0:stage==='closed_won'?ordered.length-1:ordered.indexOf(stage);
  for(let i=0;i<=end;i++)for(const field of REQUIRED_BY_STAGE[ordered[i]]||[]){
   if(!has(deal.fields[field]))missing.push(field);
  }
@@ -135,13 +135,14 @@ export function requiredForStage(stage:SalesStage,deal:SalesDeal,account?:SalesA
 export function stageTransition(from:SalesStage,to:SalesStage):string|null{
  if(from===to)return null;
  if(from==='closed_won')return 'Deal Closed Won terkunci. Koreksi memerlukan proses administrasi terpisah.';
- if(from==='closed_lost'&&to!=='prospecting')return 'Reopen harus kembali ke Prospecting dengan jejak audit.';
+ if(from==='closed_lost')return to==='prospecting'?null:'Reopen harus kembali ke Prospecting dengan jejak audit.';
  if(to==='closed_lost')return null;
  const open=SALES_STAGES.slice(0,9).map(x=>x[0]);
- if(to==='closed_won'&&from!=='pending_po')return 'Won hanya setelah tahap Pending PO dan validasi PO.';
+ if(to==='closed_won')return from==='pending_po'?null:'Won hanya setelah tahap Pending PO dan validasi PO.';
  const a=open.indexOf(from),b=open.indexOf(to);
  if(a<0||b<0)return 'Stage tidak dikenal';
  if(b>a+1)return 'Stage harus bertahap, tidak boleh melompati approval.';
+ if(b<a)return 'Perubahan mundur harus melalui revisi terkontrol; tidak boleh langsung melompati stage.';
  return null;
 }
 export function stageProbability(stage:SalesStage):number{
