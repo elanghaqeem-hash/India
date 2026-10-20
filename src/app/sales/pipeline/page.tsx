@@ -98,7 +98,9 @@ export default function SalesPipelinePage(){
  const updateAccount=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'account',id:detail.account.id,legal_name:accountName,fields:accountFields}),'Registrasi pelanggan diperbarui.',selectedId);
  const updateDeal=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'deal',id:selectedId,title:dealTitle,estimated_value:Number(amount),fields:dealFields}),'Detail opportunity diperbarui. Verifikasi PO lama dibatalkan jika ada.',selectedId);
  const transition=(stage:SalesStage)=>void run(()=>request('PATCH','/api/sales',{entity:'transition',id:selectedId,stage}),'Tahap berubah menjadi '+stageLabel(stage),selectedId);
- const verify=()=>void run(()=>request('POST','/api/sales',{entity:'verify_po',id:selectedId}),'PO diverifikasi terhadap BoQ approved.',selectedId);
+ const verify=()=>{if(!window.confirm('Konfirmasi Finance/Approver: Anda sudah memeriksa dokumen PO asli, nomor/tanggal, scope, nilai sebelum PPN, dan kesesuaian quotation final?'))return;
+  void run(()=>request('POST','/api/sales',{entity:'verify_po',id:selectedId,confirmed_documents:true}),'Pemeriksaan PO terhadap BoQ approved dicatat beserta identitas pemeriksa.',selectedId);
+ };
  const logActivity=()=>void run(()=>request('POST','/api/sales',{entity:'activity',opportunity_id:selectedId,kind:activityKind,subject:activitySubject,detail:activityDetail}),'Aktivitas Sales tercatat.',selectedId);
  const registerDoc=()=>void run(()=>request('POST','/api/sales',{entity:'document',opportunity_id:selectedId,document_kind:docKind,reference:docRef}),'Metadata dokumen dan checklist tersimpan.',selectedId);
  const pipeline=deals.filter(d=>d.stage!=='closed_won'&&d.stage!=='closed_lost');
