@@ -4,9 +4,10 @@ import React, { useMemo, useState } from 'react';
 import { ClipboardCheck, Download, FileLock2, AlertCircle, CheckCircle2, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { appStore } from '@/lib/store';
 import {
-  newPostPoPacket, validatePostPoPacket, downloadPostPoDocx, auditExistingSalesCustomer,
+  newPostPoPacket, validatePostPoPacket, validatePostPoDemoPacket, downloadPostPoDocx, auditExistingSalesCustomer,
   type PostPoPacket, type RegistrationData, type ProjectData, type Pic, type ServiceFamily
 } from '@/lib/post-po-documents';
+import { createDemoPostPoPacket, fillEmptyPostPoWithDummy, DUMMY_DATA_NOTICE } from '@/lib/post-po-dummy';
 
 const SERVICE_GUIDANCE: Record<ServiceFamily,string> = {
   'VAPT':'Cantumkan objek aplikasi/web/API/mobile/jaringan, jumlah target, metode black/grey/white box, testing window, retest, dan deliverables yang tercantum PO/SOW.',
@@ -58,14 +59,15 @@ function PicFields({title,value,onChange}:{title:string;value:Pic;onChange:(v:Pi
 const serviceTypes:ServiceFamily[]=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'];
 
 export default function PostPoPage(){
- const [data,setData]=useState<PostPoPacket>(newPostPoPacket);
+ const [data,setData]=useState<PostPoPacket>(()=>createDemoPostPoPacket('VAPT'));
+ const [exampleService,setExampleService]=useState<ServiceFamily>('VAPT');
  const [step,setStep]=useState<'sales'|'project'|'review'>('sales');
  const [message,setMessage]=useState('');
  const [selectedSalesCustomer,setSelectedSalesCustomer]=useState('');
  const availableSalesCustomers=appStore.getState().companies;
  const salesSource=availableSalesCustomers.find(x=>x.id===selectedSalesCustomer);
  const salesAudit=salesSource?auditExistingSalesCustomer(salesSource):null;
- const findings=useMemo(()=>validatePostPoPacket(data),[data]);
+ const findings=useMemo(()=>data.isDemo?validatePostPoDemoPacket(data):validatePostPoPacket(data),[data]);
  const regIssues=findings.filter(x=>x.category==='registration');
  const prjIssues=findings.filter(x=>x.category==='project');
  const ready=findings.length===0;
@@ -75,7 +77,7 @@ export default function PostPoPage(){
  const pic=(key:'primary'|'technical'|'billing'|'tax',value:Pic)=>reg(key,value);
  const exportWord=(kind:'registration'|'project')=>{
    if(!ready){setStep('review');setMessage('Dokumen final dikunci karena masih ada data wajib yang belum tervalidasi.');return;}
-   try {downloadPostPoDocx(data,kind);setMessage('Dokumen Word berhasil disiapkan di browser. Dokumen tetap perlu tanda tangan pihak berwenang.');}
+   try {downloadPostPoDocx(data,kind);setMessage(data.isDemo?'Dokumen DEMO berhasil disiapkan. Tidak berlaku sebagai dokumen klien atau dasar Kick Off.':'Dokumen Word berhasil disiapkan di browser. Dokumen tetap perlu tanda tangan pihak berwenang.');}
    catch(err){setMessage(err instanceof Error?err.message:'Pembuatan dokumen gagal');}
  };
  const commonInput=(label:string,key:keyof RegistrationData,help?:string,inputType='text')=>(
@@ -92,7 +94,7 @@ export default function PostPoPage(){
      </p>
     </div>
     <span className={'rounded-full px-3 py-1.5 text-xs font-bold '+(ready?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-900')}>
-      {ready?'Siap untuk dokumen unsigned':findings.length+' parameter perlu ditindaklanjuti'}
+      {ready?(data.isDemo?'Simulasi lengkap':'Siap untuk dokumen unsigned'):findings.length+' parameter perlu ditindaklanjuti'}
     </span>
    </div>
    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
@@ -289,7 +291,7 @@ export default function PostPoPage(){
     <Section title="Readiness Check Sebelum Kick Off" description="Setiap isian wajib ditandai jelas. Form final hanya bisa diunduh jika semua parameter terpenuhi.">
      <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-4">
       {ready?<CheckCircle2 className="h-8 w-8 text-emerald-600"/>:<AlertCircle className="h-8 w-8 text-amber-600"/>}
-      <div><div className="text-sm font-bold text-slate-900">{ready?'Lulus validasi struktur & konsistensi':'Belum memenuhi gate Post-PO'}</div>
+      <div><div className="text-sm font-bold text-slate-900">{ready?(data.isDemo?'Simulasi: struktur dan nominal konsisten':'Lulus validasi struktur & konsistensi'):'Belum memenuhi gate Post-PO'}</div>
        <p className="text-xs text-slate-500">Registrasi: {regIssues.length} temuan · Proyek: {prjIssues.length} temuan</p></div>
      </div>
      {findings.length>0&&<div className="mt-3 max-h-[440px] overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-3">
@@ -297,7 +299,7 @@ export default function PostPoPage(){
        {findings.map((f,i)=><li key={f.field+'-'+i} className="flex items-start gap-2"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0"/><span>{f.category==='registration'?'Registrasi':'Project'} — {f.message}</span></li>)}
       </ul>
      </div>}
-     {ready&&<p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">Validasi field dan angka lulus. Tanda tangan, bukti penerimaan PO, persetujuan legal, dan verifikasi sumber asli tetap memerlukan kontrol manual/produksi.</p>}
+     {ready&&<p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs text-emerald-900">{data.isDemo?'Data contoh lengkap untuk simulasi dokumen. PO, NPWP/KTP dan approval tidak benar-benar diverifikasi. Ini bukan kesiapan Kick Off.':'Validasi field dan angka lulus. Tanda tangan, bukti penerimaan PO, persetujuan legal, dan verifikasi sumber asli tetap memerlukan kontrol manual/produksi.'}</p>}
     </Section>
     <Section title="Kontrol Operasional" description="Urutan tanggung jawab sesudah PO dan sebelum Kick Off.">
      <ol className="list-decimal space-y-2 pl-4 text-xs leading-relaxed text-slate-700">
@@ -314,14 +316,14 @@ export default function PostPoPage(){
      <div className="space-y-2">
       <button type="button" disabled={!ready} onClick={()=>exportWord('registration')}
        className="flex w-full items-center justify-center gap-2 rounded-lg bg-violet-700 px-3 py-3 text-xs font-bold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:bg-slate-300">
-       <Download className="h-4 w-4"/> Form Registrasi (.docx)
+       <Download className="h-4 w-4"/> {data.isDemo?'DEMO — ':''}Form Registrasi (.docx)
       </button>
       <button type="button" disabled={!ready} onClick={()=>exportWord('project')}
        className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-700 px-3 py-3 text-xs font-bold text-white hover:bg-blue-800 disabled:cursor-not-allowed disabled:bg-slate-300">
-       <Download className="h-4 w-4"/> Form Project (.docx)
+       <Download className="h-4 w-4"/> {data.isDemo?'DEMO — ':''}Form Project (.docx)
       </button>
      </div>
-     <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-slate-500"><FileLock2 className="mt-0.5 h-4 w-4 shrink-0"/> Tombol aktif setelah validasi lengkap; file unsigned harus diperiksa dan ditandatangani sebelum digunakan secara resmi.</p>
+     <p className="mt-3 flex items-start gap-2 text-[11px] leading-relaxed text-slate-500"><FileLock2 className="mt-0.5 h-4 w-4 shrink-0"/> Tombol aktif setelah pemeriksaan format. Dalam mode simulasi, semua dokumen berlabel DATA DUMMY dan tidak boleh digunakan sebagai dokumen resmi.</p>
     </Section>
     <Section title="Ringkasan Tahap" description="Pemeriksaan kesiapan sumber data Sales.">
      <div className="space-y-2 text-xs text-slate-700">
