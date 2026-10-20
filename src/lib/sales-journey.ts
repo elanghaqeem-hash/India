@@ -1,10 +1,11 @@
 import {requiredForStage, validateAccount, type SalesAccount,type SalesDeal} from './sales-workflow';
+import {needsTenderGate} from './sales-procurement';
 export type JourneyState='complete'|'pending'|'blocked'|'manual_review';
 export type JourneyGate={key:string;label:string;owner:string;state:JourneyState;missing:string[];description:string};
 export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
  lead_number?:string|null;boq_status?:string|null;boq_linked?:boolean;
  quotation_record?:boolean;submission_proof?:boolean;po_check?:boolean;po_original?:boolean;
- legal_approved?:boolean;
+ legal_approved?:boolean;procurement_gaps?:string[];
 }):JourneyGate[]{
  const accountGaps=validateAccount(a);
  const phase=(step:'qualified'|'discovery'|'solution_design'|'commercial_review'|'quotation_sent'|'negotiation'|'pending_po'|'closed_won')=>
@@ -26,6 +27,12 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
    'Need, budget, pengambil keputusan, procurement, dan target'),
   gate('scoping','Technical Scoping','Presales',phase('discovery').length?'blocked':'complete',phase('discovery'),
    'Scoping teknis, aset, deliverables, dan model delivery'),
+  gate('bid','Tender / RKS-KAK / Bid GO','Sales / Presales / Approver',
+   needsTenderGate(d.fields.procurement_process||'')?
+     (input.procurement_gaps?.length?'blocked':'complete'):'pending',
+   needsTenderGate(d.fields.procurement_process||'')?
+     (input.procurement_gaps||['Bid/No-Bid dan RKS/KAK belum dievaluasi']):[],
+   'Tender/RFQ/RFP harus lulus GO dan compliance review sebelum Quotation'),
   gate('commercial','BoQ & Commercial Approval','Finance / Approver',boqLinked?'complete':'blocked',
    boqLinked?[]:['BoQ approved harus cocok Opportunity ID, customer dan proyek'],
    'Referensi BoQ final, costing dan independen approval'),
