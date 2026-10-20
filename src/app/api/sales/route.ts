@@ -69,7 +69,7 @@ export async function GET(req:Request){
     db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all()
    ]);
    return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,
-    checklist:documentChecklist(d,account(acct)),role:auth.identity.role});
+    checklist:documentChecklist(d,account(acct)),role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
  }catch{return fail('Database Sales belum siap, periksa migrasi 0003 dan login.',503);}
