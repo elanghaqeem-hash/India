@@ -246,7 +246,7 @@ function projectBody(data:PostPoPacket):string {
   row('Pembuat / Maker',r.maker)+row('Pemeriksa / Reviewer',r.reviewer)+row('Pelaksana / Executor',r.executor));
  return s+para('Dokumen belum ditandatangani. Kick Off hanya setelah verifikasi dan otorisasi internal.');
 }
-function crc32(data:Uint8Array):number{let c=0xFFFFFFFF;for(const b of data){c^=b;for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xEDB88320:0);}return(c^0xFFFFFFFF)>>>0;}
+function crc32(data:Uint8Array):number{let c=0xFFFFFFFF;for(let j=0;j<data.length;j++){c^=data[j];for(let i=0;i<8;i++)c=(c>>>1)^((c&1)?0xEDB88320:0);}return(c^0xFFFFFFFF)>>>0;}
 function zip(entries:Array<[string,string]>):Uint8Array{
  const enc=new TextEncoder();const ls:Uint8Array[]=[],cs:Uint8Array[]=[];let offset=0;
  for(const [name,value] of entries){const n=enc.encode(name),d=enc.encode(value),crc=crc32(d);
