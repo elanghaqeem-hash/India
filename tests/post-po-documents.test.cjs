@@ -97,3 +97,79 @@ test('all service families preserve explicit SOW rather than choosing fictional 
   assert.match(xmlFromDocx(api.createPostPoDocx(packet,'project')),/Scope negotiated/);
  }
 });
+
+async function dummyFixtures(){
+ return import(pathToFileURL(join(__dirname,'../src/lib/post-po-dummy.ts')).href);
+}
+test('initial dummy VAPT pack fills all requested form fields and keeps proof checks false',async()=>{
+ const api=await load(),demo=await dummyFixtures();
+ const original=api.newPostPoPacket(),packet=demo.createDemoPostPoPacket(original,'VAPT');
+ assert.equal(original.registration.customerName,'');
+ assert.equal(packet.isDemo,true);
+ assert.match(packet.registration.customerName,/DUMMY|SIMULASI/);
+ assert.match(packet.registration.primary.email,/@example\.com$/);
+ assert.match(packet.project.poNumber,/DEMO/);
+ assert.equal(packet.registration.npwpAttachmentConfirmed,false);
+ assert.equal(packet.registration.ktpAttachmentConfirmed,false);
+ assert.equal(packet.project.poVerified,false);
+ assert.equal(packet.project.quotationReconciled,false);
+ assert.deepEqual(api.validatePostPoDemoPacket(packet),[]);
+ assert.equal(api.isReadyForKickoff(packet),false);
+ assert.ok(api.validatePostPoPacket(packet).some(x=>x.field==='poVerified'));
+});
+test('autofill respects pre-existing Sales and PO values and uses missing budget',async()=>{
+ const api=await load(),demo=await dummyFixtures(),packet=api.newPostPoPacket();
+ packet.registration.customerName='PT Existing Test';
+ packet.registration.primary.name='Original PIC';
+ packet.registration.primary.email='original@example.com';
+ packet.project.serviceFamily='SOC/MDR';
+ packet.project.poNumber='PO-MANUAL-77';
+ packet.project.projectFeeBeforeVat=2000000;
+ packet.project.milestones=[{label:'Uang Muka',amount:500000,trigger:'Saat PO'},{label:'Termin kedua',amount:0,trigger:''}];
+ const filled=demo.fillEmptyPostPoWithDummy(packet);
+ assert.equal(filled.registration.customerName,'PT Existing Test');
+ assert.equal(filled.registration.primary.name,'Original PIC');
+ assert.equal(filled.registration.primary.email,'original@example.com');
+ assert.equal(filled.project.poNumber,'PO-MANUAL-77');
+ assert.equal(filled.project.quotationAmountBeforeVat,2000000);
+ assert.equal(filled.project.milestones[0].amount,500000);
+ assert.equal(filled.project.milestones[1].amount,1500000);
+ assert.equal(filled.project.milestones[0].trigger,'Saat PO');
+ assert.match(filled.project.technicalSpecifications,/FortiSIEM/);
+ assert.equal(packet.registration.primary.mobile,'');
+ assert.equal(packet.project.milestones[1].amount,0);
+ assert.deepEqual(api.validatePostPoDemoPacket(filled),[]);
+});
+test('all DefendIT360 demo service scenarios generate unambiguous demo-labeled Word forms',async()=>{
+ const api=await load(),dummy=await dummyFixtures();
+ for(const service of ['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']){
+  const data=dummy.createDemoPostPoPacket(api.newPostPoPacket(),service);
+  assert.equal(data.project.serviceFamily,service);
+  assert.deepEqual(api.validatePostPoDemoPacket(data),[],service);
+  assert.equal(api.isReadyForKickoff(data),false);
+  for(const kind of ['registration','project']){
+   const xml=xmlFromDocx(api.createPostPoDocx(data,kind));
+   assert.match(xml,/DATA DUMMY/);
+   assert.match(xml,/DILARANG DIGUNAKAN/);
+   assert.match(xml,/SIMULASI/);
+   assert.match(xml,/DEMO-CUST-0001/);
+  }
+ }
+});
+test('demo cannot bypass real commercial inconsistencies or blank mandatory fields',async()=>{
+ const api=await load(),dummy=await dummyFixtures();
+ const data=dummy.createDemoPostPoPacket(api.newPostPoPacket());
+ data.project.projectFeeBeforeVat+=7000;
+ const issues=api.validatePostPoDemoPacket(data);
+ assert.ok(issues.some(x=>x.message.includes('tidak konsisten')));
+ assert.throws(()=>api.createPostPoDocx(data,'project'),/belum dapat diterbitkan/);
+ data.project.projectFeeBeforeVat-=7000;
+ data.project.projectPic.email='';
+ assert.ok(api.validatePostPoDemoPacket(data).some(x=>x.field==='projectPic.email'));
+});
+test('complete real data still exports without any dummy watermark',async()=>{
+ const api=await load(),data=fill(api);
+ const doc=xmlFromDocx(api.createPostPoDocx(data,'registration'));
+ assert.doesNotMatch(doc,/DATA DUMMY/);
+ assert.equal(api.isReadyForKickoff(data),true);
+});
