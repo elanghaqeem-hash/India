@@ -40,9 +40,9 @@ export async function extractScopingDocument(file: File): Promise<ScopingDocumen
       if (pdf.numPages > MAX_PDF_PAGES) throw new Error('PDF melebihi 50 halaman. Pisahkan dokumen sebelum diunggah.');
       pages = pdf.numPages;
       const parsed = await extractText(pdf, { mergePages: true });
-      text = typeof parsed.text === 'string' ? parsed.text : parsed.text.join('\n');
+      text = parsed.text;
     } finally {
-      await pdf.destroy();
+      await (pdf as unknown as { destroy?: () => Promise<void> }).destroy?.();
     }
   } else if (extension === 'docx') {
     format = 'DOCX';
