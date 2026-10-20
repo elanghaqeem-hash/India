@@ -26,7 +26,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar pendingApprovalsCount={pendingCount} />
-        <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto p-3 pb-20 sm:p-6 lg:p-8 lg:pb-8 print:max-w-none print:overflow-visible print:p-0">
+        <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto px-3 pb-28 pt-4 sm:p-6 lg:p-8 print:max-w-none print:overflow-visible print:p-0">
           {children}
         </main>
       </div>
