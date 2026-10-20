@@ -18,7 +18,7 @@
     "test:boq-domain": "node --test tests/boq-domain.test.cjs",
     "test:ai": "node --test tests/ai-config-security.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
-    "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs"
+    "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
