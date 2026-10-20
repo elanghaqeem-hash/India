@@ -2,8 +2,8 @@
 import React,{useEffect,useState} from 'react';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
-type Doc={id:string;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;cost_items?:{code:string;amount:number}[]};
-const blank=()=>({quotation_number:'',customer_name:'',project_name:'',service_type:'VAPT',vat_rate:0,payment_terms:'30-50-20',line_items:[{description:'',quantity:1,unit:'Paket',unit_price:0,service_type:'VAPT'}] as Item[]});
+type Doc={id:string;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;opportunity_id?:string|null;cost_items?:{code:string;amount:number}[]};
+const blank=()=>({opportunity_id:'',quotation_number:'',customer_name:'',project_name:'',service_type:'VAPT',vat_rate:0,payment_terms:'30-50-20',line_items:[{description:'',quantity:1,unit:'Paket',unit_price:0,service_type:'VAPT'}] as Item[]});
 export default function BoQPage(){
  const [list,setList]=useState<Doc[]>([]),[selected,setSelected]=useState<Doc|null>(null);
  const [form,setForm]=useState(blank()),[role,setRole]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false);
@@ -12,7 +12,12 @@ export default function BoQPage(){
  const isFinance=['finance','admin'].includes(role);
  const canEdit=['finance','admin','presales','sales'].includes(role)&&(!selected||selected.status==='draft');
  const load=async()=>{try{const r=await fetch('/api/boq',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message);setList(d.boqs||[]);setRole(d.role);}catch(e){setMsg(String(e));}};
- useEffect(()=>{void load();void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
+ useEffect(()=>{void load();const id=new URLSearchParams(window.location.search).get('opportunity_id');
+  if(id)fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store'}).then(r=>r.json()).then(j=>{
+   if(j.success){setForm(f=>({...f,opportunity_id:id,customer_name:j.account.legal_name,project_name:j.deal.title,
+    service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
+  }).catch(()=>{});
+  void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
  const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
  const change=(key:string,value:any)=>setForm(p=>({...p,[key]:value}));
  const line=(i:number,key:keyof Item,v:any)=>setForm(p=>({...p,line_items:p.line_items.map((x,j)=>i===j?{...x,[key]:v}:x)}));
@@ -48,6 +53,9 @@ export default function BoQPage(){
    className="block w-full rounded-lg border bg-white p-3 text-left text-xs"><b>{x.customer_name}</b><span className="mt-1 block">{x.quotation_number} v{x.version}</span><span className="text-slate-500">{x.status} · Rp {x.grand_total.toLocaleString('id-ID')}</span></button>)}
   </aside><section className="min-w-0 space-y-4 rounded-xl border bg-white p-4">
    <h2 className="font-bold">{selected?'Detail / Revisi BoQ':'Draft BoQ Baru'}</h2>
+   <label className="block text-xs font-semibold">Opportunity ID (wajib untuk workflow Sales)
+     <input value={form.opportunity_id||''} onChange={e=>change('opportunity_id',e.target.value)} disabled={!canEdit} className="mt-1 w-full rounded-lg border p-2 text-sm" placeholder="Pilih dari Sales Pipeline"/>
+   </label>
    <div className="grid gap-3 sm:grid-cols-2">{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']
     ] as const).map(([k,l])=><label key={k} className="text-xs">{l}<input disabled={!canEdit} value={form[k]} onChange={e=>change(k,e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}
