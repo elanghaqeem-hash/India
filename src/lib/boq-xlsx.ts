@@ -105,10 +105,10 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     f('SUMIF(C9:C' + (costBegin - 1) + ',"MD",D9:D' + (costBegin - 1) + ')'),
     null, null,
     f('SUM(G9:G' + (total - 1) + ')'),
-    f('IF(COUNT(H' + (costBegin + 1) + ':H' + (costBegin + 5) + ')>0,SUM(H' + (costBegin + 1) + ':H' + (costBegin + 5) + '),IF(COUNT(H9:H' + (costBegin - 1) + ')>0,SUM(H9:H' + (costBegin - 1) + '),""))'),
+    f('IF(COUNT(H' + (costBegin + 1) + ':H' + (costBegin + 5) + ')=5,SUM(H' + (costBegin + 1) + ':H' + (costBegin + 5) + '),"")'),
     f('IF(H' + total + '="","",G' + total + '-H' + total + ')'),
     f('IFERROR(I' + total + '/G' + total + ',"")'),
-    pricing ? 'HPP agregat terhubung' : 'BELUM ADA HPP TERVERIFIKASI']);
+    pricing ? 'HPP agregat terhubung; validasi Finance' : 'LENGKAPI KOMPONEN A-E, 0 bila tidak ada']);
   push(b, ['', 'PPN', null, null, null, null, f('G' + total + '*Parameter!C9')]);
   push(b, ['', 'TOTAL TERMASUK PPN', null, null, null, null, f('G' + total + '+G' + (total + 1))]);
   push(b, ['', 'VALIDASI: Harga/HPP/lingkup/otorisasi harus diperiksa sebelum dokumen digunakan.']);
@@ -128,13 +128,13 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ['Gross Profit', gross, 'Belum final sebelum approval'],
     ['Gross Profit %', f('IFERROR(B11/B9,"")'), 'Guardrail margin'],
     ['Mandays', f("'BoQ Internal'!D" + total), 'MD yang tercantum dalam proposal'],
-    ['Floor (HPP/0,8)', pricing ? f('IFERROR(B10/Parameter!C11,0)') : null],
-    ['Standard price', pricing ? f('B14*Parameter!C12') : null],
-    ['Premium price', pricing ? f('B15*Parameter!C13') : null],
+    ['Floor (HPP/0,8)', f('IF(B10="","",IFERROR(B10/Parameter!C11,""))')],
+    ['Standard price', f('IF(B14="","",B14*Parameter!C12)')],
+    ['Premium price', f('IF(B15="","",B15*Parameter!C13)')],
     ['PPN', f("'BoQ Internal'!G" + (total + 1))],
     ['Grand Total', f("'BoQ Internal'!G" + (total + 2))],
     [],
-    ['Status', pricing ? 'DRAFT - Periksa HPP dan approval' : 'DRAFT - HPP belum tersedia'],
+    ['Status', pricing ? 'DRAFT - Verifikasi HPP, alokasi dan approval' : 'DRAFT - Lengkapi seluruh komponen HPP A-E'],
   ];
   const tax = proposal.subtotal > 0 ? proposal.vat_amount / proposal.subtotal : 0;
   const terms = proposal.payment_terms === '50-50' ? [0.5, 0.5, 0] :
@@ -183,20 +183,21 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ];
   const allocation: Cell[][] = [
     ['DEFENDIT360 | JADWAL & ALOKASI BIAYA'], ['Isi alokasi biaya setiap komponen selama 8 minggu. Total harus 100% untuk HPP aktif.'],
-    [], [], [], [], ['Komponen', 'HPP', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'Total'],
+    [], [], [], [], ['Komponen', 'HPP', ...Array.from({ length: 12 }, (_, i) => 'W' + (i + 1)), 'Total'],
   ];
   for (let i = 0; i < costs.length; i++) {
     const row = 8 + i;
-    push(allocation, [costs[i][0], money(costs[i][1]), 0, 0, 0, 0, 0, 0, 0, 0, f('SUM(C' + row + ':J' + row + ')')]);
+    push(allocation, [costs[i][0], money(costs[i][1]), ...Array(12).fill(0), f('SUM(C' + row + ':N' + row + ')')]);
   }
-  push(allocation, ['Cek alokasi', pricing ? 'INPUT WAJIB' : 'HPP BELUM TERSEDIA']);
+  push(allocation, ['Cek alokasi', 'INPUT WAJIB: total alokasi harus 100% untuk tiap komponen berbiaya']);
+  push(allocation, ['Validasi', f('IF(COUNT(B8:B12)<5,"LENGKAPI HPP A-E",IF(SUMPRODUCT(--(B8:B12>0),--(O8:O12<>1))>0,"PERIKSA ALOKASI","SIAP DIHITUNG"))')]);
 
   const flow: Cell[][] = [
-    ['DEFENDIT360 | CASH FLOW PROJECT'], ['Estimasi 8 minggu. Kas bersih belum dapat digunakan bila jadwal HPP belum diisi.'],
-    [], [], [], [], ['Keterangan', 'W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7', 'W8', 'Total'],
+    ['DEFENDIT360 | CASH FLOW PROJECT'], ['Estimasi 12 minggu. Perlu input lengkap HPP A-E dan proporsi alokasi biaya.'],
+    [], [], [], [], ['Keterangan', ...Array.from({ length: 12 }, (_, i) => 'W' + (i + 1)), 'Total'],
     [], ['Cash-in bruto (excl PPN)'], ['PPh dipotong'], ['HPP mingguan'], ['Kas bersih'], ['Kas kumulatif'],
   ];
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 12; i++) {
     const c = col(i + 2);
     const a = col(i + 3);
     const week = i + 1;
@@ -204,11 +205,11 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
       + "'BoQ Internal'!G" + total + '*Parameter!C' + (14 + idx) + ',0)').join('+');
     flow[8][i + 1] = f(incoming);
     flow[9][i + 1] = f(c + '9*Parameter!C10');
-    flow[10][i + 1] = pricing ? f('SUMPRODUCT(\'Jadwal & Alokasi\'!$B$8:$B$12,\'Jadwal & Alokasi\'!' + a + '8:' + a + '12)') : null;
-    flow[11][i + 1] = pricing ? f(c + '9-' + c + '10-' + c + '11') : null;
-    flow[12][i + 1] = pricing ? f((i === 0 ? '0' : col(i + 1) + '13') + '+' + c + '12') : null;
+    flow[10][i + 1] = f('IF(\'Jadwal & Alokasi\'!$B$14<>"SIAP DIHITUNG","",SUMPRODUCT(\'Jadwal & Alokasi\'!$B$8:$B$12,\'Jadwal & Alokasi\'!' + a + '8:' + a + '12))');
+    flow[11][i + 1] = f('IF(' + c + '11="","",' + c + '9-' + c + '10-' + c + '11)');
+    flow[12][i + 1] = f('IF(' + c + '12="","",' + (i === 0 ? '0' : col(i + 1) + '13') + '+' + c + '12)');
   }
-  for (let r = 9; r <= 12; r++) flow[r - 1][9] = f('SUM(B' + r + ':I' + r + ')');
+  for (let r = 9; r <= 12; r++) flow[r - 1][13] = f('IF(COUNT(B' + r + ':M' + r + ')=0,"",SUM(B' + r + ':M' + r + '))');
 
   const assumptions: Cell[][] = [
     ['DEFENDIT360 | CATATAN & KONTROL'], [],
@@ -219,7 +220,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     ['Vendor SKU', 'FortiSIEM, ACT Pro, EDR/XDR wajib verifikasi SKU, partner, hak jual, harga dan termin.'],
     ['Security', 'BoQ Internal hanya boleh diakses role finance/presales setelah RBAC server diterapkan.'],
     ['Pajak', 'Terapkan PPN/PPh sesuai transaksi dan yurisdiksi; angka parameter tidak menjamin kepatuhan.'],
-    ['Cash Flow', 'Isi jadwal alokasi HPP agar proyeksi modal kerja benar.'],
+    ['Cash Flow', 'Proyeksi 12 minggu; isi proporsi alokasi biaya 100% untuk komponen HPP > 0 dan periksa termin.'],
     ['Status', 'DRAFT / REQUIRES REVIEW'],
   ];
   return [
@@ -291,10 +292,10 @@ function makeCustomer(proposal: Proposal): Sheet[] {
     ['PPN', f("'BoQ Quotation'!F" + (final + 1)), 'Sesuai nilai proposal'],
     ['Grand Total', f("'BoQ Quotation'!F" + (final + 2)), 'Tidak termasuk biaya di luar scope'],
     [],
-    ['TERMIN', 'Milestone', 'Portion', 'Amount (Rp)'],
-    ['T1', 'Setelah PO efektif', terms[0], f('C16*B11')],
-    ['T2', 'Initial delivery / report', terms[1], f('C17*B11')],
-    ['T3', 'Final report / BAST', terms[2], f('C18*B11')],
+    ['TERMIN (TERMASUK PPN)', 'Milestone', 'Portion', 'Amount (Rp)'],
+    ['T1', 'Setelah PO efektif', terms[0], f('C16*B13')],
+    ['T2', 'Initial delivery / report', terms[1], f('C17*B13')],
+    ['T3', 'Final report / BAST', terms[2], f('C18*B13')],
     ['Kontrol', 'Total termin', f('SUM(C16:C18)'), 'Harus 100%'],
     [],
     ['SYARAT', 'SKU/kuantitas berdasarkan proposal dan SOW final; ketersediaan vendor harus dikonfirmasi.'],
