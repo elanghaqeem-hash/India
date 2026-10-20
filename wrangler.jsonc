@@ -8,5 +8,18 @@
     "directory": ".open-next/assets",
     "binding": "ASSETS"
   },
-  "observability": { "enabled": true }
+  "observability": { "enabled": true },
+  "env": {
+    "staging": {
+      "name": "india-staging",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "india-staging-db",
+          "database_id": "8395dd84-1b7d-4eaf-9990-1d8e75a42cb5",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }

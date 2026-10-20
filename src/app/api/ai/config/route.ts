@@ -1,17 +1,17 @@
 import { NextResponse } from 'next/server';
 import { appStore } from '@/lib/store';
 import { testAIProviderConnection } from '@/lib/ai-engine';
+import type { AIProviderConfig } from '@/lib/types';
+
+// Never echo provider key material (including prefixes/suffixes) to clients.
+const redact = (items: AIProviderConfig[]) => items.map(({ apiKey, ...publicConfig }) => ({
+  ...publicConfig,
+  apiKeyMasked: apiKey ? '••••••••' : '',
+}));
 
 export async function GET() {
   const configs = appStore.getAIConfigs();
-  // Mask API keys for security
-  const safeConfigs = configs.map(({ apiKey, ...c }) => ({
-    ...c,
-    apiKeyMasked: apiKey && apiKey.length > 8
-      ? `${apiKey.slice(0, 4)}••••••••${apiKey.slice(-4)}`
-      : apiKey ? '••••••••' : '',
-  }));
-  return NextResponse.json({ success: true, configs: safeConfigs });
+  return NextResponse.json({ success: true, configs: redact(configs) });
 }
 
 export async function POST(req: Request) {
@@ -21,7 +21,7 @@ export async function POST(req: Request) {
 
     if (action === 'reorder' && Array.isArray(orderedIds)) {
       appStore.setAIPriorities(orderedIds);
-      return NextResponse.json({ success: true, configs: appStore.getAIConfigs() });
+      return NextResponse.json({ success: true, configs: redact(appStore.getAIConfigs()) });
     }
 
     if (action === 'test' && id) {
@@ -55,7 +55,7 @@ export async function POST(req: Request) {
       if (priority !== undefined) updateData.priority = priority;
 
       const updated = appStore.updateAIConfig(id, updateData);
-      return NextResponse.json({ success: true, config: updated });
+      return NextResponse.json({ success: true, config: updated ? redact([updated])[0] : null });
     }
 
     return NextResponse.json({ success: false, message: 'Aksi tidak valid' }, { status: 400 });
