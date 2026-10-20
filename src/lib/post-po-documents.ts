@@ -92,6 +92,7 @@ const present=(s: unknown)=>typeof s==='string' && s.trim().length>0;
 const phone=(s:string)=>/^\+?[0-9][0-9\s().-]{7,19}$/.test(s.trim());
 const email=(s:string)=>/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 const postal=(s:string)=>/^\d{5}$/.test(s.trim());
+const digits=(s:string)=>s.replace(/\D/g,'');
 function picErrors(value:Pic,prefix:string,category:ValidationFinding['category']):ValidationFinding[] {
   const issues:ValidationFinding[]=[];
   if(!present(value?.name)) issues.push({field:prefix+'.name',message:'Nama PIC '+prefix+' wajib',category});
@@ -117,9 +118,9 @@ export function validatePostPoPacket(data:PostPoPacket):ValidationFinding[] {
     req('billingProvince',r.billingProvince,'Provinsi alamat penagihan wajib','registration');
     if(!postal(r.billingPostalCode)) issues.push({field:'billingPostalCode',message:'Kode pos penagihan harus 5 angka',category:'registration'});
   }
-  req('npwp',r.npwp,'NPWP badan usaha wajib','registration');
+  if(![15,16].includes(digits(r.npwp).length)||/^0+$/.test(digits(r.npwp))) issues.push({field:'npwp',message:'NPWP harus 15/16 digit dan bukan nomor dummy',category:'registration'});
   if(!phone(r.companyPhone)) issues.push({field:'companyPhone',message:'Telepon badan usaha wajib/format belum valid',category:'registration'});
-  req('primaryKtpNumber',r.primaryKtpNumber,'Nomor KTP penanggung jawab utama wajib sesuai formulir','registration');
+  if(!/^\d{16}$/.test(digits(r.primaryKtpNumber))||/^0+$/.test(digits(r.primaryKtpNumber))) issues.push({field:'primaryKtpNumber',message:'Nomor KTP PIC utama harus 16 digit dan bukan nomor dummy',category:'registration'});
   // The original V.0426 document marks fax with *. Explicit N/A is acceptable only as reviewed exception.
   req('fax',r.fax,'Nomor fax atau keterangan N/A terkonfirmasi wajib','registration');
   for(const name of ['primary','technical','billing','tax'] as const) issues.push(...picErrors(r[name],name,'registration'));
