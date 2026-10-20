@@ -13,6 +13,9 @@ import {
   CheckCircle2,
   Sliders,
   Info,
+  UploadCloud,
+  FileText,
+  AlertCircle,
 } from 'lucide-react';
 import { calculateVaptMandays, calculateSocSizing } from '@/lib/scoping-calculator';
 import { VaptType, BoxMethod, ServiceType } from '@/lib/types';
@@ -84,18 +87,69 @@ export default function SmartScopingPage() {
   const [aiDocText, setAiDocText] = useState('');
   const [aiExtracting, setAiExtracting] = useState(false);
   const [aiExtractionResult, setAiExtractionResult] = useState<string | null>(null);
+  const [uploadingDocument, setUploadingDocument] = useState(false);
+  const [uploadedDocument, setUploadedDocument] = useState<{ name: string; format: string; chars: number; truncated: boolean } | null>(null);
+  const [uploadError, setUploadError] = useState('');
+  const [aiConsent, setAiConsent] = useState(false);
+  const [aiAnalysisSucceeded, setAiAnalysisSucceeded] = useState(false);
+
+
+  const handleDocumentUpload = async (file?: File) => {
+    if (!file) return;
+    setAiExtractionResult(null);
+    setAiAnalysisSucceeded(false);
+    setAiConsent(false);
+    setUploadError('');
+    setUploadedDocument(null);
+    setAiDocText('');
+    if (!/\\.(pdf|docx|txt)$/i.test(file.name)) {
+      setUploadError('Format tidak didukung. Pilih PDF, DOCX, atau TXT.');
+      return;
+    }
+    if (file.size === 0 || file.size > 8 * 1024 * 1024) {
+      setUploadError('File harus berisi data dan berukuran maksimal 8 MB.');
+      return;
+    }
+    setUploadingDocument(true);
+    try {
+      const form = new FormData();
+      form.append('file', file);
+      const res = await fetch('/api/scoping/upload', {
+        method: 'POST',
+        headers: { 'x-india-document-upload': '1' },
+        body: form,
+      });
+      // The public demo can read documents locally without sending the file to a backend.
+      // A 503 indicates D1/Access is not yet configured; other auth failures stay blocked.
+      const data = res.status === 503
+        ? await (async () => {
+            const { extractScopingDocument } = await import('@/lib/scoping-upload');
+            const result = await extractScopingDocument(file);
+            return { success: true, filename: file.name, ...result };
+          })()
+        : await res.json();
+      if (!data.success || (!res.ok && res.status !== 503)) throw new Error(data.message || 'File gagal diproses.');
+      setAiDocText(data.text);
+      setUploadedDocument({ name: data.filename, format: data.format, chars: data.text.length, truncated: !!data.truncated });
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Dokumen tidak dapat dibaca.');
+    } finally {
+      setUploadingDocument(false);
+    }
+  };
 
   const handleAiExtract = async () => {
-    if (!aiDocText.trim()) return;
+    if (!aiDocText.trim() || uploadingDocument || !aiConsent) return;
     setAiExtracting(true);
     setAiExtractionResult(null);
+    setAiAnalysisSucceeded(false);
     try {
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-india-ai-admin': '1' },
         body: JSON.stringify({
           task_type: 'scoping_analysis',
-          prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText}\n\nTentukan:
+          prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText.slice(0, 11000)}\n\nTentukan:
 1. Rekomendasi Service (VAPT Web, Mobile, API, Network, atau SOC MDR).
 2. Metodologi (Black Box / Grey Box / White Box).
 3. Estimasi kompleksitas, jumlah endpoint/host/servers.
@@ -106,6 +160,20 @@ export default function SmartScopingPage() {
       const data = await res.json();
       if (data.success) {
         setAiExtractionResult(data.content);
+        setAiAnalysisSucceeded(true);
+
+      } else {
+        setAiExtractionResult('Gagal menganalisis dokumen: ' + (data.message || 'Error'));
+      }
+    } catch (e: any) {
+      setAiExtractionResult('Koneksi AI gagal: ' + e.message);
+    } finally {
+      setAiExtracting(false);
+    }
+  };
+
+
+  const handleApplyAiScoping = () => {
         // Heuristic auto-adjust
         const lower = aiDocText.toLowerCase();
         if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
@@ -131,14 +199,28 @@ export default function SmartScopingPage() {
         if (lower.includes('bank') || lower.includes('ojk') || lower.includes('fintech') || lower.includes('keuangan')) {
           setIsFinancial(true);
         }
-      } else {
-        setAiExtractionResult('Gagal menganalisis dokumen: ' + (data.message || 'Error'));
+    // Only counts explicitly identified in source text are transferred to the form.
+    const numberFrom = (...patterns: RegExp[]) => {
+      for (const pattern of patterns) {
+        const match = aiDocText.match(pattern);
+        if (match) {
+          const count = Number(match[1]);
+          if (Number.isSafeInteger(count) && count > 0 && count <= 100000) return count;
+        }
       }
-    } catch (e: any) {
-      setAiExtractionResult('Koneksi AI gagal: ' + e.message);
-    } finally {
-      setAiExtracting(false);
-    }
+      return null;
+    };
+    const api = numberFrom(/(\\d+)\\s*api[ -]?endpoints?/i, /api[ -]?endpoints?\\s*[:=]?\\s*(\\d+)/i);
+    const hosts = numberFrom(/(\\d+)\\s*hosts?/i, /hosts?\\s*[:=]?\\s*(\\d+)/i);
+    const servers = numberFrom(/(\\d+)\\s*servers?/i, /servers?\\s*[:=]?\\s*(\\d+)/i);
+    const screens = numberFrom(/(\\d+)\\s*(?:layar|screens?)/i, /(?:layar|screens?)\\s*[:=]?\\s*(\\d+)/i);
+    const roles = numberFrom(/(\\d+)\\s*(?:user[ -]?roles?|hak akses)/i, /(?:user[ -]?roles?|hak akses)\\s*[:=]?\\s*(\\d+)/i);
+    if (api !== null) setApiEndpoints(api);
+    if (hosts !== null) setInfraHosts(hosts);
+    if (servers !== null) setNServers(servers);
+    if (screens !== null) setMobileScreens(screens);
+    if (roles !== null) setUserRoles(roles);
+    setShowAiModal(false);
   };
 
   return (
@@ -186,8 +268,42 @@ export default function SmartScopingPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Tempelkan cuplikan teks Kerangka Acuan Kerja (KAK), RKS, TOR, atau deskripsi scope tender dari klien. Multi-Source AI Engine (Gemini/OpenAI/Claude/Local) akan menganalisis parameter teknis dan otomatis mengisi formulir scoping.
+              Unggah file RKS, KAK, atau TOR untuk membaca teks, atau tempelkan isi dokumen secara manual. Periksa teks sebelum mengirimkannya ke AI yang dikonfigurasi di India.
             </p>
+
+            <div className="space-y-3 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/40 p-4">
+              <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
+                <UploadCloud className="h-5 w-5 text-indigo-600" />
+                Upload Dokumen RKS / KAK
+              </div>
+              <label className={`flex min-h-[64px] w-full cursor-pointer flex-col items-center justify-center gap-1 rounded-lg border border-indigo-200 bg-white px-3 py-3 text-center text-xs font-bold text-indigo-700 transition-colors hover:bg-indigo-50 ${uploadingDocument ? 'pointer-events-none opacity-60' : ''}`}>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.txt,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
+                  disabled={uploadingDocument || aiExtracting}
+                  onChange={e => { void handleDocumentUpload(e.target.files?.[0]); e.target.value = ''; }}
+                  className="sr-only"
+                  aria-label="Pilih dokumen RKS atau KAK dari perangkat"
+                />
+                <span>{uploadingDocument ? 'Membaca dokumen...' : 'Pilih file dari HP / komputer'}</span>
+                <span className="font-normal text-slate-500">PDF, DOCX, TXT • maksimal 8 MB</span>
+              </label>
+              {uploadedDocument && (
+                <div className="flex min-w-0 items-center gap-2 rounded-lg border border-emerald-200 bg-white p-3 text-xs" aria-live="polite">
+                  <FileText className="h-4 w-4 shrink-0 text-emerald-600" />
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-bold text-slate-800" title={uploadedDocument.name}>{uploadedDocument.name}</p>
+                    <p className="text-slate-500">{uploadedDocument.format} • {uploadedDocument.chars.toLocaleString('id-ID')} karakter terbaca</p>
+                    {uploadedDocument.truncated && <p className="mt-1 text-amber-700">Teks dipotong pada 60.000 karakter. Periksa kelengkapan isinya.</p>}
+                  </div>
+                  <button type="button" aria-label="Hapus dokumen yang dipilih" title="Hapus dokumen" className="rounded p-1 text-slate-500 hover:text-rose-600" onClick={() => { setUploadedDocument(null); setAiDocText(''); setAiExtractionResult(null); setAiAnalysisSucceeded(false); }}>
+                    &times;
+                  </button>
+                </div>
+              )}
+              {uploadError && <p role="alert" className="flex items-start gap-1.5 text-xs font-medium text-rose-700"><AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />{uploadError}</p>}
+              <p className="text-[11px] leading-relaxed text-slate-500">File hanya dibaca untuk mengekstrak teks, tidak disimpan sebagai lampiran. PDF hasil scan tanpa teks memerlukan OCR terlebih dahulu.</p>
+            </div>
 
             <div>
               <label className="text-xs font-bold text-slate-700 block mb-1">
@@ -195,14 +311,21 @@ export default function SmartScopingPage() {
               </label>
               <textarea
                 value={aiDocText}
-                onChange={e => setAiDocText(e.target.value)}
+                onChange={e => { setAiDocText(e.target.value); setAiExtractionResult(null); setAiAnalysisSucceeded(false); }}
                 placeholder="Contoh: Dibutuhkan uji penetrasi keamanan Web Application Core Banking dan Mobile Banking iOS & Android dengan metodologi Grey-Box sesuai POJK No. 11/POJK.03/2022, mencakup 30 API endpoint dan 25 halaman layar..."
                 rows={6}
                 className="w-full rounded-xl border border-slate-200 p-3 text-xs focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
               />
             </div>
 
-            <div className="flex justify-end gap-2">
+            {aiDocText.length > 11000 && (
+              <p className="text-[11px] text-amber-700">Analisis AI hanya menggunakan 11.000 karakter pertama. Ringkas atau edit teks untuk memastikan seluruh parameter penting tercakup.</p>
+            )}
+            <label className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-600">
+              <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300" checked={aiConsent} onChange={e => setAiConsent(e.target.checked)} />
+              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi India dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
+            </label>
+            <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
                 onClick={() => setShowAiModal(false)}
                 className="px-4 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50"
@@ -210,7 +333,7 @@ export default function SmartScopingPage() {
                 Batal
               </button>
               <button
-                disabled={aiExtracting || !aiDocText.trim()}
+                disabled={aiExtracting || uploadingDocument || !aiDocText.trim() || !aiConsent}
                 onClick={handleAiExtract}
                 className="px-5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-2 shadow-xs transition-colors"
               >
@@ -232,15 +355,16 @@ export default function SmartScopingPage() {
               <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-4 text-xs space-y-2 mt-4 animate-in fade-in">
                 <div className="flex items-center gap-2 font-bold text-indigo-950">
                   <CheckCircle2 className="h-4 w-4 text-indigo-600" />
-                  <span>Hasil Analisis AI & Rekomendasi Parameter:</span>
+                  <span>{aiAnalysisSucceeded ? "Hasil Analisis AI & Rekomendasi Parameter:" : "Analisis belum berhasil:"}</span>
                 </div>
                 <div className="prose prose-xs text-slate-800 whitespace-pre-wrap leading-relaxed text-[11px] bg-white p-3 rounded-lg border border-indigo-100 max-h-56 overflow-y-auto">
                   {aiExtractionResult}
                 </div>
                 <div className="flex justify-end pt-2">
                   <button
-                    onClick={() => setShowAiModal(false)}
-                    className="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
+                    disabled={!aiAnalysisSucceeded}
+                    onClick={handleApplyAiScoping}
+                    className="disabled:opacity-50 px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-xs"
                   >
                     Terapkan Nilai ke Formulir
                   </button>

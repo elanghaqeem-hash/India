@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:scoping-upload && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
@@ -17,7 +17,8 @@
     "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs",
     "test:boq-domain": "node --test tests/boq-domain.test.cjs",
     "test:ai": "node --test tests/ai-config-security.test.cjs",
-    "test:boq-workflow": "node --test tests/boq-workflow.test.cjs"
+    "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
+    "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -27,7 +28,8 @@
     "react-dom": "18.3.1",
     "tailwind-merge": "^2.6.0",
     "jose": "^6.1.0",
-    "jszip": "^3.10.1"
+    "jszip": "^3.10.1",
+    "unpdf": "1.8.1"
   },
   "devDependencies": {
     "@opennextjs/cloudflare": "1.20.12",
