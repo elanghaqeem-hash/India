@@ -1,11 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
-import { canReadDeal,canReadAccount,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
-import { salesJourney } from '@/lib/sales-journey';
-import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
-import {submissionMatches,type Submission} from '@/lib/sales-submission';
-import {validAwardForWon,type AwardDoc} from '@/lib/sales-award';
+import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -15,7 +11,7 @@ const allowed=(role:string,roles:string[])=>roles.includes(role);
 const ownOrigin=(req:Request)=>!req.headers.get('origin')||req.headers.get('origin')===new URL(req.url).origin;
 type AcctRow={id:string;legal_name:string;customer_number:string|null;data_json:string;created_at:string;created_by:string|null};
 type DealRow={id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_at:string;created_by:string|null};
-type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;version:number;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
+type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
 type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;po_reference:string;po_amount_before_vat:number;quotation_amount_before_vat:number;verified_by:string;verified_at:string};
 const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
@@ -29,7 +25,7 @@ async function audit(db:D1DB,entity:string,id:string,action:string,email:string,
  await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,from_stage,to_stage,actor_email,summary) VALUES (?,?,?,?,?,?,?,?,?)')
  .bind(crypto.randomUUID(),TENANT,entity,id,action,from,to,summary.slice(0,300)).run();
 }
-const servicePerms=['admin','sales','presales','finance','approver','legal'];
+const servicePerms=['admin','sales','presales','finance','approver'];
 const salesPerms=['admin','sales'];
 async function requireBoq(db:D1DB,d:SalesDeal,a:SalesAccount):Promise<{boq:BoQRow;subtotal:number;problem?:string}|{problem:string}>{
  const boqId=d.fields.boq_id;
@@ -51,7 +47,7 @@ export async function GET(req:Request){
  try{
   if(entity==='accounts'){
    const rows=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
-   return answer({success:true,accounts:rows.results.filter(x=>canReadAccount(auth.identity.role,auth.identity.email,x.created_by)).map(account),role:auth.identity.role});
+   return answer({success:true,accounts:rows.results.map(account),role:auth.identity.role});
   }
   if(entity==='deals'){
    const rows=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
@@ -66,37 +62,14 @@ export async function GET(req:Request){
   if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
-   const [boqs,po,history,activities,originLead,documents,submissions,awardDocs]=await Promise.all([
-    db.prepare('SELECT id,quotation_number,status,project_name,version FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
+   const [boqs,po,history,activities]=await Promise.all([
+    db.prepare('SELECT id,quotation_number,status,project_name FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
     db.prepare('SELECT * FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<PoRow>(),
     db.prepare('SELECT action,from_stage,to_stage,actor_email,summary,created_at FROM india_sales_audit WHERE tenant_id=? AND entity_id=? ORDER BY created_at DESC LIMIT 50').bind(TENANT,id).all(),
-    db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all(),
-    db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first<{lead_id:string;lead_number:string;source:string;campaign:string}>(),
-    db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>(),
-    db.prepare("SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 50").bind(TENANT,id).all<Submission>(),
-    db.prepare('SELECT id,opportunity_id,document_kind,document_number,archive_reference,original_sha256,created_by,finance_reviewed_by,legal_reviewed_by FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<AwardDoc>()
+    db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all()
    ]);
-   const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;opportunity_id?:string;version:number;quotation_number:string;status:string}|undefined;
-   const confirmedSubmission=chosen?submissions.results.find(x=>submissionMatches(x,{
-    id:chosen.id,opportunity_id:d.id,status:chosen.status,quotation_number:chosen.quotation_number,version:chosen.version
-   },d.id)):undefined;
-   const existingBid=await db.prepare('SELECT * FROM india_sales_bids WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<ProcurementBid>();
-   const tenderProcess=existingBid?.channel&&existingBid.channel!=='direct'?existingBid.channel:(d.fields.procurement_process||'');
-   const tenderRequired=needsTenderGate(tenderProcess)||existingBid?.bid_decision==='no_go';
-   let procurementGaps:string[]=existingBid?.bid_decision==='no_go'?['Bid/No-Bid NO-GO: quotation tidak boleh diterbitkan']: [];
-   if(needsTenderGate(tenderProcess)){
-    const requirements=await db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<RequirementEvidence>();
-    procurementGaps.push(...procurementGate(tenderProcess,existingBid,requirements.results));
-   }
-   const dualReviewedAward=awardDocs.results.some(x=>validAwardForWon(x,d.fields.po_number||''));
-   const journey=salesJourney(account(acct),d,{
-    lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
-    quotation_record:documents.results.some(x=>x.kind==='quotation'),
-    // A document reference/attestation is NOT equivalent to proof of submission or original PO.
-    submission_proof:!!confirmedSubmission,po_check:!!po,po_original:dualReviewedAward,legal_approved:dualReviewedAward,procurement_gaps:procurementGaps,procurement_required:tenderRequired
-   });
-   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,submissions:submissions.results,awardDocuments:awardDocs.results,journey,
-    checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
+   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,
+    checklist:documentChecklist(d,account(acct)),role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
  }catch{return fail('Database Sales belum siap, periksa migrasi 0003 dan login.',503);}
@@ -114,7 +87,7 @@ export async function POST(req:Request){
  try{
   if(kind==='account'){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh registrasi pelanggan',403);
-   const legal_name=String(p.legal_name||'').trim().replace(/\s+/g,' ');
+   const legal_name=String(p.legal_name||'').trim();
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
    const fields=cleanFields(p.fields||{},ACCOUNT_KEYS);
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
@@ -127,9 +100,7 @@ export async function POST(req:Request){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh mendaftarkan opportunity',403);
    const company_id=p.company_id,title=String(p.title||'').trim(),amount=Number(p.estimated_value);
    if(!safeID(company_id)||!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Pelanggan, nama proyek dan nilai peluang wajib valid');
-   const ownerAccount=await getAccount(db,company_id as string);
-   if(!ownerAccount)return fail('Customer account tidak ditemukan',404);
-   if(!canReadAccount(role,email,ownerAccount.created_by))return fail('Tidak memiliki akses ke Customer Account ini',403);
+   if(!await getAccount(db,company_id as string))return fail('Customer account tidak ditemukan',404);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
    await db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
@@ -164,7 +135,7 @@ export async function POST(req:Request){
    const number=d.fields.po_number||'',date=d.fields.po_date||'',reference=d.fields.po_reference||'',n=Number(d.fields.po_amount_before_vat);
    if(!number||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!reference||reference.length<8||!Number.isFinite(n)||n<=0)
      return fail('Nomor, tanggal, referensi bukti PO dan nilai PO harus lengkap',409);
-   if(Math.abs(n-check.subtotal)>0.01)return fail('Nilai PO berbeda dari BoQ approved. Lakukan revisi dan approval terlebih dahulu.',409);
+   if(Math.abs(n-check.subtotal)>1)return fail('Nilai PO berbeda dari BoQ approved. Lakukan revisi dan approval terlebih dahulu.',409);
    if(!d.fields.scope_reconciliation||d.fields.scope_reconciliation.length<15)return fail('Catatan konfirmasi scope dan termin minimal 15 karakter.',409);
    await db.prepare('INSERT INTO india_sales_po_checks(opportunity_id,tenant_id,boq_id,po_number,po_date,po_reference,po_amount_before_vat,quotation_amount_before_vat,verified_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(opportunity_id) DO UPDATE SET boq_id=excluded.boq_id,po_number=excluded.po_number,po_date=excluded.po_date,po_reference=excluded.po_reference,po_amount_before_vat=excluded.po_amount_before_vat,quotation_amount_before_vat=excluded.quotation_amount_before_vat,verified_by=excluded.verified_by,verified_at=CURRENT_TIMESTAMP')
     .bind(d.id,TENANT,check.boq.id,number,date,reference,n,check.subtotal,email).run();
@@ -189,7 +160,7 @@ export async function POST(req:Request){
    return answer({success:true,status,missing});
   }
   return fail('Aksi tidak dikenali');
- }catch(e){return /UNIQUE|constraint failed/i.test(String(e))?fail('Customer ID, nama legal atau nomor dokumen sudah terdaftar.',409):fail('Gagal menyimpan transaksi Sales. Periksa izin atau skema D1.',503);}
+ }catch{return fail('Gagal menyimpan transaksi Sales. Periksa izin, skema D1 atau duplikasi.',503);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -206,7 +177,7 @@ export async function PATCH(req:Request){
    const row=await getAccount(db,p.id as string);
    if(!row)return fail('Pelanggan tidak ditemukan',404);
    if(!canEditAccount(role,email,row.created_by))return fail('Hanya pembuat Customer Account atau Admin yang dapat memperbarui master data',403);
-   const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim().replace(/\s+/g,' ');
+   const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim();
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
    const result=await db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
@@ -251,34 +222,12 @@ export async function PATCH(req:Request){
    if(enteringOffer){
     const check=await requireBoq(db,d,account(a));
     if('problem' in check)return fail(String(check.problem),409);
-    const bid=await db.prepare('SELECT * FROM india_sales_bids WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,d.id).first<ProcurementBid>();
-    if(bid?.bid_decision==='no_go')return fail('Bid/No-Bid NO-GO: deal tidak boleh dilanjutkan ke quotation',409);
-    const tenderProcess=bid?.channel&&bid.channel!=='direct'?bid.channel:(d.fields.procurement_process||'');
-    if(needsTenderGate(tenderProcess)){
-     const reqs=await db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,d.id).all<RequirementEvidence>();
-     const tenderGaps=procurementGate(tenderProcess,bid,reqs.results);
-     if(tenderGaps.length)return answer({success:false,message:'Bid/No-Bid dan persyaratan RKS/KAK harus lolos sebelum quotation',missing:tenderGaps},409);
-    }
-   }
-   if(['negotiation','pending_po','closed_won'].includes(stage)){
-    const finalBoq=await db.prepare('SELECT id,opportunity_id,version,quotation_number,status FROM india_boq WHERE id=? AND tenant_id=?')
-     .bind(d.fields.boq_id||'',TENANT).first<{id:string;opportunity_id:string|null;version:number;quotation_number:string;status:string}>();
-    const proofs=await db.prepare('SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? AND status=?')
-     .bind(TENANT,d.id,'verified').all<Submission>();
-    if(!finalBoq||!proofs.results.some(x=>submissionMatches(x,finalBoq,d.id)))
-     return fail('Quotation yang disetujui harus memiliki bukti submission yang direview independen sebelum Negotiation, PO, atau Won.',409);
-   }
-   if(stage==='closed_won'){
-    const awardDocs=await db.prepare('SELECT id,opportunity_id,document_kind,document_number,archive_reference,original_sha256,created_by,finance_reviewed_by,legal_reviewed_by FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=?')
-     .bind(TENANT,d.id).all<AwardDoc>();
-    if(!awardDocs.results.some(x=>validAwardForWon(x,d.fields.po_number||'')))
-     return fail('Closed Won ditolak: bukti PO/SPK asli harus memiliki checksum, referensi arsip, dan review Finance serta Legal yang terpisah.',409);
    }
    if(stage==='closed_won'){
     const po=await db.prepare('SELECT * FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).first<PoRow>();
     if(!po||po.boq_id!==d.fields.boq_id||po.po_number!==d.fields.po_number||
        po.po_date!==d.fields.po_date||po.po_reference!==d.fields.po_reference||
-       Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>0.01)
+       Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>1)
       return fail('Verifikasi PO oleh Finance/Approver harus selesai dengan bukti yang sama.',409);
    }
    const changed=await db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=? AND stage=? AND data_json=?')
