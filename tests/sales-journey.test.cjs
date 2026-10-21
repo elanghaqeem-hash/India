@@ -40,7 +40,7 @@ test('server+frontend expose the same calculated journey and source Lead referen
  const api=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/route.ts'),'utf8');
  const ui=fs.readFileSync(path.join(__dirname,'../src/app/sales/pipeline/page.tsx'),'utf8');
  assert.match(api,/salesJourney\(account\(acct\),d/);
- assert.match(api,/documents:documents.results,journey/);
+ assert.match(api,/documents:documents.results,submissions:submissions.results,awardDocuments:awardDocs.results,journey/);
  assert.match(ui,/Journey 360/);
  assert.match(ui,/detail\.originLead/);
 });
