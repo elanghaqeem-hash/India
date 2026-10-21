@@ -138,21 +138,30 @@ export async function POST(req:Request){
     estimated_value_idr:row.estimated_value_idr,expected_closing_date:row.expected_closing_date,qualification:q
    };
    const fields=toOpportunityFields(leadInput,row.id);
+   const inputCustomer=p.customer_fields;
+   if(inputCustomer!==undefined&&(!inputCustomer||typeof inputCustomer!=='object'||Array.isArray(inputCustomer)))
+    return fail('Profil Customer tidak valid',422);
+   const profile=cleanFields(inputCustomer||{},ACCOUNT_KEYS);
+   // Identity from the qualified Lead overrides any browser-submitted values.
+   const customerData={...profile,...contact};
+   const nextVersion=row.version+1;
    const statements=[db.prepare("UPDATE india_marketing_leads SET status='converted',version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status='qualified' AND version=? AND assigned_sales_email=?")
      .bind(email,row.id,TENANT,row.version,row.assigned_sales_email)];
-   if(!existing)statements.push(db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
-    .bind(customerId,TENANT,row.account_name,'IND-'+crypto.randomUUID().slice(0,12).toUpperCase(),JSON.stringify(cleanFields(contact,ACCOUNT_KEYS)),row.assigned_sales_email));
+   if(!existing)statements.push(
+    db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) SELECT ?,tenant_id,account_name,?,?,assigned_sales_email FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(customerId,'IND-'+customerId.slice(0,12).toUpperCase(),JSON.stringify(customerData),TENANT,row.id,nextVersion)
+   );
    statements.push(
-    db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
-     .bind(opportunityId,TENANT,customerId,title,'prospecting',row.estimated_value_idr,JSON.stringify(fields),row.assigned_sales_email),
-    db.prepare('INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)')
-     .bind(TENANT,row.id,customerId,opportunityId,email),
-    db.prepare("INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status,detail) VALUES (?,?,?,?,?,?,?,?)")
-     .bind(crypto.randomUUID(),TENANT,row.id,'CONVERT',email,'qualified','converted','Customer '+customerId+' / Opportunity '+opportunityId),
-    db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
-     .bind(crypto.randomUUID(),TENANT,'lead',row.id,'CONVERT',email,'Opportunity '+opportunityId),
-    db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage,summary) VALUES (?,?,?,?,?,?,?,?)')
-     .bind(crypto.randomUUID(),TENANT,'deal',opportunityId,'CREATE',row.assigned_sales_email,null,'prospecting','Lead '+row.lead_number)
+    db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) SELECT ?,tenant_id,? ,?,'prospecting',?,?,assigned_sales_email FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(opportunityId,customerId,title,row.estimated_value_idr,JSON.stringify(fields),TENANT,row.id,nextVersion),
+    db.prepare("INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) SELECT tenant_id,id,?,?,? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(customerId,opportunityId,email,TENANT,row.id,nextVersion),
+    db.prepare("INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status,detail) SELECT ?,tenant_id,id,'CONVERT',?,'qualified','converted',? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(crypto.randomUUID(),email,'Customer '+customerId+' / Opportunity '+opportunityId,TENANT,row.id,nextVersion),
+    db.prepare("INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) SELECT ?,tenant_id,'lead',id,'CONVERT',?,? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(crypto.randomUUID(),email,'Opportunity '+opportunityId,TENANT,row.id,nextVersion),
+    db.prepare("INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage,summary) SELECT ?,tenant_id,'deal',?,'CREATE',?,NULL,'prospecting',? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='converted' AND version=?")
+     .bind(crypto.randomUUID(),opportunityId,row.assigned_sales_email,'Lead '+row.lead_number,TENANT,row.id,nextVersion)
    );
    const results=await db.batch(statements) as Array<{success?:boolean;meta?:{changes?:number}}>;
    if(results.length!==statements.length||results.some(r=>r.success===false||r.meta?.changes!==1))return fail('Transaksi konversi berubah secara bersamaan; periksa Lead',409);
