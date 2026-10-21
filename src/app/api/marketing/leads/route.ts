@@ -10,6 +10,11 @@ type LeadRow={id:string;tenant_id:string;lead_number:string;account_name:string;
  estimated_value_idr:number;expected_closing_date:string;qualification_json:string;status:LeadStatus;
  created_by:string;updated_by:string;created_at:string;updated_at:string};
 const view=(r:LeadRow)=>({...r,qualification:JSON.parse(r.qualification_json||'{}'),qualification_json:undefined});
+const sameRegistration=(r:LeadRow,v:LeadInput)=>
+ r.account_name===v.account_name&&r.source===v.source&&r.campaign===v.campaign&&
+ r.service_family===v.service_family&&r.contact_name===v.contact_name&&
+ r.contact_email===v.contact_email&&r.assigned_sales_email===v.assigned_sales_email&&
+ r.estimated_value_idr===v.estimated_value_idr&&r.expected_closing_date===v.expected_closing_date;
 const owner=(role:string,email:string,row:LeadRow)=>role==='admin'||role==='marketing'||(role==='sales'&&row.assigned_sales_email===email);
 const origin=(req:Request)=>!req.headers.get('origin')||req.headers.get('origin')===new URL(req.url).origin;
 const readLead=(db:D1DB,id:string)=>db.prepare('SELECT * FROM india_marketing_leads WHERE id=? AND tenant_id=?')
@@ -55,9 +60,12 @@ export async function POST(req:Request){
    const requestKey=trim(p.request_key,64);
    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
     return fail('Request ID lead tidak valid. Muat ulang formulir untuk membuat ID baru.',422);
-   const repeated=await db.prepare('SELECT id,lead_number,status FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
-    .bind(TENANT,email,requestKey).first<{id:string;lead_number:string;status:string}>();
-   if(repeated)return respond({success:true,...repeated,already_created:true});
+   const repeated=await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
+    .bind(TENANT,email,requestKey).first<LeadRow>();
+   if(repeated){
+    if(!sameRegistration(repeated,v))return fail('Request ID sudah digunakan untuk data Lead berbeda. Buat permintaan baru.',409);
+    return respond({success:true,id:repeated.id,lead_number:repeated.lead_number,status:repeated.status,already_created:true});
+   }
    if(role==='sales'&&v.assigned_sales_email!==email)return fail('Sales hanya dapat mendaftarkan lead sendiri',403);
    const assignee=await loadSalesOwner(db,v.assigned_sales_email);
    if(!assignee||assignee.active!==1||!['sales','admin'].includes(assignee.role))return fail('Sales owner harus akun aktif dengan role Sales/Admin',422);
@@ -142,9 +150,12 @@ export async function POST(req:Request){
   // request key guarantees a single registration; return its stable identifier.
   if(p.entity==='lead'&&typeof p.request_key==='string'){
    try{
-    const same=await db.prepare('SELECT id,lead_number,status FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
-     .bind(TENANT,email,p.request_key).first<{id:string;lead_number:string;status:string}>();
-    if(same)return respond({success:true,...same,already_created:true});
+    const same=await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
+     .bind(TENANT,email,p.request_key).first<LeadRow>();
+    if(same){
+     if(!sameRegistration(same,validateLead(p)))return fail('Request ID sudah digunakan untuk data Lead berbeda. Buat permintaan baru.',409);
+     return respond({success:true,id:same.id,lead_number:same.lead_number,status:same.status,already_created:true});
+    }
    }catch{/* Original error below. */}
   }
   if(p.entity==='convert'&&safeID(p.id)){
