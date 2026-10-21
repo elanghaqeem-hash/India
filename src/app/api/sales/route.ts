@@ -114,7 +114,7 @@ export async function POST(req:Request){
  try{
   if(kind==='account'){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh registrasi pelanggan',403);
-   const legal_name=String(p.legal_name||'').trim();
+   const legal_name=String(p.legal_name||'').trim().replace(/\s+/g,' ');
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
    const fields=cleanFields(p.fields||{},ACCOUNT_KEYS);
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
@@ -187,7 +187,7 @@ export async function POST(req:Request){
    return answer({success:true,status,missing});
   }
   return fail('Aksi tidak dikenali');
- }catch{return fail('Gagal menyimpan transaksi Sales. Periksa izin, skema D1 atau duplikasi.',503);}
+ }catch(e){return /UNIQUE|constraint failed/i.test(String(e))?fail('Customer ID, nama legal atau nomor dokumen sudah terdaftar.',409):fail('Gagal menyimpan transaksi Sales. Periksa izin atau skema D1.',503);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -204,7 +204,7 @@ export async function PATCH(req:Request){
    const row=await getAccount(db,p.id as string);
    if(!row)return fail('Pelanggan tidak ditemukan',404);
    if(!canEditAccount(role,email,row.created_by))return fail('Hanya pembuat Customer Account atau Admin yang dapat memperbarui master data',403);
-   const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim();
+   const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim().replace(/\s+/g,' ');
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
    const result=await db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
