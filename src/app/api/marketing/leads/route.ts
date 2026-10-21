@@ -57,21 +57,23 @@ export async function POST(req:Request){
  try{
   if(p.entity==='lead'){
    const v=validateLead(p);
-   // The campaign name is sourced from the active D1 master, never trusted from browser text.
-   if(v.campaign_id){
-    const selected=await db.prepare('SELECT name,status FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
-     .bind(v.campaign_id,TENANT).first<{name:string;status:string}>();
-    if(!selected||selected.status!=='active')return fail('Campaign tidak ada atau tidak aktif. Pilih campaign aktif.',409);
-    v.campaign=selected.name;
-   }
    const requestKey=trim(p.request_key,64);
    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
     return fail('Request ID lead tidak valid. Muat ulang formulir untuk membuat ID baru.',422);
    const repeated=await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
     .bind(TENANT,email,requestKey).first<LeadRow>();
    if(repeated){
+    // A retry must work even if its source campaign was paused after the first commit.
+    if(repeated.campaign_id&&repeated.campaign_id===v.campaign_id)v.campaign=repeated.campaign;
     if(!sameRegistration(repeated,v))return fail('Request ID sudah digunakan untuk data Lead berbeda. Buat permintaan baru.',409);
     return respond({success:true,id:repeated.id,lead_number:repeated.lead_number,status:repeated.status,already_created:true});
+   }
+   // New Leads, unlike retries, must reference an active campaign.
+   if(v.campaign_id){
+    const selected=await db.prepare('SELECT name,status FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
+     .bind(v.campaign_id,TENANT).first<{name:string;status:string}>();
+    if(!selected||selected.status!=='active')return fail('Campaign tidak ada atau tidak aktif. Pilih campaign aktif.',409);
+    v.campaign=selected.name;
    }
    if(role==='sales'&&v.assigned_sales_email!==email)return fail('Sales hanya dapat mendaftarkan lead sendiri',403);
    const assignee=await loadSalesOwner(db,v.assigned_sales_email);
