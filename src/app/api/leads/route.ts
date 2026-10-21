@@ -57,9 +57,8 @@ export async function PATCH(req:Request){
  }
  const event=crypto.randomUUID();
  try{
- const result=await db.prepare('UPDATE india_marketing_leads SET status=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND version=? AND status=?').bind(next,id,tenant,version,current.status).run();
- if(!result.success)return out({success:false,message:'Pembaruan gagal'},500);
- await db.prepare('INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status) VALUES (?,?,?,?,?,?,?)').bind(event,tenant,id,'STAGE',email,current.status,next).run();
+ const results=await db.batch([db.prepare('UPDATE india_marketing_leads SET status=?,version=version+1,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND version=? AND status=?').bind(next,id,tenant,version,current.status),db.prepare('INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status) SELECT ?,?,?,?,?,?,? WHERE EXISTS (SELECT 1 FROM india_marketing_leads WHERE id=? AND tenant_id=? AND version=?)').bind(event,tenant,id,'STAGE',email,current.status,next,id,tenant,version+1)]);
+ if(!results.length)return out({success:false,message:'Pembaruan gagal'},500);
  return out({success:true,id,status:next,version:version+1});
  }catch{return out({success:false,message:'Transaksi tidak selesai; periksa audit'},500);}
 }
