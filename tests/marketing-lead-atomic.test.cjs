@@ -145,3 +145,23 @@ test('P0: new Marketing UI, middleware, backend audit and Sales pipeline are all
  assert.match(source('src/components/layout/Sidebar.tsx'),/\/marketing\/leads/);
  assert.match(source('src/components/layout/MobileNav.tsx'),/\/marketing\/leads/);
 });
+
+test('P0: qualified Lead requires valid PIC phone and target closing date',()=>{
+ const complete={budget_status:'Tersedia',decision_authority:'Direktur TI',
+  requirement_summary:'Uji keamanan',target_date:'2026-11-30',
+  qualification_notes:'Disepakati',contact_phone:'081200000010'};
+ assert.deepEqual(role.validateQualification(complete),[]);
+ assert.ok(role.validateQualification({...complete,contact_phone:''}).includes('contact_phone'));
+ assert.ok(role.validateQualification({...complete,target_date:'tomorrow'}).includes('target_date (format YYYY-MM-DD)'));
+ assert.ok(role.validateQualification({...complete,contact_phone:'123'}).includes('contact_phone (format)'));
+});
+test('P0: re-open qualification requires business justification; UI has gated path',()=>{
+ assert.equal(role.canTransition('qualified','contacted'),true);
+ assert.equal(role.canTransition('converted','contacted'),false);
+ assert.match(leadRoute,/current\.status==='qualified'&&entries\.length>0/);
+ assert.match(leadRoute,/reopenReason\.length<10/);
+ assert.match(leadRoute,/REOPEN/);
+ const page=source('src/app/marketing/leads/page.tsx');
+ assert.match(page,/Buka ulang kualifikasi/);
+ assert.match(page,/reason=response\.trim\(\)/);
+});
