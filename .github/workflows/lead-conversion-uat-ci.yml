@@ -24,7 +24,11 @@ jobs:
         run: node --test tests/marketing-lead-atomic.test.cjs tests/marketing-lead-http-simulation.test.cjs
       - name: Dedicated D1 UAT preflight safety guards (no network or secrets)
         run: node --test tests/uat-preflight-readonly.test.cjs
-      - name: Real Access UAT harness safety and syntax (NO remote access)\n        run: |\n          node --check scripts/india-cloudflare-access-real-uat.mjs\n          node --test tests/india-cloudflare-access-real-uat-guard.test.cjs\n      - name: D1 authenticated UI header regression
+      - name: Real Access UAT harness safety and syntax (NO remote access)
+        run: |
+          node --check scripts/india-cloudflare-access-real-uat.mjs
+          node --test tests/india-cloudflare-access-real-uat-guard.test.cjs
+      - name: D1 authenticated UI header regression
         run: node --test tests/india-d1-header-rbac.test.cjs
       - name: Next.js 16 runtime compatibility
         run: npm run test:runtime-compat
