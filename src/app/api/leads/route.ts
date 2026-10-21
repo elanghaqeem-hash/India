@@ -28,7 +28,10 @@ export async function POST(req:Request){
  const {db,email,role}=auth.identity;
  if(!canCreateLead(role))return out({success:false,message:'Role tidak dapat membuat lead'},403);
  if(new URL(req.url).origin!==req.headers.get('origin'))return out({success:false,message:'Origin tidak sesuai'},403);
- let body:Record<string,unknown>;try{body=await req.json();}catch{return out({success:false,message:'JSON tidak valid'},400);}
+ let body:Record<string,unknown>;
+ try{const raw=await req.text();if(raw.length>18000)return out({success:false,message:'Payload terlalu besar'},413);
+  body=JSON.parse(raw);if(!body||typeof body!=='object'||Array.isArray(body))throw Error('Invalid body');
+ }catch{return out({success:false,message:'JSON tidak valid'},400);}
  const data=pick(body);data.contact_email=normalizeEmail(data.contact_email);
  const missing=validateLead(data);if(missing.length)return out({success:false,missing},422);
  const id=crypto.randomUUID(),event=crypto.randomUUID();
