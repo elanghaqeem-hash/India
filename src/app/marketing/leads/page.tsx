@@ -124,10 +124,17 @@ export default function MarketingLeadsPage(){
   finally{setSaving(false);}
  };
  const setStage=async(lead:Lead,status:Status)=>{
+  let reason='';
+  if(lead.status==='qualified'&&status==='contacted'){
+   const response=window.prompt('Jelaskan alasan pembukaan kembali kualifikasi (minimal 10 karakter):');
+   if(response===null)return;
+   reason=response.trim();
+   if(reason.length<10){setProblem('Alasan harus minimal 10 karakter');return;}
+  }
   if(!window.confirm('Ubah status '+lead.company_name+' menjadi '+statusText[status]+'?'))return;
   setSaving(true);setProblem('');setNotice('');
   try{
-   await callAPI('/api/leads','PATCH',{id:lead.id,version:lead.version,status});
+   await callAPI('/api/leads','PATCH',{id:lead.id,version:lead.version,status,reason});
    setNotice('Status berhasil diperbarui: '+statusText[status]);await refresh();
   }catch(e){setProblem(e instanceof Error?e.message:'Status gagal diperbarui');}
   finally{setSaving(false);}
@@ -219,7 +226,7 @@ export default function MarketingLeadsPage(){
      <p className="mt-2 text-sm text-slate-700">{lead.service_interest}</p>
      <p className="mt-1 text-xs text-slate-500">Sumber: {lead.lead_source} · Owner: {lead.owner_email}</p>
      <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
-      {lead.status!=='converted'&&lead.status!=='disqualified'&&<button onClick={()=>edit(lead)}
+      {lead.status!=='converted'&&lead.status!=='disqualified'&&lead.status!=='qualified'&&<button onClick={()=>edit(lead)}
        disabled={saving} className="min-h-9 rounded-lg border border-slate-200 px-3 text-xs font-bold text-slate-700">Edit</button>}
       {lead.status==='new'&&<button onClick={()=>void setStage(lead,'contacted')} disabled={saving}
        className="min-h-9 rounded-lg bg-blue-50 px-3 text-xs font-bold text-blue-700">Tandai dihubungi</button>}
@@ -227,6 +234,8 @@ export default function MarketingLeadsPage(){
        className="min-h-9 rounded-lg bg-emerald-50 px-3 text-xs font-bold text-emerald-700">Qualify</button>}
       {(lead.status==='new'||lead.status==='contacted')&&<button onClick={()=>void setStage(lead,'disqualified')} disabled={saving}
        className="min-h-9 rounded-lg bg-rose-50 px-3 text-xs font-bold text-rose-700">Disqualify</button>}
+      {lead.status==='qualified'&&<button onClick={()=>void setStage(lead,'contacted')} disabled={saving}
+       className="min-h-9 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-bold text-amber-700">Buka ulang kualifikasi</button>}
       {lead.status==='qualified'&&<button onClick={()=>convert(lead)} disabled={saving}
        className="inline-flex min-h-9 items-center gap-1 rounded-lg bg-indigo-700 px-3 text-xs font-bold text-white">
        Konversi <ChevronRight className="h-3.5 w-3.5"/>
