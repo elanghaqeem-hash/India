@@ -8,6 +8,10 @@ import type { Proposal, ProposalLineItem } from './types';
 export type QuotationFormat = 'auto' | 'mobile' | 'vapt' | 'soc';
 export type QuotationDetails = {
   endUser?: string;
+  recipientName?: string;
+  signatoryName?: string;
+  signatoryTitle?: string;
+  quotationDate?: string;
   methodology?: string;
   technicalPlatform?: string;
   scope?: string;
@@ -175,12 +179,12 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
   const subject = productName(fmt, prop);
   let body = brand() +
     p('No             : ' + (clean(prop.quotation_number) || UNKNOWN), { after: 15 }) +
-    p('Tanggal     : ' + date(prop.created_at), { after: 15 }) +
+    p('Tanggal     : ' + date(details.quotationDate || prop.created_at), { after: 15 }) +
     p('Perihal      : Quotation - ' + subject, { after: 15 }) +
     p('To              : ' + clean(prop.company_name), { after: 15 }) +
     p('End User   : ' + (clean(details.endUser) || clean(prop.company_name)), { after: 250 }) +
     p('Kepada Yth.', { after: 25 }) +
-    p('Bapak/Ibu Pimpinan', { bold: true, after: 25 }) +
+    p(clean(details.recipientName) || 'Bapak/Ibu Pimpinan', { bold: true, after: 25 }) +
     p(prop.company_name, { bold: true, after: 25 }) +
     p('Di tempat', { after: 200 }) +
     p('Perihal: Penawaran Harga ' + prop.opportunity_name, { bold: true, after: 200 }) +
@@ -192,8 +196,8 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
     p('Ruang lingkup, hasil pekerjaan, ketentuan pembayaran, penggunaan platform pihak ketiga, dan pengecualian hanya mengikat setelah dikonfirmasi serta disetujui para pihak.', { after: 150 }) +
     p(notes, { bold: true, color: '9A5311', after: 270 }) +
     p('Salam Hormat,', { after: 240 }) +
-    p('Maria Hayu Utaminingtyas', { bold: true, after: 20 }) +
-    p('Account Manager | DefendIT360', { after: 0 });
+    p(clean(details.signatoryName) || '[Nama penandatangan - belum dikonfirmasi]', { bold: true, after: 20 }) +
+    p((clean(details.signatoryTitle) || '[Jabatan penandatangan]') + ' | DefendIT360', { after: 0 });
 
   body += page() + brand() +
     p('RINCIAN HARGA PENAWARAN', { bold: true, size: 25, align: 'center', after: 80 }) +

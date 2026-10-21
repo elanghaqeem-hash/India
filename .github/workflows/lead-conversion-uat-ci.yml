@@ -1,0 +1,50 @@
+name: INDIA Lead to Sales UAT
+
+on:
+  push:
+    branches:
+      - feat/india-unified-commercial-cycle-phase1-20261021
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lead-conversion:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Atomic conversion, RBAC, conflict and rollback tests
+        run: node --test tests/marketing-lead-atomic.test.cjs tests/marketing-lead-http-simulation.test.cjs
+      - name: Dedicated D1 UAT preflight safety guards (no network or secrets)
+        run: node --test tests/uat-preflight-readonly.test.cjs
+      - name: Real Access UAT harness safety and syntax (NO remote access)
+        run: |
+          node --check scripts/india-cloudflare-access-real-uat.mjs
+          node --test tests/india-cloudflare-access-real-uat-guard.test.cjs
+      - name: D1 authenticated UI header regression
+        run: node --test tests/india-d1-header-rbac.test.cjs
+      - name: Next.js 16 runtime compatibility
+        run: npm run test:runtime-compat
+      - name: Existing BoQ and commercial regression suite
+        run: |
+          npm run test:boq-domain
+          npm run test:boq-workflow
+          npm run test:quotation-docx
+          npm run test:post-po
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Next.js production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Cloudflare Worker packaging
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
