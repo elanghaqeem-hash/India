@@ -29,7 +29,7 @@ export function validateLead(input:unknown):LeadInput{
  }
  const amount=p.estimated_value_idr===undefined||p.estimated_value_idr===''?0:Number(p.estimated_value_idr);
  const v:LeadInput={
-  account_name:safe(p.account_name),source:safe(p.source,100),campaign:safe(p.campaign,160),
+  account_name:safe(p.account_name).replace(/\s+/g,' '),source:safe(p.source,100),campaign:safe(p.campaign,160),
   service_family:safe(p.service_family,60),contact_name:safe(p.contact_name,160),
   contact_email:safe(p.contact_email,200).toLowerCase(),
   assigned_sales_email:safe(p.assigned_sales_email,200).toLowerCase(),
