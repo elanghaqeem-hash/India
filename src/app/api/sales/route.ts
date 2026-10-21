@@ -5,6 +5,7 @@ import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sal
 import { salesJourney } from '@/lib/sales-journey';
 import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
 import {submissionMatches,type Submission} from '@/lib/sales-submission';
+import {validAwardForWon,type AwardDoc} from '@/lib/sales-award';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -65,14 +66,15 @@ export async function GET(req:Request){
   if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
-   const [boqs,po,history,activities,originLead,documents,submissions]=await Promise.all([
+   const [boqs,po,history,activities,originLead,documents,submissions,awardDocs]=await Promise.all([
     db.prepare('SELECT id,quotation_number,status,project_name,version FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
     db.prepare('SELECT * FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<PoRow>(),
     db.prepare('SELECT action,from_stage,to_stage,actor_email,summary,created_at FROM india_sales_audit WHERE tenant_id=? AND entity_id=? ORDER BY created_at DESC LIMIT 50').bind(TENANT,id).all(),
     db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all(),
     db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first<{lead_id:string;lead_number:string;source:string;campaign:string}>(),
     db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>(),
-    db.prepare("SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 50").bind(TENANT,id).all<Submission>()
+    db.prepare("SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 50").bind(TENANT,id).all<Submission>(),
+    db.prepare('SELECT id,opportunity_id,document_kind,document_number,archive_reference,original_sha256,created_by,finance_reviewed_by,legal_reviewed_by FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<AwardDoc>()
    ]);
    const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;opportunity_id?:string;version:number;quotation_number:string;status:string}|undefined;
    const confirmedSubmission=chosen?submissions.results.find(x=>submissionMatches(x,{
@@ -86,13 +88,14 @@ export async function GET(req:Request){
     const requirements=await db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<RequirementEvidence>();
     procurementGaps.push(...procurementGate(tenderProcess,existingBid,requirements.results));
    }
+   const dualReviewedAward=awardDocs.results.some(x=>validAwardForWon(x,d.fields.po_number||''));
    const journey=salesJourney(account(acct),d,{
     lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
     quotation_record:documents.results.some(x=>x.kind==='quotation'),
     // A document reference/attestation is NOT equivalent to proof of submission or original PO.
-    submission_proof:!!confirmedSubmission,po_check:!!po,po_original:false,legal_approved:false,procurement_gaps:procurementGaps,procurement_required:tenderRequired
+    submission_proof:!!confirmedSubmission,po_check:!!po,po_original:dualReviewedAward,legal_approved:dualReviewedAward,procurement_gaps:procurementGaps,procurement_required:tenderRequired
    });
-   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,submissions:submissions.results,journey,
+   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,submissions:submissions.results,awardDocuments:awardDocs.results,journey,
     checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
@@ -262,6 +265,12 @@ export async function PATCH(req:Request){
      .bind(TENANT,d.id,'verified').all<Submission>();
     if(!finalBoq||!proofs.results.some(x=>submissionMatches(x,finalBoq,d.id)))
      return fail('Quotation yang disetujui harus memiliki bukti submission yang direview independen sebelum Negotiation, PO, atau Won.',409);
+   }
+   if(stage==='closed_won'){
+    const awardDocs=await db.prepare('SELECT id,opportunity_id,document_kind,document_number,archive_reference,original_sha256,created_by,finance_reviewed_by,legal_reviewed_by FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=?')
+     .bind(TENANT,d.id).all<AwardDoc>();
+    if(!awardDocs.results.some(x=>validAwardForWon(x,d.fields.po_number||'')))
+     return fail('Closed Won ditolak: bukti PO/SPK asli harus memiliki checksum, referensi arsip, dan review Finance serta Legal yang terpisah.',409);
    }
    if(stage==='closed_won'){
     const po=await db.prepare('SELECT * FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).first<PoRow>();
