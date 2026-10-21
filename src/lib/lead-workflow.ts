@@ -6,7 +6,7 @@ export const canEditLead=(role:string,actor:string,owner:string)=>role==='admin'
 export function canTransition(from:LeadStatus,to:LeadStatus){
  return (from==='new'&&['contacted','disqualified'].includes(to))||
  (from==='contacted'&&['qualified','disqualified'].includes(to))||
- (from==='qualified'&&to==='converted');
+ (from==='qualified'&&['converted','contacted'].includes(to));
 }
 export function normalizeEmail(value:unknown){return String(value||'').trim().toLowerCase();}
 export function validateLead(value:Record<string,unknown>):string[]{
@@ -19,6 +19,11 @@ export function validateLead(value:Record<string,unknown>):string[]{
  return missing;
 }
 export function validateQualification(value:Record<string,unknown>):string[]{
- return ['budget_status','decision_authority','requirement_summary','target_date','qualification_notes']
+ const missing=['budget_status','decision_authority','requirement_summary','target_date','qualification_notes','contact_phone']
  .filter(k=>!String(value[k]||'').trim());
+ const date=String(value.target_date||'');
+ if(date&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))missing.push('target_date (format YYYY-MM-DD)');
+ const phone=String(value.contact_phone||'');
+ if(phone&&!/^\\+?[0-9][0-9\\s().-]{7,19}$/.test(phone))missing.push('contact_phone (format)');
+ return missing;
 }
