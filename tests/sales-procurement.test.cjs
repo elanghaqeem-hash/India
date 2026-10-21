@@ -27,8 +27,8 @@ test('Tender quotation must block without GO and fully reviewed traceable RKS/KA
 });
 test('Opportunity stage transition checks D1 GO + RKS matrix before quotation',()=>{
  const route=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/route.ts'),'utf8');
- assert.match(route,/needsTenderGate\(d\.fields\.procurement_process/);
- assert.match(route,/procurementGate\(d\.fields\.procurement_process/);
+ assert.match(route,/needsTenderGate\(tenderProcess/);
+ assert.match(route,/procurementGate\(tenderProcess,bid/);
  assert.match(route,/Bid\/No-Bid dan persyaratan RKS\/KAK harus lolos/);
  const handler=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/procurement/route.ts'),'utf8');
  assert.match(handler,/authorizeBoQ\(req\)/);
