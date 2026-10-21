@@ -3,7 +3,7 @@
 -- Do not put test users or fixture leads in production.
 CREATE TABLE india_members_v2 (
  email TEXT PRIMARY KEY NOT NULL COLLATE NOCASE,
- role TEXT NOT NULL CHECK(role IN ('admin','marketing','finance','presales','sales','approver','viewer')),
+ role TEXT NOT NULL CHECK(role IN ('admin','marketing','finance','presales','sales','approver','legal','viewer')),
  active INTEGER NOT NULL DEFAULT 1 CHECK(active IN (0,1)),
  created_at TEXT NOT NULL DEFAULT (datetime('now')),
  created_by TEXT
