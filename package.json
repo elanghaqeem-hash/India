@@ -20,7 +20,7 @@
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
     "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
     "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
-    "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs"
+    "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
