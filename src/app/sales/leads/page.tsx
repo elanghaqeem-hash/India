@@ -3,10 +3,11 @@ import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,CheckCircle2,ClipboardList,Megaphone,Plus,Search,UserRoundCheck} from 'lucide-react';
 import {SERVICE_FAMILIES} from '@/lib/sales-workflow';
-type Lead={id:string;lead_number:string;account_name:string;source:string;campaign:string;service_family:string;
+type Lead={id:string;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
  qualification:Record<string,string>;updated_at:string};
+type CampaignOption={id:string;code:string;name:string;status:string};
 type Detail={lead:Lead;activities:{kind:string;summary:string;created_at:string}[];
  link:{opportunity_id:string;customer_id:string}|null};
 const statuses:Record<string,string>={new:'Lead Baru',assigned:'Assigned',qualified:'Qualified',disqualified:'Disqualified',converted:'Converted'};
@@ -17,7 +18,7 @@ const flds=[
  ['discovery_notes','Catatan discovery'],['contact_phone','Nomor telepon PIC'],
  ['target_next_action','Rencana tindak lanjut'],['disqualification_reason','Alasan tidak diteruskan']
 ] as const;
-const empty=()=>({account_name:'',source:'',campaign:'',service_family:'VAPT',contact_name:'',contact_email:'',
+const empty=()=>({account_name:'',source:'',campaign:'',campaign_id:'',service_family:'VAPT',contact_name:'',contact_email:'',
  assigned_sales_email:'',estimated_value_idr:'',expected_closing_date:''});
 async function api(method:'GET'|'POST'|'PATCH',url:string,data?:Record<string,unknown>){
  const response=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
@@ -29,6 +30,7 @@ async function api(method:'GET'|'POST'|'PATCH',url:string,data?:Record<string,un
 const money=(v:number)=>'Rp'+Number(v||0).toLocaleString('id-ID');
 export default function MarketingLeads(){
  const [list,setList]=useState<Lead[]>([]);
+ const [campaigns,setCampaigns]=useState<CampaignOption[]>([]);
  const [role,setRole]=useState('');
  const [form,setForm]=useState(empty());
  // Stable for safe network retries; regenerated only for the next new Lead.
@@ -42,8 +44,11 @@ export default function MarketingLeads(){
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
  const refresh=useCallback(async()=>{
-  try{const j=await api('GET','/api/marketing/leads');setList(j.leads||[]);setRole(j.role||'');}
-  catch(e){setMessage(e instanceof Error?e.message:String(e));}
+  try{
+   const j=await api('GET','/api/marketing/leads');setList(j.leads||[]);setRole(j.role||'');
+   const c=await api('GET','/api/marketing/campaigns').catch(()=>({campaigns:[]}));
+   setCampaigns((c.campaigns||[]).filter((x:CampaignOption)=>x.status==='active'));
+  }catch(e){setMessage(e instanceof Error?e.message:String(e));}
  },[]);
  const load=async(id:string)=>{
   const j=await api('GET','/api/marketing/leads?id='+encodeURIComponent(id));
@@ -96,6 +101,10 @@ export default function MarketingLeads(){
    <button type="button" disabled={busy||!['admin','marketing','sales'].includes(role)} onClick={()=>{setNewMode(true);setSelected(null);setMessage('');setForm(empty());setRequestKey(crypto.randomUUID());}}
     className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Plus size={15}/> Lead Baru</button>
   </header>
+  <div className="flex flex-wrap gap-2">
+   <Link href="/sales/campaigns" className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Kelola Campaign &amp; Attribution →</Link>
+   <Link href="/sales/pipeline" className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold text-slate-700">Sales Pipeline →</Link>
+  </div>
   {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <section className="grid grid-cols-3 gap-2">
    {([['Total Lead',list.length],['Qualified',qualified],['Converted',converted]] as const).map(([name,count])=>
@@ -115,13 +124,26 @@ export default function MarketingLeads(){
    {newMode?<section className="rounded-xl border bg-white p-4">
     <h2 className="text-sm font-bold">Registrasi Lead Baru</h2>
     <p className="mt-1 text-xs text-slate-500">Gunakan identitas perusahaan yang sebenarnya. Tidak ada data dummy yang diisi otomatis.</p>
+    <div className="mt-4">
+     <label className="block text-xs font-semibold text-slate-700">Campaign terdaftar (opsional, mengikat attribution ke D1)
+      <select className={'mt-1 '+cls} value={form.campaign_id} onChange={e=>{
+       const id=e.target.value,selected=campaigns.find(x=>x.id===id);
+       setForm(v=>({...v,campaign_id:id,campaign:selected?.name||''}));
+      }}>
+       <option value="">Tanpa Campaign terdaftar</option>
+       {campaigns.map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}
+      </select>
+     </label>
+    </div>
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
     {([
      ['account_name','Perusahaan / Prospek *'],['source','Sumber Lead *'],['campaign','Kampanye / Event'],
      ['contact_name','Nama PIC'],['contact_email','Email PIC'],['assigned_sales_email','Sales Owner (email aktif) *'],
      ['estimated_value_idr','Estimasi nilai IDR'],['expected_closing_date','Target closing']
     ] as const).map(([key,label])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
-      <input className={'mt-1 '+cls} type={key==='contact_email'||key==='assigned_sales_email'?'email':key==='expected_closing_date'?'date':key==='estimated_value_idr'?'number':'text'} value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/></label>)}
+      <input className={'mt-1 '+cls} disabled={key==='campaign'&&!!form.campaign_id}
+       type={key==='contact_email'||key==='assigned_sales_email'?'email':key==='expected_closing_date'?'date':key==='estimated_value_idr'?'number':'text'}
+       value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/></label>)}
     <label className="text-xs font-semibold text-slate-700">Jenis produk / layanan *
      <select className={'mt-1 '+cls} value={form.service_family} onChange={e=>setForm(s=>({...s,service_family:e.target.value}))}>
       {SERVICE_FAMILIES.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
