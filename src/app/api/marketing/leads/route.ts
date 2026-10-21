@@ -52,13 +52,19 @@ export async function POST(req:Request){
  try{
   if(p.entity==='lead'){
    const v=validateLead(p);
+   const requestKey=trim(p.request_key,64);
+   if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
+    return fail('Request ID lead tidak valid. Muat ulang formulir untuk membuat ID baru.',422);
+   const repeated=await db.prepare('SELECT id,lead_number,status FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
+    .bind(TENANT,email,requestKey).first<{id:string;lead_number:string;status:string}>();
+   if(repeated)return respond({success:true,...repeated,already_created:true});
    if(role==='sales'&&v.assigned_sales_email!==email)return fail('Sales hanya dapat mendaftarkan lead sendiri',403);
    const assignee=await loadSalesOwner(db,v.assigned_sales_email);
    if(!assignee||assignee.active!==1||!['sales','admin'].includes(assignee.role))return fail('Sales owner harus akun aktif dengan role Sales/Admin',422);
    const id=crypto.randomUUID(),lead_number='LD-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
    await db.batch([
-    db.prepare('INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,service_family,contact_name,contact_email,assigned_sales_email,estimated_value_idr,expected_closing_date,qualification_json,status,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-     .bind(id,TENANT,lead_number,v.account_name,v.source,v.campaign,v.service_family,v.contact_name,v.contact_email,v.assigned_sales_email,v.estimated_value_idr,v.expected_closing_date,JSON.stringify(v.qualification),'new',email,email),
+    db.prepare('INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,service_family,contact_name,contact_email,assigned_sales_email,estimated_value_idr,expected_closing_date,qualification_json,status,created_by,updated_by,request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+     .bind(id,TENANT,lead_number,v.account_name,v.source,v.campaign,v.service_family,v.contact_name,v.contact_email,v.assigned_sales_email,v.estimated_value_idr,v.expected_closing_date,JSON.stringify(v.qualification),'new',email,email,requestKey),
     db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
      .bind(crypto.randomUUID(),TENANT,'lead',id,'CREATE',email,'Lead '+lead_number)
    ]);
@@ -85,9 +91,14 @@ export async function POST(req:Request){
    if(!safeID(p.id))return fail('Lead ID tidak valid');
    const row=await readLead(db,p.id as string);
    if(!row)return fail('Lead tidak ditemukan',404);
-   if(row.status==='converted')return fail('Lead sudah dikonversi',409);
    if(!['sales','admin'].includes(role)||(role==='sales'&&row.assigned_sales_email!==email))
     return fail('Konversi hanya oleh Sales penanggung jawab atau Admin',403);
+   if(row.status==='converted'){
+    const linked=await db.prepare('SELECT customer_id,opportunity_id FROM india_sales_lead_links WHERE tenant_id=? AND lead_id=?')
+     .bind(TENANT,row.id).first<{customer_id:string;opportunity_id:string}>();
+    if(!linked)return fail('Lead bertanda converted tetapi referensi Opportunity tidak ditemukan; hubungi Admin',409);
+    return respond({success:true,lead_id:row.id,...linked,already_converted:true});
+   }
    const q=JSON.parse(row.qualification_json||'{}') as Record<string,string>;
    const missing=leadTransition(row.status,'converted',q);
    if(missing.length)return respond({success:false,message:'Lead belum Qualified',missing},409);
@@ -127,6 +138,25 @@ export async function POST(req:Request){
   }
   return fail('Aksi Marketing tidak terdaftar');
  }catch(e){
+  // A concurrent client retry may race with the first committed INSERT. The unique
+  // request key guarantees a single registration; return its stable identifier.
+  if(p.entity==='lead'&&typeof p.request_key==='string'){
+   try{
+    const same=await db.prepare('SELECT id,lead_number,status FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
+     .bind(TENANT,email,p.request_key).first<{id:string;lead_number:string;status:string}>();
+    if(same)return respond({success:true,...same,already_created:true});
+   }catch{/* Original error below. */}
+  }
+  if(p.entity==='convert'&&safeID(p.id)){
+   try{
+    const lead=await readLead(db,p.id as string);
+    if(lead&&['admin','sales'].includes(role)&&(role==='admin'||lead.assigned_sales_email===email)&&lead.status==='converted'){
+     const same=await db.prepare('SELECT customer_id,opportunity_id FROM india_sales_lead_links WHERE tenant_id=? AND lead_id=?')
+      .bind(TENANT,lead.id).first<{customer_id:string;opportunity_id:string}>();
+     if(same)return respond({success:true,lead_id:lead.id,...same,already_converted:true});
+    }
+   }catch{/* Original error below. */}
+  }
   if(String(e).includes('UNIQUE')||String(e).includes('constraint'))return fail('Data duplikat atau telah dikonversi; muat ulang dan periksa Lead/Customer',409);
   return fail('Transaksi Marketing gagal. Periksa data, tabel migrasi atau koneksi.',503);
  }
