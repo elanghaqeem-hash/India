@@ -12,6 +12,15 @@ const ts=require('typescript');
 const root=path.resolve(__dirname,'..');
 const source=(p)=>fs.readFileSync(path.join(root,p),'utf8');
 const tenant='defendit360';
+function load(sourcePath){
+ const mod={exports:{}};
+ const js=ts.transpileModule(source(sourcePath),{compilerOptions:{
+  module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true
+ }}).outputText;
+ new Function('module','exports','require',js)(mod,mod.exports,require);
+ return mod.exports;
+}
+
 const qa={
  salesA:'uat.sales.a@india.invalid',
  salesB:'uat.sales.b@india.invalid',
