@@ -28,7 +28,7 @@ async function audit(db:D1DB,entity:string,id:string,action:string,email:string,
  await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,from_stage,to_stage,actor_email,summary) VALUES (?,?,?,?,?,?,?,?,?)')
  .bind(crypto.randomUUID(),TENANT,entity,id,action,from,to,summary.slice(0,300)).run();
 }
-const servicePerms=['admin','sales','presales','finance','approver'];
+const servicePerms=['admin','sales','presales','finance','approver','legal'];
 const salesPerms=['admin','sales'];
 async function requireBoq(db:D1DB,d:SalesDeal,a:SalesAccount):Promise<{boq:BoQRow;subtotal:number;problem?:string}|{problem:string}>{
  const boqId=d.fields.boq_id;
