@@ -49,7 +49,6 @@ export default function MarketingCampaigns(){
     ?await request('PATCH',{id:editing.id,revision:editing.revision,...payload})
     :await request('POST',payload);
    await reload();
-   setMessage('Campaign '+result.code||'');
    setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit.':'Campaign baru berhasil diregistrasi di D1.');
    setEditing(null);setNewMode(false);setForm(empty());
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
@@ -128,3 +127,4 @@ export default function MarketingCampaigns(){
    </section>:<section className="flex min-h-60 items-center justify-center rounded-xl border bg-white p-5 text-center text-sm text-slate-500">Pilih Campaign untuk melihat efektivitas lead, atau buat campaign sebelum mendaftarkan lead baru.</section>}
   </div>
  </main>;
+}
