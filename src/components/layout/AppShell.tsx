@@ -24,12 +24,14 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         onRoleChange={setCurrentRole}
         pendingApprovalsCount={pendingCount}
       />
-      <div role="status" className={isD1Page
-          ? "no-print border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-blue-900"
-          : "no-print border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-amber-900"}>
-        {isD1Page
-          ? "Modul transaksi D1: penyimpanan dan hak akses mengikuti akun Cloudflare Access, bukan pilihan role pada header. Memerlukan migrasi database sebelum dapat digunakan."
-          : "Pratinjau India (DEMO) — data contoh; API demo nonpersisten masih dinonaktifkan. Gunakan menu Marketing Leads / Sales Pipeline / BoQ untuk transaksi D1."}
+      <div role="status" className="no-print border-b border-slate-200">
+        <div className={isD1Page
+          ? "bg-blue-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-blue-900"
+          : "bg-amber-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-amber-900"}>
+          {isD1Page
+            ? "Modul transaksi D1: penyimpanan dan hak akses mengikuti akun Cloudflare Access, bukan pilihan role pada header. Memerlukan migrasi database sebelum dapat digunakan."
+            : "Pratinjau India (DEMO) — data contoh; API demo nonpersisten masih dinonaktifkan. Gunakan menu Marketing Leads / Sales Pipeline / BoQ untuk transaksi D1."}
+        </div>
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar pendingApprovalsCount={pendingCount} />
