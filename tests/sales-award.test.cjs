@@ -31,7 +31,7 @@ test('Award route enforces Cloudflare Access, reviewer identity, immutable evide
  const sales=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/route.ts'),'utf8');
  assert.match(route,/authorizeBoQ\(req\)/);
  assert.match(route,/awardReviewAllowed\(doc,role,email/);
- assert.match(route,/document_number.*po_number/);
+ assert.match(route,/document_number/);assert.match(route,/f\.po_number/);
  assert.match(sales,/Closed Won ditolak: bukti PO\/SPK asli/);
  assert.match(sales,/validAwardForWon\(x,d\.fields\.po_number/);
 });
