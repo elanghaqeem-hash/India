@@ -57,6 +57,8 @@ export default function MarketingLeads(){
   const j=await api('GET','/api/marketing/leads?id='+encodeURIComponent(id));
   setSelected(j);setQualification(j.lead.qualification||{});
   setTitle(j.lead.account_name+' — '+j.lead.service_family);
+  // Never carry customer contact/billing fields into another Lead or Sales account.
+  setCustomerProfile(initialCustomer());
   setNewMode(false);
  };
  useEffect(()=>{void refresh();},[refresh]);
