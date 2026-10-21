@@ -11,7 +11,7 @@ export const qualificationKeys=new Set<keyof LeadQualification>([
  'contact_phone','target_next_action','disqualification_reason'
 ]);
 export type LeadInput={
- account_name:string;source:string;campaign:string;service_family:string;
+ account_name:string;source:string;campaign:string;campaign_id?:string;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;
  estimated_value_idr:number;expected_closing_date:string;qualification:Record<string,string>;
 };
@@ -30,12 +30,14 @@ export function validateLead(input:unknown):LeadInput{
  const amount=p.estimated_value_idr===undefined||p.estimated_value_idr===''?0:Number(p.estimated_value_idr);
  const v:LeadInput={
   account_name:safe(p.account_name).replace(/\s+/g,' '),source:safe(p.source,100),campaign:safe(p.campaign,160),
+  campaign_id:safe(p.campaign_id,100),
   service_family:safe(p.service_family,60),contact_name:safe(p.contact_name,160),
   contact_email:safe(p.contact_email,200).toLowerCase(),
   assigned_sales_email:safe(p.assigned_sales_email,200).toLowerCase(),
   estimated_value_idr:amount,expected_closing_date:safe(p.expected_closing_date,20),qualification:q
  };
  if(v.account_name.length<3||!v.source||!allowedService.has(v.service_family))throw Error('Nama calon pelanggan, sumber lead dan produk/layanan wajib');
+ if(v.campaign_id&&!/^[a-zA-Z0-9_-]{1,100}$/.test(v.campaign_id))throw Error('Campaign ID tidak valid');
  if(!emailValid(v.assigned_sales_email))throw Error('Sales owner harus email valid');
  if(v.contact_email&&!emailValid(v.contact_email))throw Error('Email PIC tidak valid');
  if(!Number.isSafeInteger(amount)||amount<0||amount>1e14)throw Error('Estimasi nilai tidak valid');
