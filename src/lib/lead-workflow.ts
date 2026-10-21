@@ -22,8 +22,8 @@ export function validateQualification(value:Record<string,unknown>):string[]{
  const missing=['budget_status','decision_authority','requirement_summary','target_date','qualification_notes','contact_phone']
  .filter(k=>!String(value[k]||'').trim());
  const date=String(value.target_date||'');
- if(date&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(date))missing.push('target_date (format YYYY-MM-DD)');
+ if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))missing.push('target_date (format YYYY-MM-DD)');
  const phone=String(value.contact_phone||'');
- if(phone&&!/^\\+?[0-9][0-9\\s().-]{7,19}$/.test(phone))missing.push('contact_phone (format)');
+ if(phone&&!/^\+?[0-9][0-9\s().-]{7,19}$/.test(phone))missing.push('contact_phone (format)');
  return missing;
 }
