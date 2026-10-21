@@ -29,6 +29,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   const pathname = usePathname();
 
   const navigation = [
+    { name: 'Marketing Campaigns', href: '/sales/campaigns', icon: Megaphone, badge: 'D1' },
     { name: 'Marketing & Leads', href: '/sales/leads', icon: Megaphone, badge: 'D1' },
     { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
