@@ -21,8 +21,9 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
       <Navbar
         currentRole={currentRole}
+        enableRoleSimulation={!isD1Page}
         onRoleChange={setCurrentRole}
-        pendingApprovalsCount={pendingCount}
+        pendingApprovalsCount={isD1Page ? 0 : pendingCount}
       />
       <div role="status" className="no-print border-b border-slate-200">
         <div className={isD1Page
@@ -34,12 +35,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         </div>
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
-        <Sidebar pendingApprovalsCount={pendingCount} />
+        <Sidebar pendingApprovalsCount={isD1Page ? 0 : pendingCount} />
         <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto px-3 pb-28 pt-4 sm:p-6 lg:p-8 print:max-w-none print:overflow-visible print:p-0">
           {children}
         </main>
       </div>
-      <MobileNav pendingApprovalsCount={pendingCount} />
+      <MobileNav pendingApprovalsCount={isD1Page ? 0 : pendingCount} />
     </div>
   );
 };
