@@ -7,7 +7,7 @@ const fail=(message:string,status=400)=>respond({success:false,message},status);
 const adminRoles=['admin','marketing','sales'];
 type LeadRow={id:string;tenant_id:string;lead_number:string;account_name:string;source:string;campaign:string;campaign_id:string|null;
  service_family:string;contact_name:string;contact_email:string;assigned_sales_email:string;
- estimated_value_idr:number;expected_closing_date:string;qualification_json:string;status:LeadStatus;
+ estimated_value_idr:number;expected_closing_date:string;qualification_json:string;status:LeadStatus;version:number;
  created_by:string;updated_by:string;created_at:string;updated_at:string};
 const view=(r:LeadRow)=>({...r,qualification:JSON.parse(r.qualification_json||'{}'),qualification_json:undefined});
 const sameRegistration=(r:LeadRow,v:LeadInput)=>
@@ -105,6 +105,7 @@ export async function POST(req:Request){
    return respond({success:true,id},201);
   }
   if(p.entity==='convert'){
+   if(req.headers.get('origin')!==new URL(req.url).origin||req.headers.get('x-india-lead-action')!=='convert')return fail('Origin atau konfirmasi konversi tidak valid',403);
    if(!safeID(p.id))return fail('Lead ID tidak valid');
    const row=await readLead(db,p.id as string);
    if(!row)return fail('Lead tidak ditemukan',404);
@@ -116,14 +117,16 @@ export async function POST(req:Request){
     if(!linked)return fail('Lead bertanda converted tetapi referensi Opportunity tidak ditemukan; hubungi Admin',409);
     return respond({success:true,lead_id:row.id,...linked,already_converted:true});
    }
+   if(!Number.isSafeInteger(p.version)||Number(p.version)!==row.version)return fail('Versi Lead berubah; muat ulang data',409);
    const q=JSON.parse(row.qualification_json||'{}') as Record<string,string>;
    const missing=leadTransition(row.status,'converted',q);
    if(missing.length)return respond({success:false,message:'Lead belum Qualified',missing},409);
    if(row.estimated_value_idr<=0||!row.expected_closing_date)return fail('Nilai peluang dan tanggal closing harus lengkap sebelum konversi',422);
    const title=trim(p.opportunity_title,240);
    if(title.length<3)return fail('Nama proyek/opportunity wajib diisi',422);
-   const existing=await db.prepare('SELECT id,legal_name FROM india_sales_accounts WHERE tenant_id=? AND lower(trim(legal_name))=?')
-    .bind(TENANT,normalizeName(row.account_name)).first<{id:string;legal_name:string}>();
+   const existing=await db.prepare('SELECT id,legal_name,created_by FROM india_sales_accounts WHERE tenant_id=? AND lower(trim(legal_name))=?')
+    .bind(TENANT,normalizeName(row.account_name)).first<{id:string;legal_name:string;created_by:string}>();
+   if(existing&&existing.created_by.toLowerCase()!==row.assigned_sales_email.toLowerCase())return fail('Customer milik Sales lain; butuh persetujuan perpindahan akses',409);
    const customerId=existing?.id||crypto.randomUUID(),opportunityId=crypto.randomUUID();
    const contact:Record<string,string>={
     primary_name:row.contact_name,primary_email:row.contact_email,
@@ -135,22 +138,24 @@ export async function POST(req:Request){
     estimated_value_idr:row.estimated_value_idr,expected_closing_date:row.expected_closing_date,qualification:q
    };
    const fields=toOpportunityFields(leadInput,row.id);
-   const statements=[];
+   const statements=[db.prepare("UPDATE india_marketing_leads SET status='converted',version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status='qualified' AND version=? AND assigned_sales_email=?")
+     .bind(email,row.id,TENANT,row.version,row.assigned_sales_email)];
    if(!existing)statements.push(db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
-    .bind(customerId,TENANT,row.account_name,'IND-'+crypto.randomUUID().slice(0,12).toUpperCase(),JSON.stringify(cleanFields(contact,ACCOUNT_KEYS)),email));
+    .bind(customerId,TENANT,row.account_name,'IND-'+crypto.randomUUID().slice(0,12).toUpperCase(),JSON.stringify(cleanFields(contact,ACCOUNT_KEYS)),row.assigned_sales_email));
    statements.push(
     db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
      .bind(opportunityId,TENANT,customerId,title,'prospecting',row.estimated_value_idr,JSON.stringify(fields),row.assigned_sales_email),
     db.prepare('INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)')
      .bind(TENANT,row.id,customerId,opportunityId,email),
-    db.prepare("UPDATE india_marketing_leads SET status='converted',updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status='qualified'")
-     .bind(email,row.id,TENANT),
+    db.prepare("INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status,detail) VALUES (?,?,?,?,?,?,?,?)")
+     .bind(crypto.randomUUID(),TENANT,row.id,'CONVERT',email,'qualified','converted','Customer '+customerId+' / Opportunity '+opportunityId),
     db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
      .bind(crypto.randomUUID(),TENANT,'lead',row.id,'CONVERT',email,'Opportunity '+opportunityId),
     db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage,summary) VALUES (?,?,?,?,?,?,?,?)')
      .bind(crypto.randomUUID(),TENANT,'deal',opportunityId,'CREATE',row.assigned_sales_email,null,'prospecting','Lead '+row.lead_number)
    );
-   await db.batch(statements);
+   const results=await db.batch(statements) as Array<{success?:boolean;meta?:{changes?:number}}>;
+   if(results.length!==statements.length||results.some(r=>r.success===false||r.meta?.changes!==1))return fail('Transaksi konversi berubah secara bersamaan; periksa Lead',409);
    return respond({success:true,lead_id:row.id,customer_id:customerId,opportunity_id:opportunityId},201);
   }
   return fail('Aksi Marketing tidak terdaftar');
@@ -208,8 +213,9 @@ export async function PATCH(req:Request){
   if(missing.length)return respond({success:false,message:'Gate Lead belum terpenuhi',missing},409);
   if(role==='marketing'&&target==='qualified'&&!v.contact_email&&!v.contact_name)
    return fail('Isi minimal satu identitas kontak sebelum kualifikasi',422);
-  const update=await db.prepare("UPDATE india_marketing_leads SET status=?,qualification_json=?,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status=? AND qualification_json=?")
-   .bind(target,JSON.stringify(v.qualification),email,row.id,TENANT,row.status,row.qualification_json).run();
+  if(!Number.isSafeInteger(p.version)||Number(p.version)!==row.version)return fail('Versi Lead berubah; muat ulang data',409);
+  const update=await db.prepare("UPDATE india_marketing_leads SET status=?,qualification_json=?,version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status=? AND version=? AND qualification_json=?")
+   .bind(target,JSON.stringify(v.qualification),email,row.id,TENANT,row.status,row.version,row.qualification_json).run();
   if((update as unknown as {meta?:{changes:number}}).meta?.changes===0)return fail('Lead berubah pada sesi lain, muat ulang',409);
   await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage) VALUES (?,?,?,?,?,?,?,?)')
    .bind(crypto.randomUUID(),TENANT,'lead',row.id,'STAGE',email,row.status,target).run();
