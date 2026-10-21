@@ -24,6 +24,8 @@ jobs:
         run: node --test tests/marketing-lead-atomic.test.cjs tests/marketing-lead-http-simulation.test.cjs
       - name: Dedicated D1 UAT preflight safety guards (no network or secrets)
         run: node --test tests/uat-preflight-readonly.test.cjs
+      - name: D1 authenticated UI header regression
+        run: node --test tests/india-d1-header-rbac.test.cjs
       - name: Next.js 16 runtime compatibility
         run: npm run test:runtime-compat
       - name: Existing BoQ and commercial regression suite
