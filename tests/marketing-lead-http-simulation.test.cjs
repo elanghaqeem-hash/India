@@ -228,3 +228,41 @@ test('HTTP: qualified records locked; justified reopen is auditable',async()=>{
   assert.match(event.detail,/revised budget/);
  }finally{db.close();}
 });
+
+test('HTTP: Sales owner isolation on Customer Account roster and direct Opportunity creation',async()=>{
+ const db=new D1Simulator(),api=context(db);
+ try{
+  const leadA=await api.req('leads','POST',qa.salesA,defaultLead('Owner-A'));
+  const leadB=await api.req('leads','POST',qa.salesB,defaultLead('Owner-B'));
+  assert.equal(leadA.status,201);assert.equal(leadB.status,201);
+  const versionA=await qualify(api,qa.salesA,leadA.body.id);
+  const versionB=await qualify(api,qa.salesB,leadB.body.id);
+  const convA=await api.req('convert','POST',qa.salesA,{
+   lead_id:leadA.body.id,version:versionA,customer,
+   project_title:'Owner A VAPT',estimated_value:80000000
+  });
+  const convB=await api.req('convert','POST',qa.salesB,{
+   lead_id:leadB.body.id,version:versionB,customer,
+   project_title:'Owner B SOC',estimated_value:95000000
+  });
+  assert.equal(convA.status,201,JSON.stringify(convA.body));
+  assert.equal(convB.status,201,JSON.stringify(convB.body));
+  const salesAList=await api.req('sales','GET',qa.salesA,undefined,'https://india-uat.test/api/sales?entity=accounts');
+  const salesBList=await api.req('sales','GET',qa.salesB,undefined,'https://india-uat.test/api/sales?entity=accounts');
+  const adminList=await api.req('sales','GET',qa.admin,undefined,'https://india-uat.test/api/sales?entity=accounts');
+  assert.deepEqual(salesAList.body.accounts.map(x=>x.id),[convA.body.account_id]);
+  assert.deepEqual(salesBList.body.accounts.map(x=>x.id),[convB.body.account_id]);
+  assert.equal(adminList.body.accounts.length,2);
+  const cross=await api.req('sales','POST',qa.salesA,{
+   entity:'deal',company_id:convB.body.account_id,title:'Cross-owner invalid',
+   estimated_value:5000000,fields:{}
+  });
+  assert.equal(cross.status,403,JSON.stringify(cross.body));
+  const allowed=await api.req('sales','POST',qa.salesB,{
+   entity:'deal',company_id:convB.body.account_id,title:'Same owner allowed',
+   estimated_value:6000000,fields:{}
+  });
+  assert.equal(allowed.status,201,JSON.stringify(allowed.body));
+  assert.equal(db.db.prepare('SELECT COUNT(*) AS n FROM india_sales_opportunities').get().n,3);
+ }finally{db.close();}
+});
