@@ -266,3 +266,13 @@ test('HTTP: Sales owner isolation on Customer Account roster and direct Opportun
   assert.equal(db.db.prepare('SELECT COUNT(*) AS n FROM india_sales_opportunities').get().n,3);
  }finally{db.close();}
 });
+
+test('HTTP: oversized Lead POST is rejected before any database mutation',async()=>{
+ const db=new D1Simulator(),api=context(db);
+ try{
+  const data={...defaultLead('Large'),campaign_code:'A'.repeat(20000)};
+  const reply=await api.req('leads','POST',qa.salesA,data);
+  assert.equal(reply.status,413,JSON.stringify(reply.body));
+  assert.equal(db.db.prepare('SELECT COUNT(*) AS n FROM india_marketing_leads').get().n,0);
+ }finally{db.close();}
+});
