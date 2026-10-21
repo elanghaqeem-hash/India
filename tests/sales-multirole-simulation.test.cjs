@@ -143,7 +143,7 @@ test('08 Finance PO checker must differ from Sales maker; Won is gated',()=>{
  const api=fs.readFileSync(path.join(__dirname,'../src/app/api/sales/route.ts'),'utf8');
  assert.match(api,/raw\.created_by\?\.trim\(\)\.toLowerCase\(\)===email\.trim\(\)\.toLowerCase\(\)/);
  assert.match(api,/confirmed_documents!==true/);
- assert.match(api,/Math\.abs\(n-check\.subtotal\)>1/);
+ assert.match(api,/Math\.abs\(n-check\.subtotal\)>0\.01/);
  assert.match(api,/india_sales_po_checks/);
  assert.equal(users.finance===users.salesA,false);
  assert.ok(crm.requiredForStage('closed_won',{...deal,fields:{...deal.fields,customer_decision:'pending'}},account).includes('customer_decision (harus approved)'));
