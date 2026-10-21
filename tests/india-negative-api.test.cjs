@@ -41,6 +41,11 @@ function route(file,role,email,db,additional={}){
   '@/lib/boq-domain':boq,
   '@/lib/sales-access':access,
   '@/lib/sales-workflow':sales,
+  // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
+  '@/lib/sales-journey':{salesJourney:()=>[]},
+  '@/lib/sales-procurement':{needsTenderGate:()=>false,procurementGate:()=>[]},
+  '@/lib/sales-submission':{submissionMatches:()=>false},
+  '@/lib/sales-award':{validAwardForWon:()=>false},
   '@/lib/quotation-docx':{createQuotationDocx:()=>{throw Error('Unauthorized Word export reached');}},
   '@/lib/ai-data-policy':aiPolicy,
   '@/lib/ai-credential-vault':{
