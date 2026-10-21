@@ -55,3 +55,11 @@ jobs:
         run: npx opennextjs-cloudflare build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Save sanitized browser fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-role-browser-fixtures
+          path: artifacts/browser-uat/
+          if-no-files-found: ignore
+          retention-days: 7
