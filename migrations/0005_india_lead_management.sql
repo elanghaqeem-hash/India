@@ -39,3 +39,4 @@ CREATE TABLE IF NOT EXISTS india_marketing_lead_events (
  FOREIGN KEY(lead_id) REFERENCES india_marketing_leads(id)
 );
 CREATE INDEX IF NOT EXISTS idx_india_lead_events ON india_marketing_lead_events(tenant_id,lead_id,created_at);
+INSERT OR IGNORE INTO india_schema_migrations(version) VALUES(5);
