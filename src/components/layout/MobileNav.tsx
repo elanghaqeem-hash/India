@@ -13,6 +13,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   const pathname = usePathname();
 
   const items = [
+    { label: 'Campaigns', href: '/sales/campaigns', icon: Megaphone },
     { label: 'Leads', href: '/sales/leads', icon: Megaphone },
     { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
     { label: 'Demo 360', href: '/', icon: LayoutDashboard },
