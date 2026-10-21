@@ -85,7 +85,7 @@ export async function PATCH(req:Request){
  const changes=await db.batch([
   db.prepare(updateSQL).bind(...bindings),
   db.prepare('INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status,detail) SELECT ?,tenant_id,id,?,?,?,?,? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND version=? AND status=?')
-  .bind(event,email,next===current.status?'EDIT':'STAGE',email,current.status,next,entries.map(e=>e[0]).join(','),tenant,id,current.version+1,next),
+  .bind(event,next===current.status?'EDIT':'STAGE',email,current.status,next,entries.map(e=>e[0]).join(','),tenant,id,current.version+1,next),
  ]) as Array<{success?:boolean;meta?:{changes?:number}}>;
  if(changes.length!==2||changes.some(c=>c.success===false)||changes.some(c=>c.meta?.changes!==1))
   return out({success:false,message:'Pembaruan bersamaan terdeteksi. Muat ulang data'},409);
