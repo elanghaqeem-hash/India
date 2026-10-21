@@ -165,3 +165,43 @@ test('P0: re-open qualification requires business justification; UI has gated pa
  assert.match(page,/Buka ulang kualifikasi/);
  assert.match(page,/reason=response\.trim\(\)/);
 });
+
+test('P0: upgrade from 0003/0004 preserves earlier Sales records and foreign keys',()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec('PRAGMA foreign_keys=ON');
+  db.exec('CREATE TABLE india_schema_migrations(version INTEGER PRIMARY KEY)');
+  db.exec(source('migrations/0003_sales_workflow.sql'));
+  db.exec(source('migrations/0004_india_sales_isolation.sql'));
+  const account='aaaa0000-1111-4111-8111-111111111111';
+  const deal='bbbb0000-1111-4111-8111-111111111111';
+  db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
+   .run(account,T,'PT UAT Existing Prior Data','IND-OLD-1','{"client_tier":"A"}',B);
+  db.prepare('INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)')
+   .run(deal,T,account,'Existing Sales UAT','qualified',92000000,'{"note":"preserve"}',B);
+  db.exec(source('migrations/0005_india_lead_management.sql'));
+  db.exec(source('migrations/0006_india_lead_conversion_integrity.sql'));
+  const previous=db.prepare('SELECT a.id,a.legal_name,a.customer_number,o.title,o.stage,o.estimated_value_idr FROM india_sales_accounts a JOIN india_sales_opportunities o ON o.company_id=a.id WHERE a.id=?').get(account);
+  assert.equal(previous.legal_name,'PT UAT Existing Prior Data');
+  assert.equal(previous.customer_number,'IND-OLD-1');
+  assert.equal(previous.stage,'qualified');
+  assert.equal(previous.estimated_value_idr,92000000);
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='india_marketing_leads'").get().n,1);
+  assert.deepEqual([...db.prepare('PRAGMA foreign_key_check').all()],[]);
+ }finally{db.close();}
+});
+test('P0: normalized customer duplicates must be reported, never silently dropped in 0006',()=>{
+ const db=new DatabaseSync(':memory:');
+ try{
+  db.exec('CREATE TABLE india_schema_migrations(version INTEGER PRIMARY KEY)');
+  db.exec(source('migrations/0003_sales_workflow.sql'));
+  db.exec(source('migrations/0004_india_sales_isolation.sql'));
+  for(const [id,name] of [['aaaa0000-1111-4111-8111-111111111111','PT UAT Repeat'],['bbbb0000-1111-4111-8111-111111111111','  pt uat repeat  ']]){
+   db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
+    .run(id,T,name,'IND-'+id.slice(0,8),'{}',A);
+  }
+  db.exec(source('migrations/0005_india_lead_management.sql'));
+  assert.throws(()=>db.exec(source('migrations/0006_india_lead_conversion_integrity.sql')),/UNIQUE/);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM india_sales_accounts').get().n,2);
+ }finally{db.close();}
+});
