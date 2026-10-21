@@ -4,6 +4,7 @@ import { boqTotals, type BoQLine } from '@/lib/boq-domain';
 import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { salesJourney } from '@/lib/sales-journey';
 import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
+import {submissionMatches,type Submission} from '@/lib/sales-submission';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -13,7 +14,7 @@ const allowed=(role:string,roles:string[])=>roles.includes(role);
 const ownOrigin=(req:Request)=>!req.headers.get('origin')||req.headers.get('origin')===new URL(req.url).origin;
 type AcctRow={id:string;legal_name:string;customer_number:string|null;data_json:string;created_at:string;created_by:string|null};
 type DealRow={id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_at:string;created_by:string|null};
-type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
+type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;version:number;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
 type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;po_reference:string;po_amount_before_vat:number;quotation_amount_before_vat:number;verified_by:string;verified_at:string};
 const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
@@ -64,15 +65,19 @@ export async function GET(req:Request){
   if(!canReadDeal(auth.identity.role,auth.identity.email,raw.created_by))return fail('Tidak memiliki akses ke opportunity ini',403);
   const d=deal(raw,account(acct));
   if(entity==='details'){
-   const [boqs,po,history,activities,originLead,documents]=await Promise.all([
-    db.prepare('SELECT id,quotation_number,status,project_name FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
+   const [boqs,po,history,activities,originLead,documents,submissions]=await Promise.all([
+    db.prepare('SELECT id,quotation_number,status,project_name,version FROM india_boq WHERE tenant_id=? AND opportunity_id=? ORDER BY updated_at DESC LIMIT 30').bind(TENANT,id).all(),
     db.prepare('SELECT * FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<PoRow>(),
     db.prepare('SELECT action,from_stage,to_stage,actor_email,summary,created_at FROM india_sales_audit WHERE tenant_id=? AND entity_id=? ORDER BY created_at DESC LIMIT 50').bind(TENANT,id).all(),
     db.prepare('SELECT kind,subject,detail,next_action_at,created_by,created_at FROM india_sales_activities WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 70').bind(TENANT,id).all(),
     db.prepare('SELECT l.lead_id,m.lead_number,m.source,m.campaign FROM india_sales_lead_links l JOIN india_marketing_leads m ON m.id=l.lead_id WHERE l.tenant_id=? AND l.opportunity_id=?').bind(TENANT,id).first<{lead_id:string;lead_number:string;source:string;campaign:string}>(),
-    db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>()
+    db.prepare('SELECT kind,status,reference FROM india_sales_documents WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 80').bind(TENANT,id).all<{kind:string;status:string;reference:string}>(),
+    db.prepare("SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC LIMIT 50").bind(TENANT,id).all<Submission>()
    ]);
-   const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;status:string}|undefined;
+   const chosen=boqs.results.find((x:{id?:string})=>x.id===d.fields.boq_id) as {id:string;opportunity_id?:string;version:number;quotation_number:string;status:string}|undefined;
+   const confirmedSubmission=chosen?submissions.results.find(x=>submissionMatches(x,{
+    id:chosen.id,opportunity_id:d.id,status:chosen.status,quotation_number:chosen.quotation_number,version:chosen.version
+   },d.id)):undefined;
    const existingBid=await db.prepare('SELECT * FROM india_sales_bids WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).first<ProcurementBid>();
    const tenderProcess=existingBid?.channel&&existingBid.channel!=='direct'?existingBid.channel:(d.fields.procurement_process||'');
    const tenderRequired=needsTenderGate(tenderProcess)||existingBid?.bid_decision==='no_go';
@@ -85,9 +90,9 @@ export async function GET(req:Request){
     lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
     quotation_record:documents.results.some(x=>x.kind==='quotation'),
     // A document reference/attestation is NOT equivalent to proof of submission or original PO.
-    submission_proof:false,po_check:!!po,po_original:false,legal_approved:false,procurement_gaps:procurementGaps,procurement_required:tenderRequired
+    submission_proof:!!confirmedSubmission,po_check:!!po,po_original:false,legal_approved:false,procurement_gaps:procurementGaps,procurement_required:tenderRequired
    });
-   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,journey,
+   return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,submissions:submissions.results,journey,
     checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
   }
   return fail('Jenis data tidak dikenal');
@@ -249,6 +254,14 @@ export async function PATCH(req:Request){
      const tenderGaps=procurementGate(tenderProcess,bid,reqs.results);
      if(tenderGaps.length)return answer({success:false,message:'Bid/No-Bid dan persyaratan RKS/KAK harus lolos sebelum quotation',missing:tenderGaps},409);
     }
+   }
+   if(['negotiation','pending_po','closed_won'].includes(stage)){
+    const finalBoq=await db.prepare('SELECT id,opportunity_id,version,quotation_number,status FROM india_boq WHERE id=? AND tenant_id=?')
+     .bind(d.fields.boq_id||'',TENANT).first<{id:string;opportunity_id:string|null;version:number;quotation_number:string;status:string}>();
+    const proofs=await db.prepare('SELECT id,opportunity_id,boq_id,boq_version,quotation_number,recipient_email,channel,status,created_by,verified_by,evidence_reference,evidence_sha256 FROM india_sales_submissions WHERE tenant_id=? AND opportunity_id=? AND status=?')
+     .bind(TENANT,d.id,'verified').all<Submission>();
+    if(!finalBoq||!proofs.results.some(x=>submissionMatches(x,finalBoq,d.id)))
+     return fail('Quotation yang disetujui harus memiliki bukti submission yang direview independen sebelum Negotiation, PO, atau Won.',409);
    }
    if(stage==='closed_won'){
     const po=await db.prepare('SELECT * FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).first<PoRow>();
