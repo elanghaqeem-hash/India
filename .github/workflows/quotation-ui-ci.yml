@@ -22,7 +22,7 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
       - name: Mobile and print regression checks
-        run: npm run test:layout && npm run test:boq && npm run test:boq-domain && npm run test:boq-workflow && npm run test:quotation-docx && npm run test:post-po && npm run test:ai && npm run test:sales && npm run test:marketing && npm run test:scoping-upload
+        run: npm run test:layout && npm run test:boq && npm run test:boq-domain && npm run test:boq-workflow && npm run test:quotation-docx && npm run test:post-po && npm run test:ai && npm run test:sales && npm run test:marketing && npm run test:scoping-upload && npm run test:india-negative
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build
