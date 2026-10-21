@@ -115,7 +115,7 @@ export default function MarketingCampaigns(){
     </div>
     {editable&&<label className="mt-3 block text-xs font-semibold text-slate-700">Catatan Campaign
      <textarea rows={4} disabled={!editable||busy} className={input+' resize-y'} value={form.notes} onChange={e=>setForm(x=>({...x,notes:e.target.value}))}/>
-    </label>
+    </label>}
     <div className="mt-4 flex flex-wrap items-center gap-2">
      {editable&&<button type="button" disabled={busy||!form.name.trim()||!form.code.trim()||!form.owner_email.trim()||['cancelled','completed'].includes(editing?.status||'')}
       onClick={()=>void submit()} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">
