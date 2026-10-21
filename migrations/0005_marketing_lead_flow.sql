@@ -13,6 +13,11 @@ INSERT INTO india_members_v2(email,role,active,created_at,created_by)
 DROP TABLE india_members;
 ALTER TABLE india_members_v2 RENAME TO india_members;
 
+-- Canonical customer name is unique within the INDIA tenant to avoid duplicate accounts during concurrent Lead conversions.
+-- Review/resolve existing duplicate names before applying in a live database.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_india_sales_customer_name_unique
+ ON india_sales_accounts(tenant_id,lower(trim(legal_name)));
+
 CREATE TABLE IF NOT EXISTS india_marketing_leads (
  id TEXT PRIMARY KEY NOT NULL,
  tenant_id TEXT NOT NULL,
