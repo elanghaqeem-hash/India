@@ -43,6 +43,8 @@ test('Marketing route uses idempotent registration and conversion response witho
  }
  assert.match(src,/const linked=await db\.prepare\('SELECT customer_id,opportunity_id FROM india_sales_lead_links/);
  assert.match(src,/db\.batch\(statements\)/);
+ assert.match(src,/sameRegistration\(repeated,v\)/);
+ assert.match(src,/Request ID sudah digunakan untuk data Lead berbeda/);
 });
 test('Marketing UI reuses request key across retries and only rotates it after success',()=>{
  const src=fs.readFileSync(path.join(root,'src/app/sales/leads/page.tsx'),'utf8');
