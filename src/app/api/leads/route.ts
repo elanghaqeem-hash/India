@@ -68,6 +68,11 @@ export async function PATCH(req:Request){
  if(next!==current.status&&!canTransition(current.status,next))
   return out({success:false,message:'Tahapan harus berurutan'},422);
  if(next===current.status&&entries.length===0)return out({success:false,message:'Tidak ada perubahan'},400);
+ if(current.status==='qualified'&&entries.length>0)
+  return out({success:false,message:'Kualifikasi sudah dikunci; buka kembali ke status Dihubungi sebelum mengubah data'},409);
+ const reopenReason=String(body.reason||'').trim().slice(0,300);
+ if(current.status==='qualified'&&next==='contacted'&&reopenReason.length<10)
+  return out({success:false,message:'Pembukaan kembali wajib beralasan minimal 10 karakter'},422);
  const cleaned=Object.fromEntries(entries.map(([k,v])=>[k,k==='contact_email'?normalizeEmail(v):(v as string).trim()]));
  const merged={...current,...cleaned};
  const missing=validateLead(merged);
@@ -85,7 +90,7 @@ export async function PATCH(req:Request){
  const changes=await db.batch([
   db.prepare(updateSQL).bind(...bindings),
   db.prepare('INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,from_status,to_status,detail) SELECT ?,tenant_id,id,?,?,?,?,? FROM india_marketing_leads WHERE tenant_id=? AND id=? AND version=? AND status=?')
-  .bind(event,next===current.status?'EDIT':'STAGE',email,current.status,next,entries.map(e=>e[0]).join(','),tenant,id,current.version+1,next),
+  .bind(event,next===current.status?'EDIT':current.status==='qualified'&&next==='contacted'?'REOPEN':'STAGE',email,current.status,next,(reopenReason||entries.map(e=>e[0]).join(',')).slice(0,300),tenant,id,current.version+1,next),
  ]) as Array<{success?:boolean;meta?:{changes?:number}}>;
  if(changes.length!==2||changes.some(c=>c.success===false)||changes.some(c=>c.meta?.changes!==1))
   return out({success:false,message:'Pembaruan bersamaan terdeteksi. Muat ulang data'},409);
