@@ -22,12 +22,14 @@ interface NavbarProps {
   currentRole: SystemRole;
   onRoleChange: (role: SystemRole) => void;
   pendingApprovalsCount?: number;
+  enableRoleSimulation?: boolean;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentRole,
   onRoleChange,
   pendingApprovalsCount = 1,
+  enableRoleSimulation = true,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
@@ -160,7 +162,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </Link>
 
-            {/* Interactive Role Selector */}
+            {/* Simulated role selector is NEVER shown on D1 transactional pages. */}
+            {enableRoleSimulation ? (
             <div className="relative">
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
@@ -205,6 +208,13 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </div>
               )}
             </div>
+            ) : (
+              <div className="flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-2 text-xs font-semibold text-blue-800" title="Hak akses diverifikasi oleh login Cloudflare Access dan membership D1">
+                <UserCheck className="h-4 w-4" />
+                <span className="hidden sm:inline">Akses Cloudflare</span>
+                <span className="sm:hidden">Access</span>
+              </div>
+            )}
           </div>
         </div>
       </header>
