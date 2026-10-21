@@ -5,7 +5,7 @@ import {ArrowLeft,BarChart3,CheckCircle2,Plus,RefreshCw} from 'lucide-react';
 import {campaignChannels,campaignStatuses} from '@/lib/marketing-campaign';
 type Campaign={
  id:string;code:string;name:string;channel:string;status:string;owner_email:string;
- budget_idr:number;start_date:string;end_date:string;notes:string;revision:number;
+ budget_idr?:number;start_date:string;end_date:string;notes?:string;revision:number;
  total:number;qualified:number;converted:number;conversionRate:number;
 };
 const empty=()=>({code:'',name:'',channel:'webinar',status:'planned',owner_email:'',
@@ -36,7 +36,7 @@ export default function MarketingCampaigns(){
  const select=(c:Campaign)=>{
   setEditing(c);setNewMode(false);setMessage('');
   setForm({code:c.code,name:c.name,channel:c.channel,status:c.status,owner_email:c.owner_email,
-   budget_idr:String(c.budget_idr),start_date:c.start_date,end_date:c.end_date,notes:c.notes});
+   budget_idr:String(c.budget_idr??0),start_date:c.start_date,end_date:c.end_date,notes:c.notes||''});
  };
  const create=()=>{
   setEditing(null);setNewMode(true);setForm(empty());setMessage('');
@@ -100,7 +100,7 @@ export default function MarketingCampaigns(){
       ['code','Kode unik *','text'],['name','Nama campaign *','text'],
       ['owner_email','Owner email aktif *','email'],['budget_idr','Budget (IDR)','number'],
       ['start_date','Mulai','date'],['end_date','Berakhir','date']
-     ] as const).map(([key,label,type])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
+     ] as const).filter(([key])=>editable||key!=='budget_idr').map(([key,label,type])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
        <input className={input} type={type} disabled={!editable||busy||(!!editing&&key==='code')}
         value={form[key]} onChange={e=>setForm(x=>({...x,[key]:e.target.value}))}/>
       </label>)}
@@ -113,7 +113,7 @@ export default function MarketingCampaigns(){
        {campaignStatuses.map(x=><option value={x} key={x}>{x}</option>)}
       </select></label>
     </div>
-    <label className="mt-3 block text-xs font-semibold text-slate-700">Catatan Campaign
+    {editable&&<label className="mt-3 block text-xs font-semibold text-slate-700">Catatan Campaign
      <textarea rows={4} disabled={!editable||busy} className={input+' resize-y'} value={form.notes} onChange={e=>setForm(x=>({...x,notes:e.target.value}))}/>
     </label>
     <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -123,7 +123,7 @@ export default function MarketingCampaigns(){
       </button>}
      <button type="button" onClick={()=>{setNewMode(false);setEditing(null);}} className="rounded-lg border px-4 py-2.5 text-xs">Tutup</button>
     </div>
-    {editing&&<p className="mt-3 text-xs text-slate-500">Budget tercatat: {money(editing.budget_idr)}. Revisi harus menggunakan versi terkini; tab lama ditolak server.</p>}
+    {editing&&editable&&<p className="mt-3 text-xs text-slate-500">Budget tercatat: {money(editing.budget_idr||0)}. Revisi harus menggunakan versi terkini; tab lama ditolak server.</p>}
    </section>:<section className="flex min-h-60 items-center justify-center rounded-xl border bg-white p-5 text-center text-sm text-slate-500">Pilih Campaign untuk melihat efektivitas lead, atau buat campaign sebelum mendaftarkan lead baru.</section>}
   </div>
  </main>;
