@@ -16,12 +16,12 @@ export async function GET(req:Request){
   const lead=await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND id=?').bind(tenant,id).first<Lead>();
   if(!lead)return out({success:false,message:'Lead tidak ditemukan'},404);
   if(role==='sales'&&lead.owner_email!==email)return out({success:false,message:'Tidak berwenang'},403);
-  return out({success:true,lead});
+  return out({success:true,lead,role,email});
  }
  const rows=role==='sales'?
  await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND owner_email=? ORDER BY created_at DESC LIMIT 200').bind(tenant,email).all():
  await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? ORDER BY created_at DESC LIMIT 200').bind(tenant).all();
- return out({success:true,leads:rows.results});
+ return out({success:true,leads:rows.results,role,email});
 }
 export async function POST(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
