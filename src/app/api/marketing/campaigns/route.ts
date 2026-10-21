@@ -31,7 +31,16 @@ export async function GET(req:Request){
    GROUP BY c.id ORDER BY c.updated_at DESC LIMIT 200`;
   const view=role==='sales'?'sales':'all';
   const r=await db.prepare(q).bind(view,email,TENANT,view,id||null,id||null).all<CampaignRow>();
-  const campaigns=r.results.map(c=>({...c,...campaignProgress({total:c.total_leads,qualified:c.qualified_leads,converted:c.converted_leads})}));
+  const campaigns=r.results.map(c=>{
+   const progress=campaignProgress({total:c.total_leads,qualified:c.qualified_leads,converted:c.converted_leads});
+   // Field-level redaction: Sales sees attribution performance, not Marketing budget or internal notes.
+   if(role==='sales'){
+    const {budget_idr,notes,created_by,updated_by,...publicCampaign}=c;
+    void budget_idr;void notes;void created_by;void updated_by;
+    return {...publicCampaign,...progress};
+   }
+   return {...c,...progress};
+  });
   return reply({success:true,role,campaigns});
  }catch{return fail('Master Campaign belum tersedia. Jalankan migrasi 0009 dan 0010 sebelum aktivasi.',503);}
 }
