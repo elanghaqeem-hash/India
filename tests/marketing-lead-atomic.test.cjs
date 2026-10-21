@@ -187,6 +187,7 @@ test('P0: upgrade from 0003/0004 preserves earlier Sales records and foreign key
   assert.equal(previous.stage,'qualified');
   assert.equal(previous.estimated_value_idr,92000000);
   assert.equal(db.prepare("SELECT COUNT(*) AS n FROM sqlite_master WHERE type='table' AND name='india_marketing_leads'").get().n,1);
+  assert.deepEqual(db.prepare('SELECT version FROM india_schema_migrations ORDER BY version').all().map(x=>x.version),[3,4,5,6]);
   assert.deepEqual([...db.prepare('PRAGMA foreign_key_check').all()],[]);
  }finally{db.close();}
 });
