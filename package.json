@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && opennextjs-cloudflare build",
