@@ -79,7 +79,7 @@ test('Browser unauthenticated account access never enables create actions',async
    const customer=page.getByRole('button',{name:'+ Customer',exact:true});
    assert.equal(await customer.isEnabled(),false);
    assert.equal(await page.getByRole('button',{name:'+ Opportunity',exact:true}).isEnabled(),false);
-   const status=page.getByRole('status');
+   const status=page.getByRole('status').filter({hasText:/D1 runtime|Database|login|Access|autentikasi/i});
    await status.waitFor();
    assert.match(await status.innerText(),/D1 runtime|Database|login|Access|autentikasi/i);
   }finally{await page.close();}
