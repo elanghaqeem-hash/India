@@ -1,5 +1,5 @@
 /** Role- and field-level guards for INDIA's D1 Sales API. */
-export type SalesRole='admin'|'marketing'|'sales'|'presales'|'finance'|'approver'|'viewer';
+export type SalesRole='admin'|'marketing'|'sales'|'presales'|'finance'|'approver'|'legal'|'viewer';
 const sameEmail=(a:string|undefined|null,b:string|undefined|null)=>
  !!a && !!b && a.trim().toLowerCase()===b.trim().toLowerCase();
 export const canReadDeal=(role:SalesRole,email:string,creator:string|null|undefined)=>
