@@ -265,10 +265,9 @@ export default function MarketingLeadsPage(){
         {customerFields.map(([id,label])=><FormField key={id} id={id} label={label} value={customer[id]}
          onChange={value=>setCustomer(prev=>({...prev,[id]:value}))}/>)}
         <div className="sm:col-span-2">
-         <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
-          <input type="checkbox" checked={customer.hq_address!==''&&customer.hq_address===customer.hq_address} readOnly className="hidden"/>
-          <ShieldCheck className="h-4 w-4 text-indigo-700"/> Kolom industri, bidang usaha, jumlah pegawai, telepon kantor, alamat, provinsi dan kode pos wajib.
-         </label>
+         <p className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <ShieldCheck className="h-4 w-4 shrink-0 text-indigo-700"/> Kolom industri, bidang usaha, jumlah pegawai, telepon kantor, alamat, provinsi dan kode pos wajib.
+         </p>
         </div>
         <FormField id="project_title" label="Nama opportunity / proyek*" value={project} onChange={setProject}/>
         <label className="block"><span className="mb-1.5 block text-xs font-semibold text-slate-700">Estimasi nilai (IDR)*</span>
