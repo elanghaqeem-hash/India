@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
-import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
+import { canReadDeal,canReadAccount,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 export const dynamic='force-dynamic';
@@ -47,7 +47,7 @@ export async function GET(req:Request){
  try{
   if(entity==='accounts'){
    const rows=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
-   return answer({success:true,accounts:rows.results.map(account),role:auth.identity.role});
+   return answer({success:true,accounts:rows.results.filter(r=>canReadAccount(auth.identity.role,auth.identity.email,r.created_by)).map(account),role:auth.identity.role});
   }
   if(entity==='deals'){
    const rows=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
@@ -100,7 +100,9 @@ export async function POST(req:Request){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh mendaftarkan opportunity',403);
    const company_id=p.company_id,title=String(p.title||'').trim(),amount=Number(p.estimated_value);
    if(!safeID(company_id)||!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Pelanggan, nama proyek dan nilai peluang wajib valid');
-   if(!await getAccount(db,company_id as string))return fail('Customer account tidak ditemukan',404);
+   const existingAccount=await getAccount(db,company_id as string);
+   if(!existingAccount)return fail('Customer account tidak ditemukan',404);
+   if(!canReadAccount(role,email,existingAccount.created_by))return fail('Sales tidak dapat membuat opportunity atas Customer Account milik Sales lain',403);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
    await db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
