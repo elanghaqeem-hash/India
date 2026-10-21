@@ -24,7 +24,7 @@ jobs:
         with:
           node-version: '24'
       - name: Install pinned repository dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
       - name: Require verified Access JWT for three real identities and isolated D1 binding
         env:
           INDIA_UAT_BASE_URL: ${{ vars.INDIA_UAT_BASE_URL }}
