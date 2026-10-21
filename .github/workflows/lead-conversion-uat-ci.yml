@@ -22,6 +22,10 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Atomic conversion, RBAC, conflict and rollback tests
         run: node --test tests/marketing-lead-atomic.test.cjs tests/marketing-lead-http-simulation.test.cjs
+      - name: Dedicated D1 UAT preflight safety guards (no network or secrets)
+        run: node --test tests/uat-preflight-readonly.test.cjs
+      - name: Next.js 16 runtime compatibility
+        run: npm run test:runtime-compat
       - name: Existing BoQ and commercial regression suite
         run: |
           npm run test:boq-domain
