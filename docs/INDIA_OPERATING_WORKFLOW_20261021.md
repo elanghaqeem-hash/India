@@ -81,19 +81,30 @@ flowchart TD
 
 **Phase D (not yet operational):** genuine Technical Proposal and SOW builder using reviewed Scoping, vendor quotes and final approved BoQ as immutable snapshot; no fabricated specifications or unit rates.
 
-**Phase E (not yet operational):** verified quotation submission, customer acknowledgement, negotiation versions and revised discount/margin approvals; store attachments in a controlled document repository with version, checksum and retention.
+**Phase E (partially implemented on branch):** migration `0007_quotation_submission.sql`, authenticated `/sales/submission` desk and independent Finance/Approver review; advancing to Negotiation/PO/Won is blocked without approved version-matching proof. **Still missing:** automatic customer acknowledgement, archival bytes and controlled negotiated revision snapshots.
 
-**Phase F (not yet operational):** original PO/contract archive (R2 or equivalent), Legal approval and signed evidence, stronger Closed Won gate, complete handover checklist.
+**Phase F (partially implemented on branch):** migration `0008_po_legal_evidence.sql`, `/sales/award` reference & SHA record with distinct Finance and Legal signatures. Closed Won API now blocks unless approved quotation submission, PO check, and PO/SPK dual approval match. **Still missing:** secure R2/DMS archive integration, objective evidence authenticity and legal digital signing/contract management.
 
 **Phase G (not yet operational):** authenticated UAT with real testers across Marketing/Sales/Presales/Finance/Approver/Admin/Viewer; mobile browser tests; AI provider tests; rollback, backup and deployment.
 
+### Phase E1 — Quotation submission history (coded on branch)
+- After quotation sent, Sales registers the exact approved BoQ ID/version, recipient and delivery proof reference/SHA.
+- Finance/Approver independent of the submitting Sales verifies or rejects it; on revision, stale version cannot advance.
+- D1-backed statuses are Reported / Verified / Rejected. This is **not** an email-sending integration or customer acknowledgement.
+
+### Phase F1 — Original PO/SPK dual-review gate (coded on branch)
+- Sales records PO/SPK reference and client PO number, SHA256 and archive locator; original file is not stored.
+- Finance and Legal log separate reviews, independent from the document creator and from each other.
+- Only when award evidence matches PO number, approved submission matches BoQ, and PO values match can Closed Won proceed.
+- No production role provisioning, R2 archive, cryptographic signature verification or production UAT has been completed.
+
 ## 6. Data migration and deployment gates
 
-- Schema migration ORDER: `0001`, `0002`, `0003`, `0004`, `0005`, `0006`. Some previous stage migrations were already applied, so verify `india_schema_migrations` first.
-- **0005 rebuilds india_members** to include `marketing` role. Take and verify a backup; run only once in an approved change window.
+- Schema migration ORDER: `0001`, `0002`, `0003`, `0004`, `0005`, `0006`, `0007`, `0008`. Some previous stage migrations were already applied, so verify `india_schema_migrations` first.
+- **0005 rebuilds india_members** to include `marketing` and `legal` roles. Take and verify a backup; run only once in an approved change window.
 - Run migration against isolated UAT first, inspect `PRAGMA foreign_key_check`, table/index existence, original account count, and migration versions.
 - CI tests `test:marketing` and `test:sales` validate schema + regression in an in-memory SQLite environment (this is not equivalent to a real Cloudflare D1 migration).
-- Worker `india` currently still uses existing D1 with no migrations 0004–0006 and **must not be deployed** until prepared.
+- Worker `india` currently still uses existing D1 with no migrations 0004–0008 and **must not be deployed** until prepared.
 - The Cloudflare connection returned internal errors during the current session; remote migration and live production tests remain NOT VERIFIED.
 - Real `.invalid` UAT fixture emails cannot be used for genuine Cloudflare Access login.
 - PR #12 remains Draft and unmerged; the merged HEAD in this branch merely resolves source conflicts, not a production deployment.
