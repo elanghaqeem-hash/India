@@ -15,6 +15,7 @@ test('migration 0004 and 0005 executes on SQL UAT baseline without deleting pree
  db.exec(migration('0006_bid_and_requirements.sql'));
  db.exec("CREATE TABLE india_boq(id TEXT PRIMARY KEY)");
  db.exec(migration('0007_quotation_submission.sql'));
+ db.exec(migration('0008_po_legal_evidence.sql'));
  const original=db.prepare("SELECT email,role,active FROM india_members ORDER BY email").all();
  assert.equal(original.length,2);
  assert.equal(original[0].role,'admin');
@@ -23,7 +24,7 @@ test('migration 0004 and 0005 executes on SQL UAT baseline without deleting pree
  assert.throws(()=>db.prepare("INSERT INTO india_members(email,role,active) VALUES (?,?,?)").run('invalid@example.test','superadmin',1));
  assert.equal(db.prepare("SELECT role FROM india_members WHERE email='marketing@example.test'").get().role,'marketing');
  const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(x=>x.name);
- for(const name of ['india_marketing_leads','india_marketing_activities','india_sales_lead_links','india_sales_accounts','india_sales_opportunities','india_sales_bids','india_sales_requirements','india_sales_submissions'])
+ for(const name of ['india_marketing_leads','india_marketing_activities','india_sales_lead_links','india_sales_accounts','india_sales_opportunities','india_sales_bids','india_sales_requirements','india_sales_submissions','india_sales_award_documents'])
   assert.ok(tables.includes(name),'Expected '+name);
  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
  db.close();
@@ -37,6 +38,7 @@ test('transactional Lead -> Account -> Opportunity link is one-to-one and foreig
  db.exec(migration('0006_bid_and_requirements.sql'));
  db.exec("CREATE TABLE india_boq(id TEXT PRIMARY KEY)");
  db.exec(migration('0007_quotation_submission.sql'));
+ db.exec(migration('0008_po_legal_evidence.sql'));
  db.prepare("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,service_family,assigned_sales_email,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?)")
  .run('lead-1','defendit360','LD-UAT-1','PT Test','Webinar','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
  db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES (?,?,?,?,?)")
