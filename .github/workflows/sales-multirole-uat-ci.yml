@@ -28,7 +28,7 @@ jobs:
       - name: Seven-role UAT domain and document simulations
         run: npm run test:sales && npm run test:marketing && npm run test:india-negative
       - name: Consolidated Marketing Sales schema and PR18 preservation tests
-        run: node --test tests/marketing-sales-consolidation.test.cjs
+        run: node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-runtime-integration.test.cjs
       - name: BoQ maker checker and quotation tests
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: TypeScript verification
