@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
@@ -20,7 +20,9 @@
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
     "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
     "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
-    "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs tests/marketing-campaigns.test.cjs"
+    "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs tests/marketing-campaigns.test.cjs",
+    "test:india-negative": "node --experimental-strip-types --test tests/india-negative-uat.test.cjs tests/india-negative-api.test.cjs",
+    "test:browser-http-uat": "node --test tests/browser-http-uat.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
@@ -42,6 +44,7 @@
     "autoprefixer": "^10.4.20",
     "postcss": "^8.5.1",
     "tailwindcss": "^3.4.17",
-    "typescript": "^5.7.3"
+    "typescript": "^5.7.3",
+    "playwright": "1.55.0"
   }
 }

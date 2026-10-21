@@ -3,6 +3,7 @@ import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { listProviders, readProvider, decryptProviderKey, invokeAI, runPriorityChain } from '@/lib/ai-credential-vault';
 import { isProviderId } from '@/lib/ai-provider-registry';
 import { TENANT } from '@/lib/sales-workflow';
+import { containsPersonalIdentifier } from '@/lib/ai-data-policy';
 export const dynamic='force-dynamic';
 const json=(b:unknown,s=200)=>NextResponse.json(b,{status:s,headers:privateHeaders});
 const purposes=['sales','scoping','boq','pricing','quotation','post_po','tender','analysis'];
@@ -30,9 +31,7 @@ export async function POST(req:Request){
     !(provider==='auto'||isProviderId(provider)))
    return json({success:false,message:'Pilih provider, tujuan penggunaan, dan konfirmasi pengiriman data sebelum analisis.'},400);
  // No customer personal identifiers may be sent to an external LLM via this feature.
- if(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(prompt)||
-    /\b(?:\+62|08)\d[\d\s-]{7,}\b/.test(prompt)||
-    /\b\d{15,16}\b/.test(prompt))
+ if(containsPersonalIdentifier(prompt))
    return json({success:false,message:'Hapus email, nomor telepon, KTP/NPWP dari prompt AI. Gunakan data anonim.'},422);
  const {db,email}=a.identity;
  try{

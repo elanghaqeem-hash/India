@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
-import { canReadDeal,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
+import { canReadDeal,canReadAccount,canEditAccount,canEditDeal,canChangeStage } from '@/lib/sales-access';
 import { salesJourney } from '@/lib/sales-journey';
 import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
 import {submissionMatches,type Submission} from '@/lib/sales-submission';
@@ -51,7 +51,7 @@ export async function GET(req:Request){
  try{
   if(entity==='accounts'){
    const rows=await db.prepare('SELECT * FROM india_sales_accounts WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<AcctRow>();
-   return answer({success:true,accounts:rows.results.map(account),role:auth.identity.role});
+   return answer({success:true,accounts:rows.results.filter(x=>canReadAccount(auth.identity.role,auth.identity.email,x.created_by)).map(account),role:auth.identity.role});
   }
   if(entity==='deals'){
    const rows=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? ORDER BY created_at DESC LIMIT 250').bind(TENANT).all<DealRow>();
@@ -127,7 +127,9 @@ export async function POST(req:Request){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh mendaftarkan opportunity',403);
    const company_id=p.company_id,title=String(p.title||'').trim(),amount=Number(p.estimated_value);
    if(!safeID(company_id)||!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Pelanggan, nama proyek dan nilai peluang wajib valid');
-   if(!await getAccount(db,company_id as string))return fail('Customer account tidak ditemukan',404);
+   const ownerAccount=await getAccount(db,company_id as string);
+   if(!ownerAccount)return fail('Customer account tidak ditemukan',404);
+   if(!canReadAccount(role,email,ownerAccount.created_by))return fail('Tidak memiliki akses ke Customer Account ini',403);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
    await db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
@@ -162,7 +164,7 @@ export async function POST(req:Request){
    const number=d.fields.po_number||'',date=d.fields.po_date||'',reference=d.fields.po_reference||'',n=Number(d.fields.po_amount_before_vat);
    if(!number||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!reference||reference.length<8||!Number.isFinite(n)||n<=0)
      return fail('Nomor, tanggal, referensi bukti PO dan nilai PO harus lengkap',409);
-   if(Math.abs(n-check.subtotal)>1)return fail('Nilai PO berbeda dari BoQ approved. Lakukan revisi dan approval terlebih dahulu.',409);
+   if(Math.abs(n-check.subtotal)>0.01)return fail('Nilai PO berbeda dari BoQ approved. Lakukan revisi dan approval terlebih dahulu.',409);
    if(!d.fields.scope_reconciliation||d.fields.scope_reconciliation.length<15)return fail('Catatan konfirmasi scope dan termin minimal 15 karakter.',409);
    await db.prepare('INSERT INTO india_sales_po_checks(opportunity_id,tenant_id,boq_id,po_number,po_date,po_reference,po_amount_before_vat,quotation_amount_before_vat,verified_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(opportunity_id) DO UPDATE SET boq_id=excluded.boq_id,po_number=excluded.po_number,po_date=excluded.po_date,po_reference=excluded.po_reference,po_amount_before_vat=excluded.po_amount_before_vat,quotation_amount_before_vat=excluded.quotation_amount_before_vat,verified_by=excluded.verified_by,verified_at=CURRENT_TIMESTAMP')
     .bind(d.id,TENANT,check.boq.id,number,date,reference,n,check.subtotal,email).run();
@@ -276,7 +278,7 @@ export async function PATCH(req:Request){
     const po=await db.prepare('SELECT * FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).first<PoRow>();
     if(!po||po.boq_id!==d.fields.boq_id||po.po_number!==d.fields.po_number||
        po.po_date!==d.fields.po_date||po.po_reference!==d.fields.po_reference||
-       Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>1)
+       Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>0.01)
       return fail('Verifikasi PO oleh Finance/Approver harus selesai dengan bukti yang sama.',409);
    }
    const changed=await db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=? AND stage=? AND data_json=?')

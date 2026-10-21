@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - feat/india-sales-pipeline-workflow-20261020
+      - test/pr12-negative-44-integration-20261021
+  pull_request:
+    branches:
+      - feat/india-sales-pipeline-workflow-20261020
   workflow_dispatch:
 
 permissions:
@@ -12,7 +16,7 @@ permissions:
 jobs:
   multirole-regression:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -21,7 +25,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Seven-role UAT domain and document simulations
-        run: npm run test:sales && npm run test:marketing
+        run: npm run test:sales && npm run test:marketing && npm run test:india-negative
       - name: BoQ maker checker and quotation tests
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: TypeScript verification
@@ -30,7 +34,32 @@ jobs:
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install headless Chromium (pre-deployment UAT)
+        run: npx playwright install --with-deps chromium
+      - name: Browser and localhost HTTP UAT across fixture roles
+        run: |
+          npm run start -- -p 3100 > /tmp/india-uat-local.log 2>&1 &
+          for i in $(seq 1 80); do
+            if curl -fsS http://127.0.0.1:3100/sales/pipeline > /dev/null; then break; fi
+            sleep 2
+          done
+          if ! curl -fsS http://127.0.0.1:3100/sales/pipeline > /dev/null; then
+            cat /tmp/india-uat-local.log
+            exit 1
+          fi
+          npm run test:browser-http-uat
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+          INDIA_UAT_URL: http://127.0.0.1:3100
       - name: Cloudflare adapter bundle
         run: npx opennextjs-cloudflare build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+      - name: Save sanitized browser fixture evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-role-browser-fixtures
+          path: artifacts/browser-uat/
+          if-no-files-found: ignore
+          retention-days: 7
