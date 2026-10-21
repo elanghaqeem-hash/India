@@ -31,6 +31,8 @@ export default function MarketingLeads(){
  const [list,setList]=useState<Lead[]>([]);
  const [role,setRole]=useState('');
  const [form,setForm]=useState(empty());
+ // Stable for safe network retries; regenerated only for the next new Lead.
+ const [requestKey,setRequestKey]=useState('');
  const [selected,setSelected]=useState<Detail|null>(null);
  const [qualification,setQualification]=useState<Record<string,string>>({});
  const [title,setTitle]=useState('');
@@ -59,8 +61,13 @@ export default function MarketingLeads(){
   catch(e){setMessage(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
  };
- const create=()=>void run(()=>api('POST','/api/marketing/leads',{entity:'lead',...form,
-  estimated_value_idr:Number(form.estimated_value_idr||0),qualification:{}}),'Lead tersimpan di D1');
+ const create=()=>void run(async()=>{
+  const id=requestKey||crypto.randomUUID();
+  const result=await api('POST','/api/marketing/leads',{entity:'lead',...form,request_key:id,
+   estimated_value_idr:Number(form.estimated_value_idr||0),qualification:{}});
+  setRequestKey(crypto.randomUUID());
+  return result;
+ },'Lead tersimpan di D1');
  const changeStatus=(status:'assigned'|'qualified'|'disqualified')=>{
   if(!selected)return;
   void run(()=>api('PATCH','/api/marketing/leads',{id:selected.lead.id,status,qualification}),
@@ -86,7 +93,7 @@ export default function MarketingLeads(){
     <h1 className="mt-1 text-xl font-extrabold text-slate-900 sm:text-2xl">Lead-to-Opportunity Workspace</h1>
     <p className="mt-1 max-w-2xl text-xs text-slate-600">Lead → Qualification → Konversi Customer/Opportunity → Sales Pipeline. Semua menggunakan sumber data D1 yang sama.</p>
    </div>
-   <button type="button" disabled={busy||!['admin','marketing','sales'].includes(role)} onClick={()=>{setNewMode(true);setSelected(null);setMessage('');setForm(empty());}}
+   <button type="button" disabled={busy||!['admin','marketing','sales'].includes(role)} onClick={()=>{setNewMode(true);setSelected(null);setMessage('');setForm(empty());setRequestKey(crypto.randomUUID());}}
     className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50"><Plus size={15}/> Lead Baru</button>
   </header>
   {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
