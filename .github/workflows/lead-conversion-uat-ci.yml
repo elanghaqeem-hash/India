@@ -18,9 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-          cache: npm
-      - name: Install locked dependencies
-        run: npm ci --no-audit --no-fund
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
       - name: Atomic conversion, RBAC, conflict and rollback tests
         run: node --test tests/marketing-lead-atomic.test.cjs
       - name: Existing BoQ and commercial regression suite
