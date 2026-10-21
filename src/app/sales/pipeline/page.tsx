@@ -2,15 +2,13 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
-import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
 
 type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_number:string;status:string;project_name:string}[];
  poCheck:{verified_by:string;verified_at:string}|null;checklist:{registration:string[];project:string[]};
- originLead:{lead_id:string;lead_number:string;source:string;campaign:string}|null;
  history:{action:string;from_stage:string|null;to_stage:string|null;actor_email:string;created_at:string}[];
- activities:{kind:string;subject:string;detail:string;created_at:string}[];journey:JourneyGate[];role:string;identityEmail:string};
+ activities:{kind:string;subject:string;detail:string;created_at:string}[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500';
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
@@ -214,35 +212,12 @@ export default function SalesPipelinePage(){
     <>{['admin','finance','approver'].includes(role)&&<button disabled={busy} onClick={verify} className="rounded-lg border border-blue-300 px-3 py-2 text-xs font-bold">Verifikasi PO (Finance/Approver)</button>}{mayMove&&<button disabled={busy||!detail.poCheck} onClick={()=>transition('closed_won')} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-40">Closed Won</button>}</>}
     {mayMove&&detail.deal.stage!=='closed_won'&&detail.deal.stage!=='closed_lost'&&<button disabled={busy} onClick={()=>transition('closed_lost')} className="rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700">Closed Lost (isi alasan dahulu)</button>}
     {mayMove&&detail.deal.stage==='closed_lost'&&<button disabled={busy} onClick={()=>transition('prospecting')} className="rounded-lg border px-3 py-2 text-xs font-bold">Reopen → Prospecting</button>}
-    <Link href={'/sales/procurement?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-800">Tender / RKS-KAK / Bid Decision →</Link>
     <Link href={'/boq?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border px-3 py-2 text-xs font-semibold">Buat / Cek BoQ →</Link>
-    <Link href={'/sales/submission?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800">Submission & Evidence →</Link>
-    <Link href={'/sales/award?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-800">PO/SPK & Legal Review →</Link>
     {detail.boqs.some(b=>b.status==='approved'&&b.id===dealFields.boq_id)&&<a href={'/api/sales/quotation?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-300 px-3 py-2 text-xs font-bold text-indigo-800">Generate Quotation Word (BoQ approved)</a>}
     {detail.deal.stage==='closed_won'&&<Link href={'/post-po?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Isi Form Post-PO →</Link>}
     {detail.deal.stage==='closed_lost'&&<a href={'/api/sales/loss-report?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg bg-slate-900 px-3 py-2 text-xs font-bold text-white">Unduh Lost Analysis (.docx)</a>}
    </div>
-   {detail.originLead&&<div className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs">
-    <span className="text-slate-600">Lead asal: <b>{detail.originLead.lead_number}</b> · {detail.originLead.source}{detail.originLead.campaign?' · '+detail.originLead.campaign:''}</span>
-    <Link href={'/sales/leads?lead_id='+encodeURIComponent(detail.originLead.lead_id)} className="font-bold text-blue-700 hover:underline">Buka Lead Marketing →</Link>
-   </div>}
    {detail.poCheck&&<p className="mt-2 text-xs text-emerald-700">PO diverifikasi oleh {detail.poCheck.verified_by} • {detail.poCheck.verified_at}</p>}
-  </section>
-  <section className="space-y-3 rounded-xl border bg-white p-4">
-   <div><h3 className="text-sm font-bold">Journey 360 — Marketing hingga Closed Won</h3>
-    <p className="mt-1 text-xs text-slate-500">Indikator bersumber dari D1 dan validasi dokumen. Biru = siap secara data, kuning = perlu review manual, merah = belum memenuhi gate.</p></div>
-   <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-    {(detail.journey||[]).map(step=><details key={step.key} className="min-w-0 rounded-lg border border-slate-200 p-3">
-     <summary className="cursor-pointer list-none">
-      <div className="flex flex-wrap items-center justify-between gap-2"><span className="text-xs font-bold text-slate-900">{step.label}</span>
-       <span className={'rounded-full px-2 py-0.5 text-[10px] font-bold '+(step.state==='complete'?'bg-emerald-100 text-emerald-800':step.state==='manual_review'?'bg-amber-100 text-amber-900':step.state==='blocked'?'bg-red-100 text-red-800':'bg-slate-100 text-slate-700')}>
-        {step.state==='complete'?'Data lengkap':step.state==='manual_review'?'Review manual':step.state==='blocked'?'Belum siap':'Menunggu'}</span></div>
-      <p className="mt-1 text-[11px] text-slate-500">{step.owner}</p>
-     </summary>
-     <p className="mt-2 text-xs text-slate-600">{step.description}</p>
-     {step.missing.length>0&&<ul className="mt-2 list-inside list-disc space-y-1 text-[11px] text-rose-800">{step.missing.slice(0,12).map((x,i)=><li key={i}>{x}</li>)}</ul>}
-    </details>)}
-   </div>
   </section>
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
