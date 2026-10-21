@@ -4,6 +4,9 @@ const sameEmail=(a:string|undefined|null,b:string|undefined|null)=>
  !!a && !!b && a.trim().toLowerCase()===b.trim().toLowerCase();
 export const canReadDeal=(role:SalesRole,email:string,creator:string|null|undefined)=>
  role!=='sales'||sameEmail(email,creator);
+// Customer roster follows the same ownership boundaries as Sales opportunities.
+export const canReadAccount=(role:SalesRole,email:string,creator:string|null|undefined)=>
+ role!=='sales'||sameEmail(email,creator);
 export const canEditAccount=(role:SalesRole,email:string,creator:string|null|undefined)=>
  role==='admin'||(role==='sales'&&sameEmail(email,creator));
 export const canChangeStage=(role:SalesRole,email:string,creator:string|null|undefined)=>
