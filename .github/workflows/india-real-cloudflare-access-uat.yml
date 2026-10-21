@@ -1,0 +1,44 @@
+name: INDIA Real Cloudflare Access UAT (manual only)
+on:
+  workflow_dispatch:
+    inputs:
+      target_confirmation:
+        description: 'Type RUN_ISOLATED_UAT_ONLY after verifying the UAT Worker is bound to UAT D1'
+        required: true
+        type: choice
+        options:
+          - RUN_ISOLATED_UAT_ONLY
+
+permissions:
+  contents: read
+
+jobs:
+  human-access-uat:
+    if: ${{ inputs.target_confirmation == 'RUN_ISOLATED_UAT_ONLY' }}
+    runs-on: ubuntu-latest
+    environment: india-uat
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned repository dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Require verified Access JWT for three real identities and isolated D1 binding
+        env:
+          INDIA_UAT_BASE_URL: ${{ vars.INDIA_UAT_BASE_URL }}
+          INDIA_UAT_ALLOWED_HOST: ${{ vars.INDIA_UAT_ALLOWED_HOST }}
+          INDIA_UAT_WORKER_NAME: ${{ vars.INDIA_UAT_WORKER_NAME }}
+          INDIA_UAT_D1_ID: eaed652e-7322-4950-a304-dd50baa5de02
+          INDIA_UAT_ALLOW_WRITE: YES_ISOLATED_UAT
+          CLOUDFLARE_API_TOKEN: ${{ secrets.INDIA_UAT_CF_WORKER_READ_TOKEN }}
+          INDIA_ACCESS_TEAM_DOMAIN: ${{ vars.INDIA_UAT_ACCESS_TEAM_DOMAIN }}
+          INDIA_ACCESS_AUD: ${{ secrets.INDIA_UAT_ACCESS_AUD }}
+          INDIA_UAT_JWT_SALES_A: ${{ secrets.INDIA_UAT_JWT_SALES_A }}
+          INDIA_UAT_JWT_SALES_B: ${{ secrets.INDIA_UAT_JWT_SALES_B }}
+          INDIA_UAT_JWT_ADMIN: ${{ secrets.INDIA_UAT_JWT_ADMIN }}
+          INDIA_UAT_EMAIL_SALES_A: ${{ vars.INDIA_UAT_EMAIL_SALES_A }}
+          INDIA_UAT_EMAIL_SALES_B: ${{ vars.INDIA_UAT_EMAIL_SALES_B }}
+          INDIA_UAT_EMAIL_ADMIN: ${{ vars.INDIA_UAT_EMAIL_ADMIN }}
+        run: node scripts/india-cloudflare-access-real-uat.mjs
