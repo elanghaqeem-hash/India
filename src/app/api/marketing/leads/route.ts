@@ -5,14 +5,14 @@ export const dynamic='force-dynamic';
 const respond=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders});
 const fail=(message:string,status=400)=>respond({success:false,message},status);
 const adminRoles=['admin','marketing','sales'];
-type LeadRow={id:string;tenant_id:string;lead_number:string;account_name:string;source:string;campaign:string;
+type LeadRow={id:string;tenant_id:string;lead_number:string;account_name:string;source:string;campaign:string;campaign_id:string|null;
  service_family:string;contact_name:string;contact_email:string;assigned_sales_email:string;
  estimated_value_idr:number;expected_closing_date:string;qualification_json:string;status:LeadStatus;
  created_by:string;updated_by:string;created_at:string;updated_at:string};
 const view=(r:LeadRow)=>({...r,qualification:JSON.parse(r.qualification_json||'{}'),qualification_json:undefined});
 const sameRegistration=(r:LeadRow,v:LeadInput)=>
  r.account_name===v.account_name&&r.source===v.source&&r.campaign===v.campaign&&
- r.service_family===v.service_family&&r.contact_name===v.contact_name&&
+ (r.campaign_id||'')===(v.campaign_id||'')&&r.service_family===v.service_family&&r.contact_name===v.contact_name&&
  r.contact_email===v.contact_email&&r.assigned_sales_email===v.assigned_sales_email&&
  r.estimated_value_idr===v.estimated_value_idr&&r.expected_closing_date===v.expected_closing_date;
 const owner=(role:string,email:string,row:LeadRow)=>role==='admin'||role==='marketing'||(role==='sales'&&row.assigned_sales_email===email);
@@ -57,6 +57,13 @@ export async function POST(req:Request){
  try{
   if(p.entity==='lead'){
    const v=validateLead(p);
+   // The campaign name is sourced from the active D1 master, never trusted from browser text.
+   if(v.campaign_id){
+    const selected=await db.prepare('SELECT name,status FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
+     .bind(v.campaign_id,TENANT).first<{name:string;status:string}>();
+    if(!selected||selected.status!=='active')return fail('Campaign tidak ada atau tidak aktif. Pilih campaign aktif.',409);
+    v.campaign=selected.name;
+   }
    const requestKey=trim(p.request_key,64);
    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(requestKey))
     return fail('Request ID lead tidak valid. Muat ulang formulir untuk membuat ID baru.',422);
@@ -71,8 +78,8 @@ export async function POST(req:Request){
    if(!assignee||assignee.active!==1||!['sales','admin'].includes(assignee.role))return fail('Sales owner harus akun aktif dengan role Sales/Admin',422);
    const id=crypto.randomUUID(),lead_number='LD-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
    await db.batch([
-    db.prepare('INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,service_family,contact_name,contact_email,assigned_sales_email,estimated_value_idr,expected_closing_date,qualification_json,status,created_by,updated_by,request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-     .bind(id,TENANT,lead_number,v.account_name,v.source,v.campaign,v.service_family,v.contact_name,v.contact_email,v.assigned_sales_email,v.estimated_value_idr,v.expected_closing_date,JSON.stringify(v.qualification),'new',email,email,requestKey),
+    db.prepare('INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,campaign_id,service_family,contact_name,contact_email,assigned_sales_email,estimated_value_idr,expected_closing_date,qualification_json,status,created_by,updated_by,request_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+     .bind(id,TENANT,lead_number,v.account_name,v.source,v.campaign,v.campaign_id||null,v.service_family,v.contact_name,v.contact_email,v.assigned_sales_email,v.estimated_value_idr,v.expected_closing_date,JSON.stringify(v.qualification),'new',email,email,requestKey),
     db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
      .bind(crypto.randomUUID(),TENANT,'lead',id,'CREATE',email,'Lead '+lead_number)
    ]);
@@ -153,7 +160,13 @@ export async function POST(req:Request){
     const same=await db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
      .bind(TENANT,email,p.request_key).first<LeadRow>();
     if(same){
-     if(!sameRegistration(same,validateLead(p)))return fail('Request ID sudah digunakan untuk data Lead berbeda. Buat permintaan baru.',409);
+     const original=validateLead(p);
+     if(original.campaign_id){
+      const campaign=await db.prepare('SELECT name FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
+       .bind(original.campaign_id,TENANT).first<{name:string}>();
+      if(campaign)original.campaign=campaign.name;
+     }
+     if(!sameRegistration(same,original))return fail('Request ID sudah digunakan untuk data Lead berbeda. Buat permintaan baru.',409);
      return respond({success:true,id:same.id,lead_number:same.lead_number,status:same.status,already_created:true});
     }
    }catch{/* Original error below. */}
