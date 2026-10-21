@@ -21,6 +21,7 @@ test('migration 0004 and 0005 executes on SQL UAT baseline without deleting pree
  assert.equal(original[0].role,'admin');
  assert.equal(original[1].active,0);
  db.prepare('INSERT INTO india_members(email,role,active) VALUES (?,?,?)').run('marketing@example.test','marketing',1);
+ db.prepare('INSERT INTO india_members(email,role,active) VALUES (?,?,?)').run('legal@example.test','legal',1);
  assert.throws(()=>db.prepare("INSERT INTO india_members(email,role,active) VALUES (?,?,?)").run('invalid@example.test','superadmin',1));
  assert.equal(db.prepare("SELECT role FROM india_members WHERE email='marketing@example.test'").get().role,'marketing');
  const tables=db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all().map(x=>x.name);
@@ -43,6 +44,8 @@ test('transactional Lead -> Account -> Opportunity link is one-to-one and foreig
  .run('lead-1','defendit360','LD-UAT-1','PT Test','Webinar','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
  db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES (?,?,?,?,?)")
   .run('customer-1','defendit360','PT Test','IND-TEST-1','sales@example.test');
+ assert.throws(()=>db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES (?,?,?,?,?)")
+  .run('customer-duplicate','defendit360','pt test','IND-TEST-2','sales@example.test'));
  db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,created_by) VALUES (?,?,?,?,?,?,?)")
   .run('opp-1','defendit360','customer-1','VAPT TEST','prospecting',120000000,'sales@example.test');
  db.prepare("INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)")
