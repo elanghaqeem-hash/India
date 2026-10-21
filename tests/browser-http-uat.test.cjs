@@ -3,6 +3,9 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const {chromium}=require('playwright');
+const fs=require('node:fs'),path=require('node:path');
+const artifactDir=path.join(process.cwd(),'artifacts','browser-uat');
+fs.mkdirSync(artifactDir,{recursive:true});
 const base=process.env.INDIA_UAT_URL||'http://127.0.0.1:3100';
 const salesAccount={id:'uat-customer-a',legal_name:'PT DATA UAT NONPRODUKSI',
   customer_number:'IND-UAT-001',fields:{},created_at:'2026-10-21',created_by:'sales.a@uat.invalid'};
@@ -53,6 +56,7 @@ test('Browser fixtures: six role-specific Sales interfaces enforce create-button
      assert.equal(await customer.isEnabled(),role.canCreate,'Wrong create-customer privilege for '+role.name);
      assert.equal(await opportunity.isEnabled(),role.canCreate,'Wrong create-opportunity privilege for '+role.name);
      assert.ok(mockedResponses>=2,'UI did not request role-scoped API data');
+     await page.screenshot({path:path.join(artifactDir,'fixture-'+role.name+'.png'),fullPage:true});
      if(role.canCreate){
        await opportunity.click();
        await page.getByText('Pelanggan Terdaftar *',{exact:false}).waitFor();
@@ -82,6 +86,7 @@ test('Browser unauthenticated account access never enables create actions',async
    const status=page.locator('div[role="status"].whitespace-pre-wrap');
    await status.waitFor();
    assert.match(await status.innerText(),/D1 runtime|Database|login|Access|autentikasi/i);
+   await page.screenshot({path:path.join(artifactDir,'no-cloudflare-jwt.png'),fullPage:true});
   }finally{await page.close();}
  }finally{await browser.close();}
 });
