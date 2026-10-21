@@ -21,7 +21,7 @@ jobs:
       - name: Install dependencies
         run: npm install --no-audit --no-fund
       - name: Atomic conversion, RBAC, conflict and rollback tests
-        run: node --test tests/marketing-lead-atomic.test.cjs
+        run: node --test tests/marketing-lead-atomic.test.cjs tests/marketing-lead-http-simulation.test.cjs
       - name: Existing BoQ and commercial regression suite
         run: |
           npm run test:boq-domain
