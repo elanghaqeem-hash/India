@@ -9,3 +9,4 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_india_lead_converted_deals
  ON india_marketing_leads(tenant_id,converted_opportunity_id)
  WHERE converted_opportunity_id IS NOT NULL;
 -- Note: conversion requires existing 0003, 0004, and 0005 schema.
+INSERT OR IGNORE INTO india_schema_migrations(version) VALUES(6);
