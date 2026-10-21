@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
@@ -13,6 +14,8 @@ interface AppShellProps {
 export const AppShell: React.FC<AppShellProps> = ({ children }) => {
   const [currentRole, setCurrentRole] = useState<SystemRole>('sales');
   const [pendingCount] = useState<number>(1);
+  const pathname = usePathname();
+  const isD1Page = pathname.startsWith('/marketing/leads') || pathname.startsWith('/sales/pipeline') || pathname.startsWith('/boq');
 
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
@@ -21,8 +24,12 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         onRoleChange={setCurrentRole}
         pendingApprovalsCount={pendingCount}
       />
-      <div role="status" className="no-print border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-amber-900">
-        Pratinjau India (DEMO) — seluruh data adalah contoh, bukan data pelanggan sebenarnya. Fitur penyimpanan, transaksi dan API dinonaktifkan sampai keamanan serta database siap.
+      <div role="status" className={isD1Page
+          ? "no-print border-b border-blue-200 bg-blue-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-blue-900"
+          : "no-print border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-amber-900"}>
+        {isD1Page
+          ? "Modul transaksi D1: penyimpanan dan hak akses mengikuti akun Cloudflare Access, bukan pilihan role pada header. Memerlukan migrasi database sebelum dapat digunakan."
+          : "Pratinjau India (DEMO) — data contoh; API demo nonpersisten masih dinonaktifkan. Gunakan menu Marketing Leads / Sales Pipeline / BoQ untuk transaksi D1."}
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar pendingApprovalsCount={pendingCount} />
