@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feat/india-sales-pipeline-workflow-20261020
+      - feat/india-marketing-sales-consolidation-20261022
       - test/pr12-negative-44-integration-20261021
   pull_request:
     branches:
@@ -26,6 +27,8 @@ jobs:
         run: npm install --no-audit --no-fund
       - name: Seven-role UAT domain and document simulations
         run: npm run test:sales && npm run test:marketing && npm run test:india-negative
+      - name: Consolidated Marketing Sales schema and PR18 preservation tests
+        run: node --test tests/marketing-sales-consolidation.test.cjs
       - name: BoQ maker checker and quotation tests
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: TypeScript verification
