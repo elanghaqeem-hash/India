@@ -8,7 +8,7 @@ export type BoQPayload = {
  vat_rate:number; payment_terms:string; opportunity_id?:string|null; notes?:string|null;
  line_items:BoQLine[]; cost_items?:CostLine[];
 };
-export const roles:BoQRole[]=['admin','marketing','finance','presales','sales','approver','viewer'];
+export const roles:BoQRole[]=['admin','marketing','finance','presales','sales','approver','legal','viewer'];
 export const costRoles:BoQRole[]=['admin','finance'];
 export const salesRoles:BoQRole[]=['admin','finance','presales','sales'];
 export const approvalRoles:BoQRole[]=['admin','approver'];
