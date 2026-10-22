@@ -16,11 +16,17 @@ export const fieldPatch=(area:PostalArea)=>({
  hq_district:area.district_name,hq_district_code:area.district_code,
  hq_village:area.village_name,hq_village_code:area.region_code,hq_village_kind:area.village_kind
 });
+export async function assertPostalReferenceReady(db:D1DB){
+ const meta=await db.prepare("SELECT source_version FROM india_postal_import_state WHERE singleton=1 AND status='ready' AND row_count>=80000 AND province_count=38").first<{source_version:string}>();
+ if(!meta)throw new Error('Referensi wilayah nasional belum siap. Hubungi Administrator.');
+ return meta.source_version;
+}
 /** Validate at write time: never trust the selected names/codes from a browser. */
 export async function canonicalPostalFields(db:D1DB,fields:Record<string,string>){
  const postal=fields.hq_postal||'',village=fields.hq_village_code||'';
  if(!postal&&!village)return fields; // Legacy customers may not yet have a postal address.
  if(!postalRegex.test(postal)||!village)throw new Error('Pilih kode pos 5 digit dan desa/kelurahan dari database.');
+ await assertPostalReferenceReady(db);
  const area=await db.prepare(
   'SELECT region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind FROM india_postal_areas WHERE region_code=? AND postal_code=?'
  ).bind(village,postal).first<PostalArea>();
