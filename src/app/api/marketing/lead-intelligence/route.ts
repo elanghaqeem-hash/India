@@ -155,7 +155,7 @@ export async function POST(req:Request){
    const result=await write(db,[
     db.prepare("UPDATE india_marketing_leads SET status='assigned',version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=? AND version=? AND status='disqualified'")
      .bind(email,TENANT,id,r.version),
-    db.prepare('UPDATE india_lead_disqualifications SET active=0,changed_by=?,changed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND lead_id=? AND active=1 AND EXISTS(SELECT 1 FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='assigned' AND version=?)')
+    db.prepare("UPDATE india_lead_disqualifications SET active=0,changed_by=?,changed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND lead_id=? AND active=1 AND EXISTS(SELECT 1 FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='assigned' AND version=?)")
      .bind(email,TENANT,id,TENANT,id,r.version+1),
     // Preserve existing schedule as a legitimate next action, unless already completed.
     event('REACTIVATE',d.reason_code,'Reactivated to assigned; BANT must be revalidated before conversion',r.version+1),
