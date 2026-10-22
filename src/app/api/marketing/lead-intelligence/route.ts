@@ -11,7 +11,7 @@ type Lead={id:string;tenant_id:string;lead_number:string;account_name:string;sou
  status:string;version:number;qualification_json:string;service_family:string;contact_email:string;assigned_sales_email:string;
  estimated_value_idr:number;expected_closing_date:string;contact_name:string};
 type Plan={lead_id:string;state:string;cadence_days:number;channel:string;version:number;next_touch_at:string;touch_count:number;last_touch_at:string|null};
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10); // WIB calendar, not UTC
 const access=(role:string,email:string,r:Lead)=>privileged(role)||r.assigned_sales_email===email;
 async function lead(db:D1DB,id:string){return db.prepare('SELECT * FROM india_marketing_leads WHERE tenant_id=? AND id=?').bind(TENANT,id).first<Lead>();}
 const visible=(role:string)=>privileged(role)?1:0;
@@ -53,7 +53,7 @@ export async function GET(req:Request){
   }
   if(mode==='analytics'){
    const bound=[TENANT,visible(role),email] as (string|number)[];
-   const [overall,bySource,byOwner,byReason]=await Promise.all([
+   const [overall,bySource,byCampaign,byOwner,byReason]=await Promise.all([
     db.prepare(`SELECT count(*) total,sum(CASE WHEN l.status='qualified' THEN 1 ELSE 0 END) qualified,
       sum(CASE WHEN link.lead_id IS NOT NULL THEN 1 ELSE 0 END) converted,
       sum(CASE WHEN opp.stage='closed_won' THEN 1 ELSE 0 END) won,
@@ -63,6 +63,10 @@ export async function GET(req:Request){
       sum(CASE WHEN link.lead_id IS NOT NULL THEN 1 ELSE 0 END) converted,
       sum(CASE WHEN opp.stage='closed_won' THEN 1 ELSE 0 END) won
       ${summarySql} GROUP BY l.source ORDER BY total DESC LIMIT 100`).bind(...bound).all(),
+    db.prepare(`SELECT coalesce(nullif(l.campaign,''),'No Campaign') label,count(*) total,
+      sum(CASE WHEN link.lead_id IS NOT NULL THEN 1 ELSE 0 END) converted,
+      sum(CASE WHEN opp.stage='closed_won' THEN 1 ELSE 0 END) won
+      ${summarySql} GROUP BY coalesce(nullif(l.campaign,''),'No Campaign') ORDER BY total DESC LIMIT 100`).bind(...bound).all(),
     db.prepare(`SELECT l.assigned_sales_email label,count(*) total,
       sum(CASE WHEN link.lead_id IS NOT NULL THEN 1 ELSE 0 END) converted,
       sum(CASE WHEN opp.stage='closed_won' THEN 1 ELSE 0 END) won
@@ -73,7 +77,7 @@ export async function GET(req:Request){
       WHERE l.status='disqualified' AND ${ownerSql}
       GROUP BY coalesce(d.reason_code,'LEGACY_UNCLASSIFIED') ORDER BY total DESC`).bind(...bound).all()
    ]);
-   return response({success:true,overall,by_source:bySource.results,by_owner:byOwner.results,by_reason:byReason.results,
+   return response({success:true,overall,by_source:bySource.results,by_campaign:byCampaign.results,by_owner:byOwner.results,by_reason:byReason.results,
     definition:'Converted = link Customer/Opportunity exists; Won = linked Opportunity at closed_won. Includes all visible Leads (not just paged queue).'});
   }
   if(mode!=='queue')return failure('Mode tidak terdaftar',422);
