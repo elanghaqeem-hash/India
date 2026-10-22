@@ -13,7 +13,7 @@ const seed=(h,id,owner=users.sales,source='Referral',status='assigned')=>{
  return h.sql.prepare('SELECT * FROM india_marketing_leads WHERE id=?').get(id);
 };
 const post=(h,role,id,version,action,extra={})=>h.call('marketing/lead-intelligence','POST',role,{id,version,action,...extra});
-const day=()=>new Date().toISOString().slice(0,10);
+const day=()=>new Date(Date.now()+7*3600000).toISOString().slice(0,10);
 const scoring=()=>new Harness();
 test('scoring deterministic 100 cap, BANT readiness and budget negation without AI intent',()=>{
  const h=scoring();

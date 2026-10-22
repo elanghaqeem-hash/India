@@ -1,304 +1,37 @@
 'use client';
-
-import React, { useState } from 'react';
+import {useCallback,useEffect,useRef,useState} from 'react';
 import Link from 'next/link';
-import {
-  Building2,
-  Plus,
-  Search,
-  Shield,
-  Phone,
-  Mail,
-  MapPin,
-  ExternalLink,
-  Users,
-  Briefcase,
-  Wallet,
-} from 'lucide-react';
-import { appStore } from '@/lib/store';
-import { formatDate } from '@/lib/formatters';
-import { auditExistingSalesCustomer } from '@/lib/post-po-documents';
-import { Company, ClientTier, IndustryType } from '@/lib/types';
-
-export default function CustomersPage() {
-  const [companies, setCompanies] = useState<Company[]>(appStore.getState().companies);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
-
-  // New Company Form State
-  const [name, setName] = useState('');
-  const [legalName, setLegalName] = useState('');
-  const [industry, setIndustry] = useState<IndustryType>('Banking');
-  const [clientTier, setClientTier] = useState<ClientTier>('A');
-  const [npwp, setNpwp] = useState('');
-  const [contactName, setContactName] = useState('');
-  const [contactEmail, setContactEmail] = useState('');
-
-  const filteredCompanies = companies.filter(c =>
-    c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.customer_id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    c.industry.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleAddCompany = (e: React.FormEvent) => {
-    e.preventDefault();
-    const newId = `comp-${Date.now()}`;
-    const seq = companies.length + 1;
-    const customerId = `DEIT-2026-${String(seq).padStart(3, '0')}`;
-
-    const newCompany: Company = {
-      id: newId,
-      name,
-      legal_name: legalName || name,
-      customer_id: customerId,
-      npwp: npwp || '00.000.000.0-000.000',
-      industry,
-      client_tier: clientTier,
-      contacts: contactName ? [
-        { id: `c-${Date.now()}`, name: contactName, email: contactEmail, role_title: 'PIC Utama', is_primary: true }
-      ] : [],
-      created_at: new Date().toISOString(),
-    };
-
-    appStore.addCompany(newCompany);
-    setCompanies([...appStore.getState().companies]);
-    setShowAddModal(false);
-    setName('');
-    setLegalName('');
-    setNpwp('');
-    setContactName('');
-    setContactEmail('');
-  };
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="border-b border-slate-200 pb-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 text-white shadow-md shadow-blue-500/20">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Customer Master & 360</h1>
-              <p className="text-xs text-slate-500">
-                Data master pelanggan terpadu, tiering (S-E), pemetaan stakeholder & profil risiko pembayaran.
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-1.5 rounded-lg bg-blue-600 px-3.5 py-2 text-xs font-semibold text-white shadow-xs hover:bg-blue-700 transition-colors"
-          >
-            <Plus className="h-3.5 w-3.5" />
-            <span>Tambah Pelanggan Baru</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Search Bar */}
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
-          placeholder="Cari berdasarkan nama PT, Customer ID, atau industri..."
-          className="w-full rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-4 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 shadow-2xs"
-        />
-      </div>
-
-      {/* Companies Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredCompanies.map(comp => {
-          const activeOpps = appStore.getState().opportunities.filter(o => o.company_id === comp.id);
-          const wallet = appStore.getState().wallets.find(w => w.company_id === comp.id);
-          const salesAudit = auditExistingSalesCustomer(comp);
-
-          return (
-            <div
-              key={comp.id}
-              className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs hover:shadow-xs transition-shadow space-y-4"
-            >
-              <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-mono text-[10px] font-bold text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                      {comp.customer_id}
-                    </span>
-                    <span className="rounded-md bg-indigo-50 px-2 py-0.5 text-[10px] font-extrabold text-indigo-700 border border-indigo-200/50">
-                      Tier {comp.client_tier}
-                    </span>
-                  </div>
-                  <h3 className="font-extrabold text-slate-900 text-sm mt-1.5">{comp.name}</h3>
-                  <div className="text-[11px] text-slate-400 mt-0.5">{comp.legal_name || comp.name}</div>
-                </div>
-
-                <div className="text-right">
-                  <span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-700">
-                    {comp.industry}
-                  </span>
-                </div>
-              </div>
-
-              {/* Contacts & Info */}
-              <div className="space-y-2 text-xs text-slate-600">
-                <div className="flex items-center gap-2 text-slate-500">
-                  <span className="font-medium text-[11px]">NPWP:</span>
-                  <span className="font-mono text-slate-800 font-semibold">{comp.npwp || '-'}</span>
-                </div>
-
-                {comp.contacts.length > 0 && (
-                  <div className="border-t border-slate-100 pt-2 space-y-1">
-                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block">
-                      PIC Utama:
-                    </span>
-                    {comp.contacts.map(c => (
-                      <div key={c.id} className="flex justify-between items-center text-xs">
-                        <span className="font-semibold text-slate-800">{c.name} ({c.role_title})</span>
-                        <span className="text-blue-600 font-medium">{c.email}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs">
-                  <div className="font-semibold text-amber-900">Form Administrasi: {salesAudit.missing.length ? salesAudit.missing.length+' isian belum terpenuhi' : 'data master terisi'}</div>
-                  <Link href="/post-po" className="font-bold text-violet-700 underline underline-offset-2">Audit & Lengkapi</Link>
-                </div>
-
-                {/* Status Badges */}
-                <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-xs">
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 text-slate-600">
-                      <Briefcase className="h-3.5 w-3.5 text-slate-400" />
-                      <span>{activeOpps.length} Deals Aktif</span>
-                    </div>
-                    {wallet && (
-                      <div className="flex items-center gap-1 text-blue-700 font-bold">
-                        <Wallet className="h-3.5 w-3.5 text-blue-600" />
-                        <span>{wallet.available_balance} MD Token</span>
-                      </div>
-                    )}
-                  </div>
-                  <span className="text-[10px] text-slate-400">
-                    Sejak {formatDate(comp.created_at)}
-                  </span>
-                </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Add Company Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-xs p-4 animate-in fade-in">
-          <div className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-sm font-bold text-slate-900">Registrasi Pelanggan Baru</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-slate-600">
-                &times;
-              </button>
-            </div>
-
-            <form onSubmit={handleAddCompany} className="space-y-3.5 text-xs">
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Nama Perusahaan / Brand *</label>
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={e => setName(e.target.value)}
-                  placeholder="Contoh: PT Bank Mega Pratama"
-                  className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Industri / Sektor *</label>
-                  <select
-                    value={industry}
-                    onChange={e => setIndustry(e.target.value as IndustryType)}
-                    className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                  >
-                    {['Banking', 'Asuransi', 'Multifinance', 'Fintech', 'BUMN', 'Pemerintah', 'Healthcare', 'Retail', 'Manufaktur', 'Lainnya'].map(i => (
-                      <option key={i} value={i}>{i}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Client Tier *</label>
-                  <select
-                    value={clientTier}
-                    onChange={e => setClientTier(e.target.value as ClientTier)}
-                    className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                  >
-                    <option value="S">Tier S (BUMN Holding / Tier-1 Bank)</option>
-                    <option value="A">Tier A (Enterprise Tbk / Large Bank)</option>
-                    <option value="B">Tier B (Mid Enterprise)</option>
-                    <option value="C">Tier C (High-Growth Fintech)</option>
-                    <option value="D">Tier D (Government / Regulated Pagu)</option>
-                    <option value="E">Tier E (BPR / SMB)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">NPWP Badan Usaha</label>
-                <input
-                  type="text"
-                  value={npwp}
-                  onChange={e => setNpwp(e.target.value)}
-                  placeholder="XX.XXX.XXX.X-XXX.XXX"
-                  className="w-full rounded-lg border border-slate-200 p-2 text-xs font-mono"
-                />
-              </div>
-
-              <div className="border-t border-slate-100 pt-2 grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Nama PIC</label>
-                  <input
-                    type="text"
-                    value={contactName}
-                    onChange={e => setContactName(e.target.value)}
-                    placeholder="Nama PIC"
-                    className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Email PIC</label>
-                  <input
-                    type="email"
-                    value={contactEmail}
-                    onChange={e => setContactEmail(e.target.value)}
-                    placeholder="email@perusahaan.com"
-                    className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="rounded-lg bg-blue-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
-                >
-                  Simpan Pelanggan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+import {commercialAPI,EntryForm,inputStyle,type FormField} from '@/components/sales/CommercialUI';
+import {Records} from '@/components/sales/ServiceWorkspace';
+type Row=Record<string,unknown>;
+type Account={id:string;legal_name:string;customer_number:string;fields?:Record<string,string>};
+type Data={role:string;identityEmail:string;accounts:Account[];account?:Account;deals:Row[];records:Row[];relations:Row[];opportunity_relations:Row[];leads:Row[];communications:Row[];emails:Row[];contracts:Row[];billing:Row[]};
+export default function CustomersPage(){
+ const [data,setData]=useState<Data|null>(null),[id,setId]=useState(''),[notice,setNotice]=useState(''),[busy,setBusy]=useState(false);const sequence=useRef(0);
+ useEffect(()=>{let active=true;void commercialAPI('/api/sales/customer360').then(x=>{if(!active)return;setData(x);setId(new URLSearchParams(window.location.search).get('customer_id')||x.accounts[0]?.id||'');}).catch(e=>{if(active)setNotice(e.message);});return()=>{active=false;};},[]);
+ const reload=useCallback(async()=>{const n=++sequence.current;if(!id)return;const x=await commercialAPI('/api/sales/customer360?customer_id='+encodeURIComponent(id));if(n===sequence.current)setData(x);},[id]);
+ useEffect(()=>{setNotice('');setData(current=>current?{...current,account:undefined}:null);if(id)void reload().catch(e=>setNotice(e.message));return()=>{sequence.current++;};},[id,reload]);
+ const mutate=async(action:string,p:Row)=>{setBusy(true);setNotice('');try{await commercialAPI('/api/sales/customer360',{customer_id:id,action,...p});await reload();setNotice('Data customer dan audit tersimpan.');return true;}catch(e){setNotice(e instanceof Error?e.message:String(e));return false;}finally{setBusy(false);}};
+ const form=(title:string,fields:FormField[],action:string)=><EntryForm key={title+'-'+id} title={title} fields={fields} disabled={busy} submit="Simpan" onSubmit={p=>mutate(action,p)}/>;
+ const editable=data&&['admin','sales'].includes(data.role),account=data?.account;
+ const dealOptions=data?.deals?.map(d=>({value:String(d.id),label:String(d.title)}))||[];
+ return <main className="mx-auto min-w-0 max-w-6xl space-y-5 pb-20"><header className="rounded-2xl border bg-white p-5"><p className="text-xs font-bold tracking-widest text-blue-700">INDIA · Customer Lifecycle</p><h1 className="mt-2 text-2xl font-extrabold">Customer 360 Terpadu</h1><p className="mt-2 text-sm text-slate-600">Customer ID kanonik menghubungkan Lead, Opportunity, kontrak, produk terpasang dan pembayaran.</p><label className="mt-4 block text-xs font-bold">Customer<select className={inputStyle} aria-label="Customer" value={id} disabled={busy} onChange={e=>setId(e.target.value)}><option value="">Pilih Customer</option>{data?.accounts.map(a=><option value={a.id} key={a.id}>{a.customer_number} · {a.legal_name}</option>)}</select></label><Link className="mt-3 inline-block min-h-11 py-3 text-xs font-bold text-blue-800 underline" href="/sales/pipeline">Registrasi atau perbarui Customer di Sales CRM</Link></header>
+ {notice&&<p role="status" className="rounded-xl border bg-blue-50 p-4 text-sm">{notice}</p>}
+ {account&&data&&<><section className="rounded-2xl bg-slate-900 p-5 text-white"><p className="text-xs text-cyan-200">{account.customer_number}</p><h2 className="mt-1 text-xl font-bold">{account.legal_name}</h2><dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">{Object.entries(account.fields||{}).filter(([,value])=>value).map(([key,value])=><div key={key} className="min-w-0"><dt className="text-xs text-slate-300">{key.replaceAll('_',' ')}</dt><dd className="break-words">{value}</dd></div>)}</dl></section>
+ <Records title="Grup perusahaan, anak usaha & cabang" rows={data.relations} columns={[["legal_name","Perusahaan"],["customer_number","Customer ID"],["kind","Relasi"],["parent_id","Parent"]]}/>
+ <Records title="Stakeholder & produk terpasang" rows={data.records.map(r=>({...r,...(r.data as Row)}))} columns={[["kind","Jenis"],["title","Nama / produk"],["role_title","Jabatan"],["influence","Pengaruh"],["email","Email"],["sku","SKU"],["support_until","Support sampai"]]}/>
+ <Records title="Lead asal & konversi" rows={data.leads} columns={[["lead_number","Lead"],["source","Sumber"],["campaign","Campaign"],["converted_at","Dikonversi"]]}/>
+ <section className="space-y-3 rounded-2xl border bg-white p-4"><h2 className="font-bold">Opportunity & peluang lanjutan</h2>{!data.deals.length&&<p className="text-sm text-slate-500">Belum ada Opportunity.</p>}{data.deals.map(o=><div key={String(o.id)} className="flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3 text-sm"><div><p className="font-semibold">{String(o.title)}</p><p className="mt-1 text-xs text-slate-500">{String(o.stage)}</p></div><div className="flex flex-wrap gap-2">{[['/sales/pipeline','Sales'],['/sales/delivery','Delivery'],['/sales/billing','Billing'],['/sales/renewals','Renewal']].map(([url,label])=><Link className="min-h-11 rounded-lg border px-3 py-3 text-xs font-bold text-blue-800" key={url} href={url+'?opportunity_id='+encodeURIComponent(String(o.id))}>{label}</Link>)}</div></div>)}</section>
+ <Records title="Relasi antar-Opportunity" rows={data.opportunity_relations} columns={[["source_id","Sumber"],["target_id","Lanjutan"],["kind","Relasi"]]}/>
+ <Records title="Histori aktivitas & komunikasi" rows={data.communications} columns={[["subject","Subjek"],["kind","Aktivitas"],["detail","Catatan"],["created_at","Tanggal"]]}/>
+ <Records title="Histori email" rows={data.emails} columns={[["subject","Subjek"],["direction","Arah"],["sent_at","Tanggal"],["verification","Verifikasi"]]}/>
+ <Records title="Histori kontrak" rows={data.contracts} columns={[["title","Proyek"],["po_number","PO"],["model","Model"],["start_date","Mulai"],["end_date","Berakhir"],["status","Status"]]}/>
+ <Records title="Invoice & pembayaran" rows={data.billing.map(b=>({...b,paid_idr:Number(b.paid_cents)/100}))} columns={[["number","Invoice"],["due_date","Jatuh tempo"],["paid_idr","Dibayar (Rp)"],["status","Status"]]}/>
+ {editable&&<div className="grid gap-5 lg:grid-cols-2">{form('Tambah relasi perusahaan',[{key:'parent_id',label:'Grup / perusahaan induk',type:'select',options:data.accounts.filter(a=>a.id!==id).map(a=>({value:a.id,label:a.legal_name}))},{key:'kind',label:'Jenis relasi',type:'select',options:[{value:'subsidiary',label:'Anak usaha'},{value:'branch',label:'Cabang'}]}],'relation')}
+ {form('Tambah stakeholder',[{key:'title',label:'Nama stakeholder'},{key:'role_title',label:'Jabatan'},{key:'influence',label:'Pengaruh dalam keputusan',type:'select',options:['decision_maker','influencer','technical','procurement','billing','user'].map(value=>({value,label:value.replaceAll('_',' ')}))},{key:'email',label:'Email stakeholder',type:'email'},{key:'phone',label:'Telepon',optional:true}],'stakeholder')}
+ {form('Register produk terpasang',[{key:'opportunity_id',label:'Opportunity Won',type:'select',options:data.deals.filter(o=>o.stage==='closed_won').map(o=>({value:String(o.id),label:String(o.title)}))},{key:'title',label:'Nama produk'},{key:'sku',label:'SKU / entitlement'},{key:'installed_date',label:'Tanggal pemasangan',type:'date'},{key:'support_until',label:'Support sampai',type:'date',optional:true},{key:'notes',label:'Catatan instalasi',type:'textarea',optional:true}],'installed_product')}
+ {form('Hubungkan Opportunity',[{key:'source_id',label:'Opportunity sumber',type:'select',options:dealOptions},{key:'target_id',label:'Opportunity terkait',type:'select',options:dealOptions}],'opportunity_relation')}</div>}
+ </>}
+ {!id&&<p className="rounded-xl border bg-white p-5 text-sm text-slate-500">Belum ada customer yang dapat diakses.</p>}
+ </main>;
 }

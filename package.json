@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:modules-13-15 && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:modules-13-15 && npm run test:service-operations && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:executive": "node --test tests/india-executive-dashboard.test.cjs",
@@ -35,7 +35,8 @@
     "test:document-vault": "node --test tests/tender-vault-integration.test.cjs",
     "test:feasibility": "node --test tests/vendor-resource-feasibility.test.cjs",
     "test:modules-13-15": "node --test tests/modules-13-15.test.cjs",
-    "test:modules-browser": "node tests/run-modules-browser.cjs"
+    "test:modules-browser": "node tests/run-modules-browser.cjs",
+    "test:service-operations": "node --test tests/service-operations.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

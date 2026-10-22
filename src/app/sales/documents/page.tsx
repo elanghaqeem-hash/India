@@ -58,7 +58,7 @@ export default function DocumentVaultPage(){
    setNotice('Kebijakan tersimpan dan tercatat pada audit.');setKey(n=>n+1);
   }catch(e){setNotice(e instanceof Error?e.message:String(e));}
  }
- const allowedUpload=['admin','sales'].includes(role)||(role==='presales'&&['rks','kak','supporting'].includes(kind));
+ const allowedUpload=(role==='finance'&&kind==='supporting')||['admin','sales'].includes(role)||(role==='presales'&&['rks','kak','supporting'].includes(kind));
  return <main className="mx-auto w-full max-w-7xl min-w-0 space-y-5 px-3 py-5 pb-24 sm:px-6">
   <header className="rounded-2xl bg-slate-900 p-5 text-white">
    <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">India · Secure Document Management</p>
