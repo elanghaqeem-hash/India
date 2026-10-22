@@ -12,7 +12,7 @@ Status: feature branch / PR only. **No production migration, cron deployment, no
 
 ## SOP operasional
 - Capture Lead in Marketing, with assigned active Sales account. A new Lead automatically receives response SLA from its creation instant.
-- Register Visit, Call, Meeting or Follow-up from the existing Lead/Opportunity ID. Specify subject, description, start, completion deadline. Default reminder is 30 minutes before start.
+- Register Visit, Call, Meeting or Follow-up from the existing Lead/Opportunity ID. Specify subject, description, start, completion deadline. Default reminder is 30 minutes before start. D1 rejects overlapping on-site Visit/Meeting slots for the same Sales, including concurrent submissions.
 - Execution result **must be recorded by the logged-in user** as Completed with written outcome, or Cancelled with reason. Rescheduling increments revision and creates an event.
 - Only *Completed customer contact* types Call, Visit and Meeting count as first response for Lead SLA. Scheduling, notes, follow_up and data entry do not constitute a customer response.
 - At due time, Cron produces owner alerts. At +60 minutes, mapped Manager gets escalation. Every 15-minute check is idempotent.
@@ -46,6 +46,6 @@ Policy is a baseline, not a claim of an OJK-defined SLA. Business-hour/holiday c
 - No unauthenticated API access and no role switching from the demo app shell affects the server authorization.
 - Sales Manager is mapped to an existing active `admin` membership; a standalone `sales_manager` role with narrower permissions does **not** yet exist.
 - Notification is delivered to the in-app inbox by a deployed Cron Worker, not through SMTP/WhatsApp. The scheduler config in this PR is **UAT-only**.
-- Existing legacy activity notes remain available in Lead and Sales details; the new immutable timeline covers newly scheduled activity tasks and associated state changes.
-- User-visible counters are live computed from D1, while alerts are durable scheduler products; overdue can appear before the next Cron tick.
+- Existing Marketing Lead and Sales Opportunity activity notes are shown read-only alongside new task events in the consolidated Activity Timeline; their original records remain untouched.
+- User-visible counters are live computed from D1, while alerts are durable scheduler products; overdue can appear before the next Cron tick. Next Action also includes newly assigned Leads awaiting first response even if a calendar activity has not yet been created.
 - A successful GitHub CI run does not establish a successful multirole signed human Cloudflare Access UAT.
