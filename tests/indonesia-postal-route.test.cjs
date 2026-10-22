@@ -48,7 +48,7 @@ function route(role='sales', options={}){
 }
 
 test('middleware routes reference endpoint to authenticated handler',()=>{
- assert.match(middleware,/path==='\\/api\\/reference\\/postal'/);
+ assert.ok(middleware.includes("path==='/api/reference/postal'"));
 });
 test('postcode lookup requires Cloudflare Access before D1',async()=>{
  const r=route('sales',{unauthenticated:true});
