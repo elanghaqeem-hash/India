@@ -26,7 +26,7 @@
     "test:browser-http-uat": "node --test tests/browser-http-uat.test.cjs tests/sales-lifecycle-browser.cjs",
     "test:runtime-compat": "node --test tests/next16-compat.test.cjs",
     "test:sales-transactions": "node --test tests/sales-lifecycle-transactions.test.cjs",
-    "test:activities": "node --test tests/sales-activity-cron.test.cjs"
+    "test:activities": "node --test tests/sales-activity-cron.test.cjs tests/sales-activity-handler.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
