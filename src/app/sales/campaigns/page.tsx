@@ -2,13 +2,13 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowLeft,BarChart3,CheckCircle2,Plus,RefreshCw} from 'lucide-react';
-import {campaignChannels,campaignStatuses} from '@/lib/marketing-campaign';
+import {campaignChannels,campaignStatuses,generateCampaignCode} from '@/lib/marketing-campaign';
 type Campaign={
  id:string;code:string;name:string;channel:string;status:string;owner_email:string;
  budget_idr?:number;start_date:string;end_date:string;notes?:string;revision:number;
  total:number;qualified:number;converted:number;conversionRate:number;
 };
-const empty=()=>({code:'',name:'',channel:'webinar',status:'planned',owner_email:'',
+const empty=()=>({code:generateCampaignCode(),name:'',channel:'webinar',status:'planned',owner_email:'',
  budget_idr:'0',start_date:'',end_date:'',notes:''});
 const input='mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100';
 const money=(n:number)=>'Rp'+Number(n||0).toLocaleString('id-ID');
@@ -49,7 +49,7 @@ export default function MarketingCampaigns(){
     ?await request('PATCH',{id:editing.id,revision:editing.revision,...payload})
     :await request('POST',payload);
    await reload();
-   setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit.':'Campaign baru berhasil diregistrasi di D1.');
+   setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit.':`Campaign baru berhasil diregistrasi di D1. Kode: ${result.code}`);
    setEditing(null);setNewMode(false);setForm(empty());
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
@@ -97,12 +97,17 @@ export default function MarketingCampaigns(){
     <p className="mt-1 text-xs text-slate-500">Hanya Marketing/Admin yang dapat membuat dan mengubah Campaign. Campaign final tidak dapat diedit.</p>
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
      {([
-      ['code','Kode unik *','text'],['name','Nama campaign *','text'],
+      ['code','Kode unik (otomatis)','text'],['name','Nama campaign *','text'],
       ['owner_email','Owner email aktif *','email'],['budget_idr','Budget (IDR)','number'],
       ['start_date','Mulai','date'],['end_date','Berakhir','date']
      ] as const).filter(([key])=>editable||key!=='budget_idr').map(([key,label,type])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
-       <input className={input} type={type} disabled={!editable||busy||(!!editing&&key==='code')}
-        value={form[key]} onChange={e=>setForm(x=>({...x,[key]:e.target.value}))}/>
+       <input className={input+(key==='code'?' bg-slate-50 font-mono font-semibold text-slate-700':'' )}
+        type={type} readOnly={key==='code'} disabled={!editable||busy}
+        title={key==='code'?'Kode dibuat otomatis dan tidak dapat diubah.':''}
+        value={form[key]} onChange={e=>{if(key!=='code')setForm(x=>({...x,[key]:e.target.value}));}}/>
+      {key==='code'&&<span className="mt-1 block text-[11px] font-normal leading-relaxed text-slate-500">
+       Dibuat otomatis saat registrasi, unik per campaign, dan tetap saat revisi.
+      </span>}
       </label>)}
      <label className="text-xs font-semibold text-slate-700">Channel
       <select className={input} disabled={!editable||busy} value={form.channel} onChange={e=>setForm(x=>({...x,channel:e.target.value}))}>
