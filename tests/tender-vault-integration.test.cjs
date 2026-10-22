@@ -51,7 +51,7 @@ test('Tender review rejects invented reference and mismatching checksum; authent
   await expect(review(d),409);
   d.sql.prepare('UPDATE india_tender_checklist SET evidence_sha256=? WHERE id=?')
    .run(upload.body.sha256,'item-qa');
-  await expect(review(d),200);
+  await expect(review(d),201);
   assert.equal(d.sql.prepare("SELECT status FROM india_tender_checklist WHERE id='item-qa'").get().status,'ready');
   const snapshot=await expect(d.call('sales/bid-readiness','GET','sales',null,'?opportunity_id=opp-qa'),200);
   assert.equal(snapshot.body.report.ready,false); // No GO / approved deadline / 3 categories.
