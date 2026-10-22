@@ -48,6 +48,8 @@ test('stage filter remains a read-only UI filter, independent of workflow mutati
   assert.doesNotMatch(pipeline, /stages\.map\(\(\[id,l\]\)/);
   assert.match(component, /aria-pressed=\{value === option\.id\}/);
   assert.match(component, /max-h-\[min\(55vh,27rem\)\]/);
+  assert.match(component, /bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
+  assert.match(component, /z-\[60\]/);
   assert.match(component, /onKeyDown=/);
   assert.match(component, /document\.addEventListener\('pointerdown'/);
 });
