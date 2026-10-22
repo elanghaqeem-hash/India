@@ -20,6 +20,7 @@ import {
   KanbanSquare,
   Megaphone,
   CalendarDays,
+  UsersRound,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
     { name: 'Lead Score & Nurturing', href: '/sales/lead-intelligence', icon: TrendingUp, badge: 'D1' },
     { name: 'Tender Compliance & Vendor', href: '/sales/compliance', icon: FileSearch, badge: 'D1' },
     { name: 'Bid Readiness & Checklist', href: '/sales/bid-readiness', icon: ClipboardCheck, badge: 'D1' },
+    { name: 'Vendor, Resource & Feasibility', href: '/sales/feasibility', icon: UsersRound, badge: 'D1' },
     { name: 'Email & Negotiation', href: '/sales/communications', icon: FileText, badge: 'D1' },
     { name: 'Sales Forecast & Revenue', href: '/sales/forecast', icon: TrendingUp, badge: 'D1' },
     { name: 'Revenue Register', href: '/sales/revenue', icon: FileCheck2, badge: 'D1' },
