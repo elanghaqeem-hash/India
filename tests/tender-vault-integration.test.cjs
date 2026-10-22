@@ -44,7 +44,7 @@ test('Tender review rejects invented reference and mismatching checksum; authent
   let row=d.sql.prepare("SELECT status FROM india_tender_checklist WHERE id='item-qa'").get();
   assert.equal(row.status,'draft');
   const upload=await expect(original(d),201);
-  assert.match(upload.body.reference,/^vault:/);
+  assert.match(upload.body.reference,/^library:/);
   assert.equal(upload.body.sha256.length,64);
   d.sql.prepare('UPDATE india_tender_checklist SET evidence_reference=?,evidence_sha256=? WHERE id=?')
    .run(upload.body.reference,'b'.repeat(64),'item-qa');
