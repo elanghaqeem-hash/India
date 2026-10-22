@@ -17,6 +17,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { SystemRole } from '@/lib/types';
+import { formatAIChatMessage } from '@/lib/ai-chat-format';
 
 interface NavbarProps {
   currentRole: SystemRole;
@@ -307,7 +308,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                         : 'bg-slate-100 text-slate-900 border border-slate-200/80 rounded-bl-xs'
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === 'ai'
+                      ? formatAIChatMessage(msg.text).map((segment, segmentIndex) =>
+                          segment.format === 'bold' ? (
+                            <strong key={segmentIndex} className="font-semibold">{segment.text}</strong>
+                          ) : segment.format === 'italic' ? (
+                            <em key={segmentIndex}>{segment.text}</em>
+                          ) : (
+                            <React.Fragment key={segmentIndex}>{segment.text}</React.Fragment>
+                          ),
+                        )
+                      : msg.text}
                   </div>
                   {msg.provider && (
                     <span className="text-[9px] text-slate-400 mt-1 font-mono">
