@@ -104,6 +104,7 @@ test('pure Indonesian-only preference is a continuing-session command, not a new
   const ack = languagePreferenceAcknowledgment(prior);
   assert.match(ack, /Bahasa Indonesia/);
   assert.match(ack, /sebelumnya tetap berlanjut/);
+  assert.match(ack, /Apa itu VAPT/);
   assert.doesNotMatch(ack, /apa yang ingin Anda diskusikan|silakan beri tahu/i);
   const next = [...prior,
     {role:'user',content:'Gunakan bahasa Indonesia saja'},
