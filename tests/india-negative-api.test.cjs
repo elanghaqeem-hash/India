@@ -45,6 +45,10 @@ function route(file,role,email,db,additional={}){
   // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
   '@/lib/sales-journey':{salesJourney:()=>[]},
   '@/lib/sales-procurement':{needsTenderGate:()=>false,procurementGate:()=>[]},
+  '@/lib/tender-readiness':{
+   tenderReady:async()=>{throw Error('Unauthorized tender readiness lookup reached');},
+   guardTender:()=>{throw Error('Unauthorized tender export guard reached');}
+  },
   '@/lib/sales-submission':{submissionMatches:()=>false},
   '@/lib/sales-award':{validAwardForWon:()=>false},
   '@/lib/quotation-docx':{createQuotationDocx:()=>{throw Error('Unauthorized Word export reached');}},

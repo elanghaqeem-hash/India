@@ -1,3 +1,4 @@
+import {tenderReady,guardTender} from '@/lib/tender-readiness';
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {safeID,TENANT,emailValid,dateValid} from '@/lib/sales-workflow';
 import {sha256Valid,verifySubmissionRights,type Submission} from '@/lib/sales-submission';
@@ -39,6 +40,7 @@ export async function POST(req:Request){
   const d=await deal(db,id);if(!d)return err('Opportunity tidak tersedia',404);
   if(!canSee(role,email,d.created_by))return err('Hanya Sales pemilik Opportunity',403);
   if(!['quotation_sent','negotiation','pending_po'].includes(d.stage))return err('Quotations dapat dicatat setelah tahap Quotation Sent, sebelum Closed Won',409);
+  if(!await tenderReady(db,id))return err('Compliance tender dan bukti vendor harus berlaku sebelum submission',409);
   const f=JSON.parse(d.data_json||'{}') as Record<string,string>;
   const boq=await db.prepare('SELECT id,opportunity_id,version,quotation_number,status,customer_name,project_name FROM india_boq WHERE tenant_id=? AND id=?').bind(TENANT,f.boq_id||'').first<BoqRow>();
   if(!boq||boq.status!=='approved'||boq.opportunity_id!==d.id||f.quotation_number!==boq.quotation_number)

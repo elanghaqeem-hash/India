@@ -113,9 +113,15 @@ export async function POST(req:Request){
    const boq=await db.prepare('SELECT * FROM india_boq WHERE id=? AND tenant_id=?').bind(release.boq_id!,TENANT).first<Boq>();
    const subtotal=boq?boqTotals(JSON.parse(boq.line_items_json) as BoQLine[],[],boq.vat_rate).subtotal:NaN;
    if(decision==='approved'&&(!Number.isFinite(subtotal)||Math.abs(amount-subtotal)>0.01))return deny('Harga berbeda dari BoQ. Pilih Revision Required dan lakukan persetujuan ulang.',409);
+   const communication=str(p.communication_id);
+   if(communication){
+    if(!safeID(communication))return deny('ID email tidak valid',422);
+    const linked=await db.prepare("SELECT id FROM india_opportunity_emails WHERE id=? AND tenant_id=? AND opportunity_id=? AND direction='inbound' AND (release_id IS NULL OR release_id=?)").bind(communication,TENANT,id,release.id).first();
+    if(!linked)return deny('Email harus berasal dari Opportunity dan paket yang sama',409);
+   }
    const event=crypto.randomUUID();
    guard.condition+=" AND EXISTS(SELECT 1 FROM india_sales_submissions WHERE id=? AND status='verified' AND release_id=?)";guard.args.push(submission.id,release.id);
-   const writes=[db.prepare('INSERT INTO india_sales_negotiations(id,tenant_id,opportunity_id,release_id,submission_id,decision,amount_before_vat,notes,evidence_reference,evidence_sha256,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)').bind(event,TENANT,id,release.id,submission.id,decision,amount,notes,ref,sha,email),
+   const writes=[db.prepare('INSERT INTO india_sales_negotiations(id,tenant_id,opportunity_id,release_id,submission_id,decision,amount_before_vat,notes,evidence_reference,evidence_sha256,created_by,communication_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(event,TENANT,id,release.id,submission.id,decision,amount,notes,ref,sha,email,communication||null),
     db.prepare('UPDATE india_sales_opportunities SET data_json=? WHERE id=?').bind(JSON.stringify({...f,customer_decision:decision==='approved'?'approved':decision==='rejected'?'rejected':'pending',negotiation_notes:notes}),id),
     db.prepare('DELETE FROM india_sales_po_checks WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id),salesAudit(db,id,'NEGOTIATION_'+decision.toUpperCase(),email,'Paket v'+release.version+' '+notes)];
    if(decision==='revision_required')writes.push(db.prepare("UPDATE india_sales_releases SET status='superseded' WHERE id=?").bind(release.id),db.prepare("UPDATE india_sales_submissions SET status='superseded' WHERE release_id=? AND status IN ('reported','verified')").bind(release.id),db.prepare("UPDATE india_sales_opportunities SET stage='solution_design' WHERE id=?").bind(id));

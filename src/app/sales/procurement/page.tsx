@@ -82,6 +82,7 @@ export default function SalesProcurement(){
   <header className="space-y-2 rounded-xl border bg-white p-4 sm:p-5">
    <Link href={'/sales/pipeline?opportunity_id='+encodeURIComponent(opp)} className="inline-flex items-center gap-1 text-xs font-semibold text-blue-700"><ArrowLeft size={14}/> Kembali ke Opportunity</Link>
    <div className="flex items-center gap-2 text-xs font-bold text-blue-700"><FileSearch size={16}/> INDIA · Procurement & Scoping</div>
+   <Link href={'/sales/compliance?opportunity_id='+encodeURIComponent(opp)} className="inline-flex rounded-lg border px-3 py-2 text-xs font-bold text-blue-700">Matriks per Klausul & Vendor Management →</Link>
    <h1 className="text-xl font-extrabold text-slate-900 sm:text-2xl">Bid/No-Bid, RKS/KAK & Requirement Register</h1>
    <p className="text-xs text-slate-600">{title||'Opportunity belum dipilih'} · {opp}</p>
    <p className="text-xs text-amber-800">Unggah untuk ekstraksi dan hash saja; referensi arsip sumber harus menunjuk dokumen yang dikelola sesuai kebijakan perusahaan. Tidak ada dokumen yang otomatis dianggap sah.</p>

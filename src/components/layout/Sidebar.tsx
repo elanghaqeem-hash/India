@@ -34,6 +34,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
     { name: 'Marketing & Leads', href: '/sales/leads', icon: Megaphone, badge: 'D1' },
     { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
     { name: 'Activity, SLA & Follow-up', href: '/sales/activities', icon: CalendarDays, badge: 'D1' },
+    { name: 'Lead Score & Nurturing', href: '/sales/lead-intelligence', icon: TrendingUp, badge: 'D1' },
+    { name: 'Tender Compliance & Vendor', href: '/sales/compliance', icon: FileSearch, badge: 'D1' },
+    { name: 'Email & Negotiation', href: '/sales/communications', icon: FileText, badge: 'D1' },
+    { name: 'Sales Forecast & Revenue', href: '/sales/forecast', icon: TrendingUp, badge: 'D1' },
+    { name: 'Revenue Register', href: '/sales/revenue', icon: FileCheck2, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
     {
       name: 'Legacy 360 (Demo)',

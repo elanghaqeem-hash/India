@@ -1,3 +1,4 @@
+import {tenderReady,guardTender} from '@/lib/tender-readiness';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine, type CostLine } from '@/lib/boq-domain';
 import { createQuotationDocx, type QuotationDetails } from '@/lib/quotation-docx';
@@ -39,6 +40,7 @@ export async function GET(req:Request){
    return deny('Nama proyek, pelanggan atau nomor quotation belum sesuai dengan BoQ approved.',409);
   const release=await currentRelease(db,id);
   if(!release||release.status!=='approved'||release.boq_id!==boq.id||release.boq_version!==boq.version)return deny('Proposal versi aktif harus approved sebelum ekspor quotation',409);
+  if(!await tenderReady(db,id))return deny('Bid GO, mandatory clause dan validasi vendor harus lengkap sebelum ekspor quotation',409);
   const days=Number(fields.quotation_valid_days),until=fields.quotation_valid_until||'';
   if(!Number.isInteger(days)||days<=0||days>365||!/\d{4}-\d{2}-\d{2}/.test(until))
    return deny('Lengkapi masa berlaku dan tanggal akhir quotation di Sales Form sebelum ekspor.',409);

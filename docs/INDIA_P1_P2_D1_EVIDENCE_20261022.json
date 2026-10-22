@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-22",
+  "timezone": "Asia/Jakarta",
+  "environment": "isolated rehearsal only",
+  "database": {
+    "name": "india-p1-p2-rehearsal-20261022",
+    "id": "8685031e-ab08-4c51-ae4f-740f45a3c99d"
+  },
+  "migrations": [
+    {
+      "file": "0013_sales_activity_orchestration.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 24
+    },
+    {
+      "file": "0014_lead_intelligence.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 11
+    },
+    {
+      "file": "0016_tender_vendor_compliance.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 17
+    },
+    {
+      "file": "0017_opportunity_email.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 8
+    },
+    {
+      "file": "0018_sales_forecast.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 6
+    },
+    {
+      "file": "0019_verified_revenue.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 8
+    },
+    {
+      "file": "0020_activity_lead_intelligence.sql",
+      "success": true,
+      "status": 200,
+      "errors": [],
+      "statements": 6
+    }
+  ],
+  "checks": [
+    {
+      "name": "maker-checker-negative",
+      "pass": true
+    },
+    {
+      "name": "independent-review",
+      "pass": true
+    },
+    {
+      "name": "mandatory-clause-negative",
+      "pass": true
+    },
+    {
+      "name": "independent-clause-review",
+      "pass": true
+    },
+    {
+      "name": "integrity",
+      "pass": true,
+      "schema_version": 20,
+      "foreign_key_violations": 0,
+      "quick_check": "ok",
+      "valid_clauses": 1
+    }
+  ],
+  "shared_uat": {
+    "schema_version": 13,
+    "non_fixture_active_sales_count": 0,
+    "worker_sha": "8de0717aae6b406f9d217a855e28c85ff40bc238"
+  },
+  "human_access_uat": "BLOCKED: approved real Sales A/Sales B accounts and signed sessions unavailable",
+  "production": "Unchanged"
+}

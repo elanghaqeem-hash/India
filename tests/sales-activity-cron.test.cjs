@@ -14,6 +14,7 @@ function fixture(){
  INSERT INTO india_marketing_leads(id,tenant_id,account_name,lead_number,assigned_sales_email,status,created_at)
  VALUES('lead-old','defendit360','Customer X','LD-OLD','sales-a@example.test','new',datetime('now','-4 hours')); `);
  sql.exec(fs.readFileSync('migrations/0013_sales_activity_orchestration.sql','utf8'));
+ sql.exec(`CREATE TABLE india_lead_nurture_plans(lead_id TEXT,tenant_id TEXT,state TEXT,channel TEXT,next_touch_at TEXT,version INTEGER);`);
  return sql;
 }
 function adapter(sql){

@@ -44,7 +44,12 @@ export default {
     LEFT JOIN india_sales_activity_policy p ON p.tenant_id=s.tenant_id
     WHERE s.first_response_at IS NULL AND l.status NOT IN ('converted','disqualified')
     AND datetime(s.response_due_at,printf('+%d minutes',coalesce(p.escalation_minutes,60)))<=datetime('now')
-    AND NOT EXISTS(SELECT 1 FROM india_sales_team_managers m JOIN india_members x ON x.email=m.manager_email AND x.active=1 AND x.role='admin' WHERE m.tenant_id=s.tenant_id AND m.sales_email=s.owner_email)`)
+    AND NOT EXISTS(SELECT 1 FROM india_sales_team_managers m JOIN india_members x ON x.email=m.manager_email AND x.active=1 AND x.role='admin' WHERE m.tenant_id=s.tenant_id AND m.sales_email=s.owner_email)`),
+   db.prepare(`INSERT OR IGNORE INTO india_sales_activity_alerts(alert_key,tenant_id,lead_id,recipient_email,alert_type,message)
+    SELECT 'nurture:'||n.lead_id||':'||n.version,n.tenant_id,n.lead_id,l.assigned_sales_email,'reminder','Nurture due ('||n.channel||'): '||l.account_name
+    FROM india_lead_nurture_plans n JOIN india_marketing_leads l ON l.id=n.lead_id AND l.tenant_id=n.tenant_id
+    JOIN india_members m ON m.email=l.assigned_sales_email AND m.active=1
+    WHERE n.state='active' AND l.status IN ('new','assigned','disqualified') AND date(n.next_touch_at)<=date('now','+7 hours')`)
   ]));
  }
 };

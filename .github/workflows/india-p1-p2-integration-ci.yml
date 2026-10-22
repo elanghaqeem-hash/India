@@ -1,0 +1,33 @@
+name: INDIA P1 P2 Commercial Integration
+on:
+  push:
+    branches: [feat/india-p1-p2-integration-20261022]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  commercial-integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: P1 P2 real route, schema and negative transaction tests
+        run: npm run test:p1-p2 && npm run test:activities && npm run test:lead-intelligence
+      - name: Existing seven-role commercial regressions
+        run: npm run test:sales && npm run test:marketing && npm run test:sales-transactions && npm run test:india-negative && npm run test:consolidation
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Cloudflare production bundle and document regressions
+        run: npm run build:cf
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install test browser
+        run: npx playwright install --with-deps chromium
+      - name: Browser to actual handler and SQLite tests (fixture identity only)
+        run: node tests/run-commercial-browser.cjs
