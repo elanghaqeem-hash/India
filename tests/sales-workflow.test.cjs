@@ -70,3 +70,16 @@ test('quotation export requires approved D1 BoQ linked to same account and oppor
  assert.match(source,/opportunity_id=\?/);
  assert.match(source,/quotation_valid_days/);
 });
+
+test('segmentasi pelanggan is optional for Customer registration and Sales stage gates',()=>{
+ const withoutTier={...account,fields:{...account.fields}};
+ delete withoutTier.fields.client_tier;
+ assert.deepEqual(validateAccount(withoutTier),[]);
+ assert.deepEqual(requiredForStage('qualified',deal,withoutTier),[]);
+ assert.ok(!documentChecklist(deal,withoutTier).registration.includes('client_tier'));
+ const explicitEmpty={...account,fields:{...account.fields,client_tier:''}};
+ assert.deepEqual(validateAccount(explicitEmpty),[]);
+ assert.ok(!documentChecklist(deal,explicitEmpty).registration.includes('client_tier'));
+ const cleaned=cleanFields({client_tier:''},ACCOUNT_KEYS);
+ assert.equal(cleaned.client_tier,'');
+});
