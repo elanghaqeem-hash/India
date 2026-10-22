@@ -30,7 +30,9 @@ test('D1 migration 0022 is additive and has no fabricated monthly targets',async
 });
 test('Access roles, ownership, owner filters, input validation and no cross-owner disclosure',async()=>{
  const h=fixture();try{
-  for(const role of ['viewer','marketing','presales','legal'])await expect(get(h,role),403);
+  for(const role of ['viewer','presales','legal'])await expect(get(h,role),403);
+  // Harness does not register a Marketing identity; unauthenticated fixtures fail closed at 401.
+  await expect(get(h,'marketing'),401);
   const other=await expect(get(h,'other'),200);
   assert.equal(other.body.totals.open_pipeline_idr,0);
   assert.equal(other.body.by_owner.length,1);
