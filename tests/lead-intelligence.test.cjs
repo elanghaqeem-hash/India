@@ -1,5 +1,4 @@
 const test=require('node:test'),assert=require('node:assert/strict');
-process.env.DEBUG_FLOW='1'; // temporary diagnostic for CI's SQLite adapter
 const fs=require('node:fs'),path=require('node:path');
 const {Harness,users,tenant,expect}=require('./helpers/sales-flow-harness.cjs');
 const root=path.resolve(__dirname,'..');
