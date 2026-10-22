@@ -4,6 +4,7 @@ import {canReadDeal} from '@/lib/sales-access';
 import {readBoundedJSON,RequestBodyError} from '@/lib/bounded-json';
 import {atomicSales,dealGuard,salesAudit,transactionError,type FlowDeal} from '@/lib/sales-transactions';
 import {tenderReady} from '@/lib/tender-readiness';
+import {tenderVaultGaps,authenticateTenderOriginal} from '@/lib/tender-vault';
 import {buildBidReport,matrixCSV,checklistCSV,reportCSV,validDeadline,shaValid,checklistCategories,milestoneKinds,
  type Bid,type Requirement,type Clause,type Deadline,type Checklist} from '@/lib/bid-readiness';
 export const dynamic='force-dynamic';
@@ -41,7 +42,9 @@ export async function GET(req:Request){
   const data=await snapshot(db,id),report=buildBidReport(data.bid,data.requirements,data.clauses,data.checklist,data.deadlines);
   // The SQL predicate is the authoritative concurrency-safe release gate.
   const sqlReady=await tenderReady(db,id);
-  report.ready=report.ready&&sqlReady;
+  const vaultGaps=await tenderVaultGaps(db,id,data.requirements,data.clauses,data.checklist);
+  report.gaps.push(...vaultGaps);
+  report.ready=report.ready&&sqlReady&&vaultGaps.length===0;
   if(!sqlReady&&!report.gaps.length)report.gaps.push('Kontrol SQL atas paket penawaran masih menolak rilis.');
   const output=new URL(req.url).searchParams.get('output');
   if(output){
@@ -121,6 +124,10 @@ export async function POST(req:Request){
     return fail('Tidak dapat mengesahkan deadline submission yang sudah lewat',409);
    if(!isDeadline&&p.approve&&(!row.document_name||!row.evidence_reference||row.evidence_reference.length<8||!shaValid(row.evidence_sha256||'')||(row.due_at&&Date.parse(row.due_at)<=Date.now())))
     return fail('Nama file, referensi, SHA-256 dan tenggat dokumen harus valid sebelum ready',409);
+   if(!isDeadline&&p.approve&&row.status==='draft'){
+    try{await authenticateTenderOriginal(db,d.id,row.evidence_reference||'',row.evidence_sha256||'',row.document_name||'');}
+    catch{return fail('Bukti tender wajib berasal dari file asli Vault dengan Opportunity, nama file, dan SHA-256 yang sesuai.',409);}
+   }
    g.condition+=' AND EXISTS(SELECT 1 FROM '+table+" WHERE id=? AND version=? AND status='draft')";g.args.push(row.id,row.version);
    if(isDeadline){
     writes.push(db.prepare("UPDATE india_tender_deadlines SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE id=?")
