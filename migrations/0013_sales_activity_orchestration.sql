@@ -1,0 +1,109 @@
+
+-- INDIA Activity Orchestration v1, additive to canonical migration 0012.
+-- Historical india_marketing_activities / india_sales_activities remain untouched.
+-- Timestamps are UTC; SLA is initially elapsed clock time (not business hours).
+CREATE TABLE india_sales_activity_policy (
+ tenant_id TEXT PRIMARY KEY,
+ lead_response_minutes INTEGER NOT NULL DEFAULT 120 CHECK(lead_response_minutes BETWEEN 15 AND 10080),
+ escalation_minutes INTEGER NOT NULL DEFAULT 60 CHECK(escalation_minutes BETWEEN 0 AND 10080),
+ reminder_minutes INTEGER NOT NULL DEFAULT 30 CHECK(reminder_minutes BETWEEN 0 AND 10080)
+);
+INSERT OR IGNORE INTO india_sales_activity_policy(tenant_id) VALUES('defendit360');
+
+CREATE TABLE india_sales_team_managers (
+ tenant_id TEXT NOT NULL,
+ sales_email TEXT NOT NULL COLLATE NOCASE,
+ manager_email TEXT NOT NULL COLLATE NOCASE,
+ assigned_by TEXT NOT NULL COLLATE NOCASE,
+ assigned_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ PRIMARY KEY(tenant_id,sales_email),
+ CHECK(sales_email<>manager_email)
+);
+
+CREATE TABLE india_sales_activity_tasks (
+ id TEXT PRIMARY KEY,
+ tenant_id TEXT NOT NULL,
+ lead_id TEXT REFERENCES india_marketing_leads(id),
+ opportunity_id TEXT REFERENCES india_sales_opportunities(id),
+ owner_email TEXT NOT NULL COLLATE NOCASE,
+ kind TEXT NOT NULL CHECK(kind IN ('visit','call','meeting','follow_up')),
+ subject TEXT NOT NULL CHECK(length(subject) BETWEEN 3 AND 200),
+ detail TEXT NOT NULL DEFAULT '',
+ start_at TEXT NOT NULL,
+ due_at TEXT NOT NULL,
+ reminder_at TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'planned' CHECK(status IN ('planned','completed','cancelled')),
+ outcome TEXT NOT NULL DEFAULT '',
+ revision INTEGER NOT NULL DEFAULT 1 CHECK(revision>=1),
+ completed_at TEXT,
+ created_by TEXT NOT NULL COLLATE NOCASE,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ CHECK((lead_id IS NOT NULL AND opportunity_id IS NULL) OR (lead_id IS NULL AND opportunity_id IS NOT NULL)),
+ CHECK(datetime(start_at) IS NOT NULL AND datetime(due_at) IS NOT NULL AND datetime(reminder_at) IS NOT NULL),
+ CHECK(datetime(due_at)>=datetime(start_at))
+);
+CREATE INDEX idx_india_activity_owner_due ON india_sales_activity_tasks(tenant_id,owner_email,status,due_at);
+CREATE INDEX idx_india_activity_lead ON india_sales_activity_tasks(tenant_id,lead_id,created_at DESC);
+CREATE INDEX idx_india_activity_opportunity ON india_sales_activity_tasks(tenant_id,opportunity_id,created_at DESC);
+
+CREATE TABLE india_sales_activity_events (
+ id TEXT PRIMARY KEY,
+ tenant_id TEXT NOT NULL,
+ task_id TEXT NOT NULL REFERENCES india_sales_activity_tasks(id),
+ action TEXT NOT NULL CHECK(action IN ('scheduled','rescheduled','completed','cancelled')),
+ actor_email TEXT NOT NULL COLLATE NOCASE,
+ detail TEXT NOT NULL DEFAULT '',
+ at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX idx_india_activity_events ON india_sales_activity_events(tenant_id,task_id,at DESC);
+CREATE TRIGGER india_activity_events_immutable_update BEFORE UPDATE ON india_sales_activity_events
+BEGIN SELECT RAISE(ABORT,'ACTIVITY_HISTORY_IMMUTABLE'); END;
+CREATE TRIGGER india_activity_events_immutable_delete BEFORE DELETE ON india_sales_activity_events
+BEGIN SELECT RAISE(ABORT,'ACTIVITY_HISTORY_IMMUTABLE'); END;
+
+CREATE TABLE india_sales_lead_sla (
+ tenant_id TEXT NOT NULL,
+ lead_id TEXT NOT NULL REFERENCES india_marketing_leads(id),
+ owner_email TEXT NOT NULL COLLATE NOCASE,
+ assigned_at TEXT NOT NULL,
+ response_due_at TEXT NOT NULL,
+ first_response_at TEXT,
+ PRIMARY KEY(tenant_id,lead_id)
+);
+CREATE INDEX idx_india_sla_open ON india_sales_lead_sla(tenant_id,first_response_at,response_due_at);
+-- Seed SLA from genuine existing leads; do not infer a past response from note-only logs.
+INSERT OR IGNORE INTO india_sales_lead_sla(tenant_id,lead_id,owner_email,assigned_at,response_due_at)
+SELECT l.tenant_id,l.id,l.assigned_sales_email,l.created_at,
+ strftime('%Y-%m-%dT%H:%M:%SZ',l.created_at,printf('+%d minutes',coalesce(p.lead_response_minutes,120)))
+FROM india_marketing_leads l LEFT JOIN india_sales_activity_policy p ON p.tenant_id=l.tenant_id
+WHERE l.status NOT IN ('converted','disqualified');
+CREATE TRIGGER india_lead_sla_new AFTER INSERT ON india_marketing_leads
+BEGIN
+ INSERT OR IGNORE INTO india_sales_lead_sla(tenant_id,lead_id,owner_email,assigned_at,response_due_at)
+ VALUES(NEW.tenant_id,NEW.id,NEW.assigned_sales_email,strftime('%Y-%m-%dT%H:%M:%SZ','now'),
+ strftime('%Y-%m-%dT%H:%M:%SZ','now',printf('+%d minutes',coalesce((SELECT lead_response_minutes FROM india_sales_activity_policy WHERE tenant_id=NEW.tenant_id),120))));
+END;
+CREATE TRIGGER india_lead_sla_reassigned AFTER UPDATE OF assigned_sales_email ON india_marketing_leads
+WHEN NEW.assigned_sales_email<>OLD.assigned_sales_email
+BEGIN
+ UPDATE india_sales_lead_sla SET owner_email=NEW.assigned_sales_email,
+ assigned_at=CASE WHEN first_response_at IS NULL THEN strftime('%Y-%m-%dT%H:%M:%SZ','now') ELSE assigned_at END,
+ response_due_at=CASE WHEN first_response_at IS NULL THEN strftime('%Y-%m-%dT%H:%M:%SZ','now',printf('+%d minutes',coalesce((SELECT lead_response_minutes FROM india_sales_activity_policy WHERE tenant_id=NEW.tenant_id),120))) ELSE response_due_at END
+ WHERE tenant_id=NEW.tenant_id AND lead_id=NEW.id;
+END;
+
+CREATE TABLE india_sales_activity_alerts (
+ alert_key TEXT PRIMARY KEY,
+ tenant_id TEXT NOT NULL,
+ task_id TEXT REFERENCES india_sales_activity_tasks(id),
+ lead_id TEXT REFERENCES india_marketing_leads(id),
+ recipient_email TEXT NOT NULL COLLATE NOCASE,
+ alert_type TEXT NOT NULL CHECK(alert_type IN ('reminder','overdue','lead_sla','manager_escalation','unassigned_manager')),
+ message TEXT NOT NULL,
+ created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ read_at TEXT,
+ CHECK((task_id IS NOT NULL AND lead_id IS NULL) OR (task_id IS NULL AND lead_id IS NOT NULL))
+);
+CREATE INDEX idx_india_alert_recipient ON india_sales_activity_alerts(tenant_id,recipient_email,read_at,created_at DESC);
+INSERT OR IGNORE INTO india_schema_migrations(version) VALUES(13);
