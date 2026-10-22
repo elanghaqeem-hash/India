@@ -57,7 +57,7 @@ test('governance retention only Admin, hold release only Legal, every change aud
   await expect(patch(d,'admin',{id:x.body.id,source:'library',action:'hold',hold:false,reason:'Attempt to bypass Legal release'}),403);
   await expect(patch(d,'legal',{id:x.body.id,source:'library',action:'hold',hold:false,reason:'Independent Legal release approval'}),200);
   const row=d.sql.prepare('SELECT retention_until,legal_hold FROM india_document_library WHERE id=?').get(x.body.id);
-  assert.deepEqual(row,{retention_until:'2036-12-31',legal_hold:0});
+  assert.equal(row.retention_until,'2036-12-31');assert.equal(row.legal_hold,0);
   assert.equal(d.sql.prepare("SELECT count(*) n FROM india_document_access_events WHERE action LIKE 'LEGAL_HOLD%'").get().n,2);
   assert.throws(()=>d.sql.exec('DELETE FROM india_document_access_events'),/immutable/);
   const logs=await expect(d.call('sales/document-vault','GET','legal',null,'?opportunity_id=opp-qa&audit=1'),200);
