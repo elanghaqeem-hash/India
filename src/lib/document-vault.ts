@@ -9,7 +9,7 @@ export const VAULT_MAX_BYTES=8*1024*1024;
 export const VAULT_CHUNK_BYTES=256*1024;
 export const VAULT_KINDS=['proposal','submission','negotiation','po','spk','contract','award_letter'] as const;
 export type VaultKind=typeof VAULT_KINDS[number];
-export type VaultDoc={id:string;tenant_id:string;opportunity_id:string;release_id:string;kind:VaultKind;file_name:string;media_type:string;byte_length:number;sha256:string;iv:string;chunk_count:number;created_by:string;created_at?:string};
+export type VaultDoc={id:string;tenant_id:string;opportunity_id:string;release_id:string;kind:string;file_name:string;media_type:string;byte_length:number;sha256:string;iv:string;chunk_count:number;created_by:string;created_at?:string};
 const utf8=new TextEncoder();
 const b64=(bytes:Uint8Array)=>{let s='';for(let i=0;i<bytes.length;i+=8192)s+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(s);};
 const unb64=(s:string)=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
@@ -29,10 +29,11 @@ export async function sealDocument(doc:VaultDoc,bytes:Uint8Array){
  const chunks:string[]=[];for(let i=0;i<encrypted.length;i+=VAULT_CHUNK_BYTES)chunks.push(b64(encrypted.subarray(i,i+VAULT_CHUNK_BYTES)));
  return {iv:b64(iv),chunks};
 }
-export async function openDocument(db:D1DB,doc:VaultDoc){
+export async function openDocument(db:D1DB,doc:VaultDoc,source:'release'|'library'='release'){
+ const chunkTable=source==='library'?'india_document_library_chunks':'india_document_chunks';
  // Bound each database response even for the maximum-sized original.
  const rows:{part:number;ciphertext:string}[]=[];
- for(let offset=0;offset<doc.chunk_count;offset+=4){const page=await db.prepare('SELECT part,ciphertext FROM india_document_chunks WHERE document_id=? ORDER BY part LIMIT 4 OFFSET ?').bind(doc.id,offset).all<{part:number;ciphertext:string}>();rows.push(...page.results);}
+ for(let offset=0;offset<doc.chunk_count;offset+=4){const page=await db.prepare('SELECT part,ciphertext FROM '+chunkTable+' WHERE document_id=? ORDER BY part LIMIT 4 OFFSET ?').bind(doc.id,offset).all<{part:number;ciphertext:string}>();rows.push(...page.results);}
  if(rows.length!==doc.chunk_count||rows.some((r,i)=>r.part!==i))throw Error('VAULT_INTEGRITY');
  const chunks=rows.map(r=>unb64(r.ciphertext)),size=chunks.reduce((n,c)=>n+c.length,0);
  if(size!==doc.byte_length+16)throw Error('VAULT_INTEGRITY');
