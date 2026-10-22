@@ -7,7 +7,7 @@ export const checklistCategories=['administrative','technical','commercial'] as 
 export const milestoneKinds=['clarification','aanwijzing','administrative','technical','commercial','submission'] as const;
 export const shaValid=(v:string)=>/^[a-f0-9]{64}$/i.test(v);
 export function validDeadline(s:string):boolean {
- const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?(Z|[+-]\d{2}:\d{2})$/.exec(s);
+ const m=/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/.exec(s);
  if(!m)return false;
  const [y,mo,d,h,mi,se]=m.slice(1,7).map(Number);
  if(y<2000||y>2100||mo<1||mo>12||d<1||h>23||mi>59||se>59||!Number.isFinite(Date.parse(s)))return false;
