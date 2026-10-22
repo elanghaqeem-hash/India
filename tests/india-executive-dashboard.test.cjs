@@ -3,7 +3,7 @@ const {Harness,users,tenant,expect}=require('./helpers/sales-flow-harness.cjs');
 const month=()=>new Date(Date.now()+7*3600000).toISOString().slice(0,7);
 const today=()=>new Date(Date.now()+7*3600000).toISOString().slice(0,10);
 const get=(h,role='sales',query='')=>h.call('sales/executive','GET',role,null,'?period='+month()+query);
-const post=(h,role,p={})=>h.call('sales/executive','POST',role,{period:month(),owner_email:users.sales,amount_idr:2000000,version:0,rationale:'Approved commercial target for UAT',...p});
+const post=(h,role,p={},headers={})=>h.call('sales/executive','POST',role,{period:month(),owner_email:users.sales,amount_idr:2000000,version:0,rationale:'Approved commercial target for UAT',...p},'',headers);
 function fixture(){
  const h=new Harness().seed();
  for(const email of [users.sales,users.other]){
@@ -53,7 +53,7 @@ test('Admin D1 target: role checks, CAS updates, immutable version/audit, correc
   await expect(post(h,'admin',{amount_idr:-10}),422);
   await expect(post(h,'admin',{amount_idr:NaN}),422);
   await expect(post(h,'admin',{rationale:'short'}),422);
-  await expect(post(h,'admin',{},'',{Origin:'https://forged.invalid'}),403);
+  await expect(post(h,'admin',{}, {Origin:'https://forged.invalid'}),403);
   await expect(post(h,'admin'),201);
   await expect(post(h,'admin'),409);
   const d=await expect(get(h),200);
