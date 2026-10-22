@@ -132,6 +132,7 @@ test('analytics counts full visible cohort and excludes cross-owner private Lead
   assert.equal(onlyA.body.overall.total,1);assert.equal(onlyA.body.overall.disqualified,0);
   assert.equal(admin.body.overall.total,2);assert.equal(admin.body.overall.disqualified,1);
   assert.equal(admin.body.by_reason[0].label,'NO_FIT');
+  assert.equal(admin.body.by_campaign.reduce((n,x)=>n+x.total,0),2);
  }finally{h.close();}
 });
 test('legacy PATCH disqualification bypass is rejected: reason code only through lifecycle',async()=>{
