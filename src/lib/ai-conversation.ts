@@ -79,5 +79,6 @@ export function languagePreferenceAcknowledgment(history: readonly AIConversatio
   if (!lastSubject) {
     return 'Baik, saya akan menggunakan Bahasa Indonesia untuk seluruh percakapan ini.';
   }
-  return 'Baik, mulai sekarang saya akan menjawab dalam Bahasa Indonesia. Pembahasan sebelumnya tetap berlanjut; pertanyaan berikutnya akan saya hubungkan dengan topik yang sedang kita bahas.';
+  const topic = lastSubject.content.replace(/\s+/g, ' ').trim().slice(0, 140);
+  return `Baik, mulai sekarang saya akan menjawab dalam Bahasa Indonesia. Pembahasan sebelumnya tetap berlanjut: “${topic}”. Pertanyaan berikutnya tetap saya hubungkan dengan topik tersebut.`;
 }
