@@ -61,3 +61,23 @@ export function parseConversationHistory(raw: unknown): AIConversationTurn[] | n
   }
   return turns;
 }
+
+/**
+ * A language preference is a persistent conversational instruction, not a new
+ * subject matter question. Keep follow-up topic context intact.
+ */
+export function isIndonesianLanguagePreference(message: string): boolean {
+  const normalized = message.trim().toLowerCase().replace(/[.!?]+$/g, '').replace(/\s+/g, ' ');
+  return /^(?:(?:tolong|mohon)\s+)?(?:(?:gunakan|pakai|gunakanlah|jawab(?:lah)?(?:\s+saja)?\s+(?:dengan|dalam)|berbahasa)\s+)?bahasa indonesia(?:\s+saja|\s+ya|\s+terus|\s+untuk\s+seterusnya)?$/.test(normalized) ||
+    /^(?:(?:tolong|mohon)\s+)?(?:gunakan|pakai|jawab\s+(?:dengan|dalam))\s+bahasa indonesia\s+(?:saja|ya|untuk\s+seterusnya)$/.test(normalized);
+}
+
+/** A deterministic acknowledgment avoids resetting the topic to an empty chat. */
+export function languagePreferenceAcknowledgment(history: readonly AIConversationTurn[]): string {
+  const lastSubject = [...history].reverse().find((turn) =>
+    turn.role === 'user' && !isIndonesianLanguagePreference(turn.content));
+  if (!lastSubject) {
+    return 'Baik, saya akan menggunakan Bahasa Indonesia untuk seluruh percakapan ini.';
+  }
+  return 'Baik, mulai sekarang saya akan menjawab dalam Bahasa Indonesia. Pembahasan sebelumnya tetap berlanjut; pertanyaan berikutnya akan saya hubungkan dengan topik yang sedang kita bahas.';
+}
