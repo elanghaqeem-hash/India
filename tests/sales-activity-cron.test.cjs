@@ -53,6 +53,8 @@ test('cron generates owner overdue and lead SLA plus manager escalation without 
   d.prepare("INSERT INTO india_sales_opportunities VALUES ('opp-1','defendit360')").run();
   d.prepare("INSERT INTO india_sales_team_managers(tenant_id,sales_email,manager_email,assigned_by) VALUES('defendit360','sales-a@example.test','manager@example.test','backup@example.test')").run();
   task(d,'task-overdue','sales-a@example.test');
+  // Expire the UAT fixture SLA deliberately; historic production leads receive grace after migration.
+  d.prepare("UPDATE india_sales_lead_sla SET response_due_at=strftime('%Y-%m-%dT%H:%M:%SZ','now','-120 minutes') WHERE lead_id='lead-old'").run();
   await runCron(d);const once=d.prepare('SELECT count(*) n FROM india_sales_activity_alerts').get().n;
   assert.equal(once,4);
   assert.equal(d.prepare("SELECT count(*) n FROM india_sales_activity_alerts WHERE recipient_email='manager@example.test'").get().n,2);
