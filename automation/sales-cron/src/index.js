@@ -4,7 +4,8 @@ export default {
  async scheduled(_event,env,ctx){
   const db=env.INDIA_DB;
   if(!db)throw Error('INDIA_DB binding required');
-  ctx.waitUntil((async()=>{\n   const statements=[
+  ctx.waitUntil((async()=>{
+   const statements=[
    db.prepare(`INSERT OR IGNORE INTO india_sales_activity_alerts(alert_key,tenant_id,task_id,recipient_email,alert_type,message)
     SELECT 'task:reminder:'||t.id||':'||t.revision,t.tenant_id,t.id,t.owner_email,'reminder','Pengingat: '||t.subject
     FROM india_sales_activity_tasks t WHERE t.status='planned'
