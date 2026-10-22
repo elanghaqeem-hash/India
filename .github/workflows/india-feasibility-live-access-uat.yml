@@ -36,7 +36,7 @@ jobs:
         run: npm ci --no-audit --no-fund
       - name: UAT script syntax
         run: node --check scripts/india-feasibility-live-access-uat.mjs
-      - name: Signed Cloudflare Access and D1 preflight (never touches production)
+      - name: Cloudflare Access deny challenge and D1 preflight (never touches production)
         env:
           INDIA_UAT_WORKER_NAME: uat-india
           INDIA_UAT_BASE_URL: https://uat-india.elang-haqeem.workers.dev
