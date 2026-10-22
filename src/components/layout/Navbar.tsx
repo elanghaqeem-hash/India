@@ -42,6 +42,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [visibleViewport, setVisibleViewport] = useState<{ height: number; top: number } | null>(null);
 
   // The assistant is a modal on mobile: prevent page scroll and support Escape.
   useEffect(() => {
@@ -55,6 +56,25 @@ export const Navbar: React.FC<NavbarProps> = ({
     return () => {
       document.body.style.overflow = previousOverflow;
       window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [aiAssistantOpen]);
+
+  // Android's virtual keyboard can resize the *visual* viewport without
+  // resizing 100dvh. Keep the composer inside the actually visible area.
+  useEffect(() => {
+    if (!aiAssistantOpen || !window.visualViewport) return;
+    const viewport = window.visualViewport;
+    const syncViewport = () => setVisibleViewport({
+      height: viewport.height,
+      top: viewport.offsetTop,
+    });
+    syncViewport();
+    viewport.addEventListener('resize', syncViewport);
+    viewport.addEventListener('scroll', syncViewport);
+    return () => {
+      viewport.removeEventListener('resize', syncViewport);
+      viewport.removeEventListener('scroll', syncViewport);
+      setVisibleViewport(null);
     };
   }, [aiAssistantOpen]);
 
@@ -226,8 +246,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Global AI Assistant Drawer / Modal */}
       {aiAssistantOpen && (
-        <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:items-center sm:justify-end sm:p-4 animate-in fade-in">
-          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant" className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
+        <div
+          className="fixed inset-0 z-[100] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
+          style={visibleViewport ? { height: visibleViewport.height + 'px', top: visibleViewport.top + 'px', bottom: 'auto' } : undefined}
+        >
+          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant" className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
             <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
               <div className="flex min-w-0 items-center gap-2.5">
