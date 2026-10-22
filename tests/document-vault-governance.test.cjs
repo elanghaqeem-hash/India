@@ -72,7 +72,7 @@ test('original release evidence gets stable versions across offer revisions, wit
   assert.equal(d.sql.prepare('SELECT version FROM india_document_governance WHERE document_id=?').get(a.body.id).version,1);
   const r=await download(d,a.body.id,'release');
   assert.equal(r.status,200);
-  assert.deepEqual(Buffer.from(await r.arrayBuffer()),pdf('proposal').toString().includes('Synthetic original')?Buffer.from('%PDF-1.7\nSynthetic UAT original proposal'):pdf('proposal'));
+  assert.deepEqual(Buffer.from(await r.arrayBuffer()),Buffer.from('%PDF-1.7\nSynthetic UAT original proposal'));
   const list=await expect(d.call('sales/document-vault','GET','admin',null,'?opportunity_id=opp-qa'),200);
   assert.equal(list.body.documents[0].source,'release');
   await expect(d.flow('propose','sales',{proposal_reference:a.body.reference,proposal_sha256:a.body.sha256}),200);
