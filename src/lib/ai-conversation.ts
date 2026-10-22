@@ -50,13 +50,14 @@ export function parseConversationHistory(raw: unknown): AIConversationTurn[] | n
     const item = raw[i];
     if (item === null || typeof item !== 'object' || Array.isArray(item)) return null;
     const role = (item as Record<string, unknown>).role;
+    const expectedRole: AIConversationTurn['role'] = i % 2 === 0 ? 'user' : 'assistant';
     const content = (item as Record<string, unknown>).content;
-    if (role !== (i % 2 === 0 ? 'user' : 'assistant') ||
+    if (role !== expectedRole ||
       typeof content !== 'string' || content.length < 1 ||
       content.length > MAX_AI_HISTORY_ITEM_CHARS || !content.trim()) return null;
     totalChars += content.length;
     if (totalChars > MAX_AI_HISTORY_CHARS) return null;
-    turns.push({ role, content });
+    turns.push({ role: expectedRole, content });
   }
   return turns;
 }
