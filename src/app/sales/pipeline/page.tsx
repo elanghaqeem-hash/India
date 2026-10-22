@@ -35,7 +35,7 @@ function FormFields({fields,values,onUpdate,readOnly}:{
   {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
-  <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>}
+  <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key==='client_tier'?'Opsional — boleh dikosongkan':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
  </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
  </div>;
 }
