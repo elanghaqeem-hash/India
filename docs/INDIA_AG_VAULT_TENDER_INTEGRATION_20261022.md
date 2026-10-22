@@ -13,7 +13,7 @@ Existing INDIA production and Cloudflare Access policies must remain unchanged.
 ## Vault → Tender proof rules
 - File bytes are uploaded via signed Cloudflare Access to `/api/sales/document-vault`; the Worker computes SHA-256 and stores AES-256-GCM ciphertext and immutable chunk versions in D1.
 - Pre-release NDA, RKS, KAK, Quotation, supporting evidence are tied to exact Opportunity and stored under library document ID.
-- Mandatory Tender checklist evidence must specify `vault:<document_id>`, server-issued checksum and exact original filename. A forged typed reference or hash is rejected; independent approval decrypts and rehashes the original before acceptance.
+- Mandatory Tender checklist evidence must specify `library:<document_id>`, server-issued checksum and exact original filename. A forged typed reference or hash is rejected; independent approval decrypts and rehashes the original before acceptance.
 - Reviewed RKS/KAK source must reference matching kind and stored original, and mandatory Tender clauses must reference matching stored evidence; this is enforced with SQL triggers and GET readiness gap reporting.
 - Tender stage changes reject missing/mismatched originals even if a different API attempts a direct status bypass.
 - Vault upload, download, legal hold and retention governance have individual immutable audit records. Evidence is not a substitute for customer acknowledgment, signature validity or anti-malware scanning.
