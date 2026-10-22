@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   Shield,
@@ -49,6 +49,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [visibleViewport, setVisibleViewport] = useState<{ height: number; top: number } | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  // Keep new replies and follow-up questions in view without moving the input.
+  useEffect(() => {
+    if (aiAssistantOpen && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages, isAiLoading, aiAssistantOpen]);
 
   // The assistant is a modal on mobile: prevent page scroll and support Escape.
   useEffect(() => {
@@ -319,12 +327,12 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {conversationTurns.length > 0 && (
               <p className="shrink-0 bg-indigo-50 px-3 py-1 text-[10px] font-medium text-indigo-700" role="status">
-                Konteks percakapan aktif · {Math.min(conversationTurns.length / 2, 6)} tanya-jawab terbaru dapat digunakan
+                Konteks percakapan aktif · {selectConversationHistory(conversationTurns).length / 2} tanya-jawab terbaru dapat digunakan
               </p>
             )}
 
             {/* Chat Messages */}
-            <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
+            <div ref={chatScrollRef} className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
