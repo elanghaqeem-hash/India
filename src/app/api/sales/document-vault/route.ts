@@ -32,7 +32,7 @@ async function boundedBody(req:Request){
 const event=(db:D1DB,opp:string,source:'release'|'library',id:string,action:string,email:string,role:string,description:string)=>
  db.prepare('INSERT INTO india_document_access_events(id,tenant_id,opportunity_id,source,document_id,action,actor_email,actor_role,description) VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,opp,source,id,action,email,role,description);
 async function findDoc(db:D1DB,opp:string,id:string,source:string){
- if(source==='library')return db.prepare('SELECT * FROM india_document_library WHERE tenant_id=? AND opportunity_id=? AND id=?').bind(TENANT,opp,id).first<ExtraDoc>();
+ if(source==='library')return db.prepare('SELECT *, '' AS release_id FROM india_document_library WHERE tenant_id=? AND opportunity_id=? AND id=?').bind(TENANT,opp,id).first<ExtraDoc>();
  if(source==='release')return db.prepare('SELECT v.*,g.version,g.retention_until,g.legal_hold,g.hold_reason FROM india_document_vault v JOIN india_document_governance g ON g.document_id=v.id WHERE v.tenant_id=? AND v.opportunity_id=? AND v.id=?').bind(TENANT,opp,id).first<ExtraDoc>();
  return null;
 }
