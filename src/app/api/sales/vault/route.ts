@@ -37,6 +37,8 @@ export async function POST(req:Request){
   await atomicSales(db,guard.condition,guard.args,[
    db.prepare('INSERT INTO india_document_vault(id,tenant_id,opportunity_id,release_id,kind,file_name,media_type,byte_length,sha256,iv,chunk_count,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').bind(doc.id,TENANT,id,release,kind,name,media,bytes.length,doc.sha256,sealed.iv,sealed.chunks.length,email),
    ...sealed.chunks.map((c,i)=>db.prepare('INSERT INTO india_document_chunks(document_id,part,ciphertext) VALUES(?,?,?)').bind(doc.id,i,c)),
+   db.prepare('INSERT INTO india_document_governance(document_id,tenant_id,opportunity_id,kind,version) SELECT ?,?,?,?,COALESCE((SELECT max(version)+1 FROM india_document_governance WHERE tenant_id=? AND opportunity_id=? AND kind=?),1)').bind(doc.id,TENANT,id,kind,TENANT,id,kind),
+   db.prepare("INSERT INTO india_document_access_events(id,tenant_id,opportunity_id,source,document_id,action,actor_email,actor_role,description) VALUES(?,?,?,?,?,?,?,?,?)").bind(crypto.randomUUID(),TENANT,id,'release',doc.id,'UPLOAD',email,role,name),
    salesAudit(db,id,'DOCUMENT_UPLOADED',email,kind+' / '+doc.id)
   ]);
   return res({success:true,id:doc.id,reference:vaultReference(doc.id),sha256:doc.sha256,file_name:name,byte_length:bytes.length},201);
@@ -54,10 +56,13 @@ export async function GET(req:Request){
   const d=await db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT,opportunity).first<FlowDeal>();
   if(!d)return deny('Opportunity tidak ditemukan',404);
   if(!canReadDeal(role,email,d.created_by))return deny('Opportunity bukan milik Sales ini',403);
-  if(!doc){const rows=await db.prepare('SELECT id,release_id,kind,file_name,media_type,byte_length,sha256,created_by,created_at FROM india_document_vault WHERE tenant_id=? AND opportunity_id=? ORDER BY created_at DESC,id DESC LIMIT 100').bind(TENANT,opportunity).all();return res({success:true,documents:rows.results});}
+  if(!doc){const rows=await db.prepare('SELECT v.id,v.release_id,v.kind,v.file_name,v.media_type,v.byte_length,v.sha256,v.created_by,v.created_at,g.version,g.retention_until,g.legal_hold FROM india_document_vault v LEFT JOIN india_document_governance g ON g.document_id=v.id WHERE v.tenant_id=? AND v.opportunity_id=? ORDER BY v.created_at DESC,v.id DESC LIMIT 100').bind(TENANT,opportunity).all();return res({success:true,documents:rows.results});}
   const bytes=await openDocument(db,doc);
   // Audit must commit before plaintext leaves the authenticated endpoint.
-  await salesAudit(db,opportunity,'DOCUMENT_DOWNLOADED',email,doc.kind+' / '+doc.id).run();
+  await db.batch([
+   salesAudit(db,opportunity,'DOCUMENT_DOWNLOADED',email,doc.kind+' / '+doc.id),
+   db.prepare('INSERT INTO india_document_access_events(id,tenant_id,opportunity_id,source,document_id,action,actor_email,actor_role,description) VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,opportunity,'release',doc.id,'DOWNLOAD',email,role,doc.file_name)
+  ]);
   return new Response(new Uint8Array(bytes),{headers:{...privateHeaders,'Content-Type':doc.media_type,'Content-Length':String(bytes.length),'Content-Disposition':"attachment; filename*=UTF-8''"+encodeURIComponent(doc.file_name),'Content-Security-Policy':"sandbox; default-src 'none'",'Referrer-Policy':'no-referrer'}});
  }catch(e){const v=vaultError(e);return deny(v.message,v.status);}
 }
