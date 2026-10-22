@@ -6,9 +6,11 @@ on:
       - feat/india-sales-pipeline-workflow-20261020
       - feat/india-marketing-sales-consolidation-20261022
       - feat/india-presales-po-transactions-20261022
+      - feat/india-p0-vault-uat-20261022
       - test/pr12-negative-44-integration-20261021
   pull_request:
     branches:
+      - main
       - feat/india-sales-pipeline-workflow-20261020
       - feat/india-marketing-sales-consolidation-20261022
   workflow_dispatch:
@@ -35,6 +37,8 @@ jobs:
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: Presales Proposal Submission Negotiation PO transaction gates
         run: npm run test:sales-transactions
+      - name: Encrypted originals, access isolation and transactional rollback
+        run: npm run test:document-vault
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build
