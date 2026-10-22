@@ -73,7 +73,7 @@ def main():
         " AND COUNT(DISTINCT province_code)=" + str(len({r[2] for r in entries})) +
         " AND COUNT(DISTINCT postal_code)=" + str(len({r[1] for r in entries})) + ";"
     )
-    (out / "zz-finalize.sql").write_text(final_sql + "\\n", encoding="utf-8")
+    (out / "zz-finalize.sql").write_text(final_sql + "\n", encoding="utf-8")
     (out / "manifest.json").write_text(json.dumps({
         "source_url": SOURCE_URL, "source_version": DATA_SHA, "rows": len(entries),
         "files": (len(entries) + ROWS_PER_FILE - 1) // ROWS_PER_FILE,
