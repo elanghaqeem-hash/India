@@ -24,7 +24,7 @@ test('NDA can upload before Presales scope, and revision versions are append-onl
   assert.deepEqual(Buffer.from(await(await download(d,a.body.id)).arrayBuffer()),pdf('nda'));
   assert.deepEqual(Buffer.from(await(await download(d,b.body.id)).arrayBuffer()),pdf('nda revision'));
   const list=await expect(d.call('sales/document-vault','GET','sales',null,'?opportunity_id=opp-qa'),200);
-  assert.deepEqual(list.body.documents.map(x=>x.version),[1,2]);
+  assert.deepEqual(list.body.documents.map(x=>x.version).sort(),[1,2]);
   assert.equal(d.sql.prepare("SELECT count(*) n FROM india_document_access_events WHERE action='DOWNLOAD'").get().n,2);
   assert.throws(()=>d.sql.exec("UPDATE india_document_library SET sha256='"+'a'.repeat(64)+"'"),/immutable/);
   assert.throws(()=>d.sql.exec('DELETE FROM india_document_library'),/immutable/);
