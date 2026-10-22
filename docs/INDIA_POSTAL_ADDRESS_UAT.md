@@ -1,24 +1,41 @@
-# INDIA — Kode pos & cascading wilayah (UAT gate)
+# INDIA — Pemilihan Wilayah dari Kode Pos
 
-## Scope
-- Shared headquarters address editor in \`/sales/leads\` conversion and \`/sales/pipeline\` Customer registration/edit.
-- Postal search is served **from INDIA D1**, authorized by Cloudflare Access. No unverified client-side third-party APIs, no dummy rows.
-- Region fields remain in the existing \`india_sales_accounts.data_json\`: \`hq_postal\`, \`hq_province\`, \`hq_province_code\`, \`hq_regency\`, \`hq_regency_code\`, \`hq_district\`, \`hq_district_code\`, \`hq_village\`, \`hq_village_code\`, \`hq_village_kind\`. Existing document generation keeps the original names.
-- Postal 5 digits → candidate matches → province → regency/city → district → village/kelurahan. When the postal code changes, clear **all** previous region choices. Reset descendants when an ancestor changes. Server independently verifies postal/region on write.
-- Never auto-guess a single village when a postal code has multiple matches.
+## Implementasi
+- Form *Customer Registration* di `/sales/pipeline` dan form konversi *Lead → Customer* di `/sales/leads` memakai komponen `PostalAddressFields` yang sama.
+- Ketika kode pos mencapai lima digit, aplikasi meminta hasil kepada endpoint `/api/reference/postal` (Cloudflare Access JWT + role). **Middleware harus mengizinkan endpoint tersebut.**
+- Respons terdiri dari data D1, bukan daftar dropdown buatan. Pilih provinsi → kabupaten/kota → kecamatan/distrik → desa/kelurahan. Tiap perubahan induk mereset pilihan tingkat bawah.
+- Kode pos berbeda dapat memiliki beberapa kandidat; pengguna menentukan desa/kelurahan yang benar. Tidak ada auto-assignment tanpa pilihan.
+- Server membandingkan kembali kombinasi kode pos + identitas wilayah yang tersimpan di D1 sebelum membuat/memperbarui Customer maupun mengonversi Lead.
+- Field lama tetap berada di `india_sales_accounts.data_json`; kode wilayah baru bersifat tambahan dan tidak mengubah struktur transaksi pelanggan lain.
+- Segmentasi pelanggan bersifat opsional. Detail RT/RW/nomor jalan tetap di kolom alamat bebas.
 
-## Data provenance
-Pinned reference: \`mrayhanfadil/kodepos-id\` at commit \`33d362f827030606ab15a4f29a42c22c2eba3c7b\`, scraped 2026-08-21 from nomor.net and administrative code references (see upstream README). Source estimates 83,712 village rows across 38 provinces; not an official guarantee of current delivery validity. Verify discrepancies against PT Pos Indonesia/Kemendagri. No personal or CRM data sent upstream. Reassess source quality and redistribution permissions before production usage.
+## Provenansi dan pembetulan sumber
+- Master sumber terbuka: `mrayhanfadil/kodepos-id`, commit `33d362f827030606ab15a4f29a42c22c2eba3c7b`, perolehan 21 Agustus 2026.
+- Source CSV mempunyai 83.712 entri desa/kelurahan, tetapi **hanya 37 `prov_code` unik** karena Papua Barat Daya salah memakai kode provinsi 92 yang juga dipakai Papua Barat.
+- **Normalisasi saat impor:** jika `provinsi = Papua Barat Daya`, simpan provinsi Kemendagri **96**, bukan 92. Kode desa sumber **92.xx.yy.zzzz** diawetkan dalam namespace internal `PBD:92.xx.yy.zzzz`. Key kabupaten/kecamatan berupa `PBD-xx` dan `PBD-xx-yy` sebagai *identifier internal*, **bukan** kode administratif resmi. Jangan ekspor kode PBD internal ke API pemerintah sebagai kode Kemendagri.
+- Data sumber mencakup **38 nama provinsi** setelah pemetaan internal dan perlu pencocokan berkala dengan Kemendagri/PT Pos Indonesia jika digunakan sebagai alamat pengiriman legal.
+- Dataset ini bukan jaminan kode pos setiap alamat sudah mutakhir dan bukan master resmi PT Pos Indonesia. Verifikasi ulang penamaan, pemekaran wilayah dan lisensi sumber sebelum rollout luas.
+- Tidak ada data pelanggan/CRM yang dikirim ke penyedia data eksternal; pencarian runtime memakai D1.
 
-## Controlled rollout
-1. Back up **UAT** D1 before altering schema; verify backup restore on an isolated database. Confirm migration numbering with other open PRs **before merging** (0022 is scoped to this base branch).
-2. Run \`npx wrangler d1 execute india-staging-db --local --file=migrations/0022_indonesia_postal_reference.sql\` for local validation, then apply to isolated UAT D1 with the correct \`--remote\` target. Do not assume \`wrangler.jsonc\` is pointing at production.
-3. Generate import parts: \`python3 scripts/import-indonesia-postal.py --out /tmp/india-postal-uat\` (requires network), or provide an independently downloaded pinned \`--csv\`. Review manifest and source/legal status.
-4. **Only after confirming UAT binding & backup**, import parts one by one: \`for f in /tmp/india-postal-uat/*.sql; do npx wrangler d1 execute india-staging-db --remote --file="$f" || break; done\`. Abort on failures and reconcile before proceeding. Never run bulk import against production automatically.
-5. Verify \`SELECT COUNT(*) AS rows, COUNT(DISTINCT postal_code) AS postals, COUNT(DISTINCT province_code) AS provinces FROM india_postal_areas;\` matches manifest (expect >80k rows, 38 provinces).
-6. Real Cloudflare Access UAT for Admin/Sales A/Sales B/Marketing: 401 no session; 403 incorrect role; 422 malformed postal; valid matched postal displays multiple options; 5-digit not found leaves selection unavailable; 503 when unseeded; stale selected village on another postal rejected; cross-role Customer update forbidden; audit persists on account update.
-7. Android and desktop: ensure inputs visible (no horizontal overflow), select can scroll, reset dependent dropdowns on postal/province/regency change, customer data never carries between Leads.
-8. Run \`npm run typecheck\`, \`npm run test:marketing\`, \`npm run test:sales\`, and full CI; **no production deploy before gates pass**.
+## Penerapan ke D1 UAT — hasil aktual 22 Oktober 2026
+Database target **`india-uat-users-db`** (D1 `eaed652e-7322-4950-a304-dd50baa5de02`, bukan Worker produksi).
+- Backup ekspor D1 dan bookmark *time travel* diperiksa lebih dulu; **uji restore terpisah belum dijalankan**.
+- Migrasi aditif `0022_indonesia_postal_reference.sql` diterapkan di UAT.
+- Impor bertahap pada database UAT berhasil mencatat **83.712** wilayah unik, **38** provinsi, dan **10.668** kode pos unik.
+- Marker `india_postal_import_state` hanya menjadi `ready` setelah perhitungan angka tersebut dan pemeriksaan `source_version` lulus.
+- Contoh `40111` → Kelurahan Braga, Kecamatan Sumur Bandung, Kota Bandung, Jawa Barat.
+- `12345` adalah angka ilustratif yang tidak ditemukan dalam dataset. Hasilnya harus kosong dan tidak boleh dibuat-buat.
+- **Belum ada klaim bahwa Worker atau browser aplikasi UAT/produksi sudah memakai database ini**. Pastikan *D1 binding* Worker UAT diverifikasi sebelum test autentikasi nyata.
+
+## Migrasi dan pengoperasian lanjutan
+1. Rekonsiliasi nomor migrasi `0022` dengan PR lainnya; jangan menjalankan migrasi ke database produksi sebelum gate selesai.
+2. Pastikan D1 UAT backup/export & bookmark diketahui serta pemulihan ditest pada backup terisolasi.
+3. Unduh file CSV sumber terpin dan generate bagian SQL: `python3 scripts/import-indonesia-postal.py --out /tmp/india-postal-uat`. Skrip memastikan 38 kode provinsi setelah koreksi PBD. Pastikan izin pakai dataset.
+4. Terapkan migrasi `0022` terlebih dahulu. Impor bagian `[0-9][0-9][0-9].sql` ke D1 UAT. **Jalankan `zz-finalize.sql` hanya di akhir**, setelah semua batch dan rekonsiliasi cakupan lulus.
+5. Cek `SELECT COUNT(*) AS rows, COUNT(DISTINCT postal_code) AS postals, COUNT(DISTINCT province_code) AS provinces FROM india_postal_areas;` dan `SELECT * FROM india_postal_import_state;`; hasil harus sesuai manifest.
+6. Jalankan `npm run test:postal`, `npm run test:marketing`, `npm run test:sales`, `npm run typecheck`, `npm run build`, dan Cloudflare adapter build.
+7. Lakukan pengujian browser Android/desktop pada Worker UAT dengan **Cloudflare Access asli** (Sales A, Sales B, Marketing, Admin, dan viewer negatif): 401 tanpa login, 403 akses terlarang, 422 kode salah, 503 master belum final, 200 kode benar, 200 kosong jika tidak ditemukan, kode wilayah ditolak jika mismatch.
+8. Verifikasi pengendalian akses Customer, transaksi konversi Lead dan audit tetap aman. Jangan merge atau deploy produksi sebelum semua gate lulus.
 
 ## Rollback
-App rollback: redeploy previous verified commit. Reference table migration is additive; keep it for forensics. For staged data correction use a reviewed and backed-up data refresh, never a blanket deletion of customer records.
+Rollback aplikasi menggunakan versi terakhir yang lolos CI. Migrasi master bersifat aditif dan tidak menghapus Customer; untuk UAT yang terganggu, gunakan bookmark/export yang tersedia dengan prosedur restore terotorisasi dan tanpa kehilangan perubahan UAT lain.
