@@ -28,7 +28,7 @@ export async function GET(req:Request){
  try{
   const where='t.tenant_id=?'+(selected?' AND t.owner_email=?':'');
   const bind=[TENANT,...(selected?[selected]:[])];
-  const [tasks,events,alerts,slas,owners,managers]=await Promise.all([
+  const [tasks,events,legacyLeads,legacyDeals,alerts,slas,owners,managers]=await Promise.all([
    db.prepare(`SELECT t.*,coalesce(l.account_name,a.legal_name,'') AS customer_name,coalesce(l.lead_number,o.title,'') AS target_name
     FROM india_sales_activity_tasks t LEFT JOIN india_marketing_leads l ON l.id=t.lead_id AND l.tenant_id=t.tenant_id
     LEFT JOIN india_sales_opportunities o ON o.id=t.opportunity_id AND o.tenant_id=t.tenant_id
@@ -36,6 +36,14 @@ export async function GET(req:Request){
     WHERE ${where} ORDER BY t.due_at ASC LIMIT 500`).bind(...bind).all(),
    db.prepare(`SELECT e.*,t.subject,t.owner_email,t.lead_id,t.opportunity_id FROM india_sales_activity_events e
     JOIN india_sales_activity_tasks t ON t.id=e.task_id WHERE ${where} ORDER BY e.at DESC,e.rowid DESC LIMIT 250`).bind(...bind).all(),
+   db.prepare(`SELECT 'lead:'||a.id AS id,a.id AS task_id,'legacy_'||a.kind AS action,a.created_by AS actor_email,
+    a.summary AS detail,a.created_at AS at,l.account_name AS subject,l.assigned_sales_email AS owner_email
+    FROM india_marketing_activities a JOIN india_marketing_leads l ON l.id=a.lead_id AND l.tenant_id=a.tenant_id
+    WHERE a.tenant_id=? ${selected?'AND l.assigned_sales_email=?':''} ORDER BY a.created_at DESC LIMIT 150`).bind(...bind).all<{id:string;task_id:string;action:string;actor_email:string;detail:string;at:string;subject:string;owner_email:string}>(),
+   db.prepare(`SELECT 'opportunity:'||a.id AS id,a.id AS task_id,'legacy_'||a.kind AS action,a.created_by AS actor_email,
+    a.detail AS detail,a.created_at AS at,a.subject AS subject,o.created_by AS owner_email
+    FROM india_sales_activities a JOIN india_sales_opportunities o ON o.id=a.opportunity_id AND o.tenant_id=a.tenant_id
+    WHERE a.tenant_id=? ${selected?'AND o.created_by=?':''} ORDER BY a.created_at DESC LIMIT 150`).bind(...bind).all<{id:string;task_id:string;action:string;actor_email:string;detail:string;at:string;subject:string;owner_email:string}>(),
    db.prepare('SELECT * FROM india_sales_activity_alerts WHERE tenant_id=? AND recipient_email=? ORDER BY created_at DESC LIMIT 100').bind(TENANT,email).all(),
    db.prepare(`SELECT s.*,l.account_name,l.lead_number,l.status AS lead_status FROM india_sales_lead_sla s
     JOIN india_marketing_leads l ON l.id=s.lead_id AND l.tenant_id=s.tenant_id
@@ -44,7 +52,9 @@ export async function GET(req:Request){
    db.prepare("SELECT email,role FROM india_members WHERE active=1 AND role IN ('sales','admin') ORDER BY email").all(),
    db.prepare('SELECT sales_email,manager_email FROM india_sales_team_managers WHERE tenant_id=?').bind(TENANT).all<{sales_email:string;manager_email:string}>()
   ]);
-  return reply({success:true,role,identityEmail:email,tasks:tasks.results,events:events.results,alerts:alerts.results,
+  const utc=(t:string)=>Date.parse(/^\\d{4}-\\d{2}-\\d{2} /.test(t)?t.replace(' ','T')+'Z':t)||0;
+  const timeline=[...events.results,...legacyLeads.results,...legacyDeals.results].sort((a,b)=>utc(String(b.at))-utc(String(a.at))).slice(0,250);
+  return reply({success:true,role,identityEmail:email,tasks:tasks.results,events:timeline,alerts:alerts.results,
    slas:slas.results,owners:role==='admin'?owners.results:[{email,role}],managers:role==='admin'?managers.results:managers.results.filter(m=>m.sales_email===email),
    serverNow:new Date().toISOString()});
  }catch{return error('Modul belum siap; verifikasi migrasi D1 0013',503);}
