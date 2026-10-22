@@ -54,7 +54,8 @@ export default function SalesActivities(){
  };
  const now=Date.now(),tasks=(snapshot?.tasks||[]),open=tasks.filter(x=>x.status==='planned');
  const overdue=open.filter(x=>new Date(x.due_at).getTime()<=now),next=open.filter(x=>new Date(x.due_at).getTime()>now);
- const breached=(snapshot?.slas||[]).filter(x=>!x.first_response_at&&new Date(x.response_due_at).getTime()<=now);
+ const breached=(snapshot?.slas||[]).filter(x=>!x.first_response_at&&asInstant(x.response_due_at).getTime()<=now);
+ const waitingResponse=(snapshot?.slas||[]).filter(x=>!x.first_response_at&&asInstant(x.response_due_at).getTime()>now);
  const monday=useMemo(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7+week*7);return d;},[week]);
  const days=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return d;});
  const dayKey=(d:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
@@ -80,7 +81,7 @@ export default function SalesActivities(){
   </div><Link href="/sales/pipeline" className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-slate-700">Sales Pipeline →</Link></header>
   {message&&<div role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-   {([['Next Action',next.length,Clock3],['Overdue',overdue.length,AlertTriangle],['SLA Breached',breached.length,PhoneCall],['Notifikasi Baru',(snapshot?.alerts||[]).filter(x=>!x.read_at).length,Bell]] as const).map(([label,n,Icon])=>
+   {([['Next Action',next.length+waitingResponse.length,Clock3],['Overdue',overdue.length,AlertTriangle],['SLA Breached',breached.length,PhoneCall],['Notifikasi Baru',(snapshot?.alerts||[]).filter(x=>!x.read_at).length,Bell]] as const).map(([label,n,Icon])=>
     <div key={label} className="rounded-xl border bg-white p-3"><div className="flex items-center justify-between text-[11px] text-slate-600"><span>{label}</span><Icon size={17}/></div><p className="mt-2 text-2xl font-black tabular-nums">{n}</p></div>)}
   </div>
   <section className="rounded-xl border bg-white p-4">
@@ -102,8 +103,18 @@ export default function SalesActivities(){
    {([['next','Next Action'],['calendar','Kalender'],['overdue','Overdue Queue'],['timeline','Activity Timeline'],['alerts','Pengingat & Eskalasi'],...(snapshot?.role==='admin'?[['manager','Sales Manager']]:[])] as string[][]).map(([key,label])=>
    <button key={key} onClick={()=>setTab(key as typeof tab)} className={'rounded-lg px-3 py-2 text-xs font-bold '+(tab===key?'bg-slate-900 text-white':'border bg-white text-slate-700')}>{label}</button>)}
   </nav>
-  {tab==='next'&&<section className="space-y-3"><h2 className="text-sm font-bold">Next Action · {next.length}</h2>
-   {next.length===0?<p className="rounded-xl border bg-white p-5 text-sm text-slate-500">Belum ada follow-up terjadwal.</p>:<div className="grid gap-3 md:grid-cols-2">{next.map(x=>taskCard(x))}</div>}</section>}
+  {tab==='next'&&<section className="space-y-3"><h2 className="text-sm font-bold">Next Action · {next.length+waitingResponse.length}</h2>
+   {next.length+waitingResponse.length===0?<p className="rounded-xl border bg-white p-5 text-sm text-slate-500">Belum ada tindak lanjut terjadwal atau Lead yang menunggu respons awal.</p>:
+   <div className="grid gap-3 md:grid-cols-2">
+    {waitingResponse.map(x=><article key={x.lead_id} className="rounded-xl border border-amber-200 bg-white p-3">
+     <p className="text-[11px] font-bold text-amber-700">Lead menunggu respons awal</p>
+     <h3 className="mt-1 text-sm font-bold">{x.account_name}</h3>
+     <p className="mt-1 text-xs text-slate-600">{x.lead_number} · {x.owner_email}</p>
+     <p className="mt-2 text-xs">Batas SLA: <b>{fmt(x.response_due_at)} WIB</b></p>
+     <Link href={'/sales/leads?lead_id='+encodeURIComponent(x.lead_id)} className="mt-2 inline-block text-xs font-bold text-blue-700">Buka Lead &amp; jadwalkan kontak →</Link>
+    </article>)}
+    {next.map(x=>taskCard(x))}
+   </div>}</section>}
   {tab==='overdue'&&<section className="space-y-4">
    <h2 className="flex items-center gap-2 text-sm font-bold text-rose-700"><AlertTriangle size={16}/> Overdue Queue · {overdue.length} aktivitas / {breached.length} SLA Lead</h2>
    {breached.map(x=><article key={x.lead_id} className="rounded-xl border border-rose-200 bg-white p-3 text-xs">
