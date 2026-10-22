@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { selectConversationHistory, parseConversationHistory, MAX_AI_HISTORY_TURNS, MAX_AI_HISTORY_CHARS } =
+const { selectConversationHistory, parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment, MAX_AI_HISTORY_TURNS, MAX_AI_HISTORY_CHARS } =
   require('../src/lib/ai-conversation.ts');
 
 const root = path.join(__dirname, '..');
@@ -78,4 +78,44 @@ test('admin generation endpoint passes validated conversation to priority provid
   assert.match(ui, /setConversationTurns\(prev => \[\.\.\.prev/);
   assert.match(ui, /setConversationTurns\(\[\]\)/);
   assert.match(ui, /disabled=\{isAiLoading\}/);
+});
+
+
+test('pure Indonesian-only preference is a continuing-session command, not a new topic', () => {
+  for (const input of [
+    'Gunakan bahasa Indonesia saja',
+    'Tolong pakai bahasa indonesia ya!',
+    'Jawab dalam bahasa Indonesia saja',
+    'Bahasa Indonesia saja.',
+  ]) {
+    assert.equal(isIndonesianLanguagePreference(input), true, input);
+  }
+  for (const input of [
+    'Apa manfaat menggunakan Bahasa Indonesia dalam tender?',
+    'Jelaskan alat penetration testing dalam Bahasa Indonesia',
+    'Berapa biaya penetration testing?',
+  ]) {
+    assert.equal(isIndonesianLanguagePreference(input), false, input);
+  }
+  const prior = [
+    { role: 'user', content: 'Apa itu VAPT?' },
+    { role: 'assistant', content: 'VAPT adalah vulnerability assessment dan penetration testing.' },
+  ];
+  const ack = languagePreferenceAcknowledgment(prior);
+  assert.match(ack, /Bahasa Indonesia/);
+  assert.match(ack, /sebelumnya tetap berlanjut/);
+  assert.doesNotMatch(ack, /apa yang ingin Anda diskusikan|silakan beri tahu/i);
+  const next = [...prior,
+    {role:'user',content:'Gunakan bahasa Indonesia saja'},
+    {role:'assistant',content:ack},
+  ];
+  assert.deepEqual(parseConversationHistory(selectConversationHistory(next)), next);
+});
+
+test('server handles language preference without losing topic or calling model', () => {
+  const route = read('src/app/api/ai/generate/route.ts');
+  assert.match(route, /isIndonesianLanguagePreference\(prompt\)/);
+  assert.match(route, /languagePreferenceAcknowledgment\(history\)/);
+  assert.match(route, /modelUsed:'local-instruction'/);
+  assert.match(route, /WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia/);
 });
