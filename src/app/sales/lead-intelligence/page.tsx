@@ -87,7 +87,7 @@ export default function LeadIntelligence(){
   {message&&<div role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <section className="grid grid-cols-2 gap-2 lg:grid-cols-5">
    {[
-    ['Lead Tercatat',overview?.overall.total??0],['Hot (500 terbaru)',rows.filter(x=>x.temperature==='Hot').length],
+    ['Lead Tercatat',overview?.overall.total??0],['Hot aktif (500 terbaru)',rows.filter(x=>x.temperature==='Hot'&&['new','assigned','qualified'].includes(x.status)).length],
     ['Nurture Due (500 terbaru)',due],['Converted',overview?.overall.converted??0],['Won',overview?.overall.won??0]
    ].map(([label,value])=><div key={label} className="min-w-0 rounded-xl border bg-white p-3">
      <div className="text-[11px] text-slate-500">{label}</div><div className="mt-1 text-2xl font-black tabular-nums">{value}</div></div>)}
@@ -139,7 +139,7 @@ export default function LeadIntelligence(){
       {soft.has(selected.reason_code||'')&&<button disabled={busy} onClick={()=>void run('reactivate')}
        className="mt-2 inline-flex items-center gap-1 rounded-md bg-blue-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"><RefreshCcw size={13}/> Reactivate → Assigned</button>}
      </div>}
-     {['new','assigned','disqualified'].includes(selected.status)&&
+     {(['new','assigned'].includes(selected.status)||(selected.status==='disqualified'&&soft.has(selected.reason_code||'')))&&
       <div className="space-y-3 border-t pt-3">
        <h3 className="flex items-center gap-2 text-sm font-bold"><CalendarClock size={15}/> Nurture Plan</h3>
        <div className="grid gap-3 sm:grid-cols-2">
