@@ -100,7 +100,8 @@ test('Sales stage filter: full labels, counts and interactions on mobile and des
 
           await filter.click();
           await panel.waitFor();
-          await page.getByRole('heading', { name: 'Sales Pipeline & Opportunity 360' }).click();
+          // On mobile the fixed sheet covers the heading; tap the visible header corner instead.
+          await page.mouse.click(8, 8);
           assert.equal(await panel.count(), 0, 'Outside click should dismiss filter');
 
           await filter.click();
