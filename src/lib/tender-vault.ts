@@ -28,8 +28,8 @@ export async function tenderVaultGaps(db:D1DB,opportunity:string,requirements:Re
  return gaps;
 }
 export async function authenticateTenderOriginal(db:D1DB,opportunity:string,reference:string,sha:string,filename:string){
- const row=await db.prepare(`SELECT * FROM india_document_library WHERE tenant_id=? AND opportunity_id=?
- AND 'vault:'||id=? AND sha256=? AND file_name=?`).bind(TENANT,opportunity,reference,sha.toLowerCase(),filename).first<VaultDoc>();
+ const row=await db.prepare(`SELECT *, '' AS release_id FROM india_document_library WHERE tenant_id=? AND opportunity_id=?
+ AND 'library:'||id=? AND sha256=? AND file_name=?`).bind(TENANT,opportunity,reference,sha.toLowerCase(),filename).first<VaultDoc>();
  if(!row)throw Error('TENDER_VAULT_EVIDENCE: file asli/Opportunity/SHA-256 tidak cocok');
  await openDocument(db,row,'library'); // AES-GCM AAD + SHA-256; fails closed on corruption/missing key.
  return row;
