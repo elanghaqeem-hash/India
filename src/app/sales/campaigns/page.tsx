@@ -8,7 +8,7 @@ type Campaign={
  budget_idr?:number;start_date:string;end_date:string;notes?:string;revision:number;
  total:number;qualified:number;converted:number;conversionRate:number;
 };
-const empty=()=>({code:generateCampaignCode(),name:'',channel:'webinar',status:'planned',owner_email:'',
+const empty=()=>({code:'',name:'',channel:'webinar',status:'planned',owner_email:'',
  budget_idr:'0',start_date:'',end_date:'',notes:''});
 const input='mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100';
 const money=(n:number)=>'Rp'+Number(n||0).toLocaleString('id-ID');
@@ -39,7 +39,7 @@ export default function MarketingCampaigns(){
    budget_idr:String(c.budget_idr??0),start_date:c.start_date,end_date:c.end_date,notes:c.notes||''});
  };
  const create=()=>{
-  setEditing(null);setNewMode(true);setForm(empty());setMessage('');
+  setEditing(null);setNewMode(true);setForm({...empty(),code:generateCampaignCode()});setMessage('');
  };
  const submit=async()=>{
   setBusy(true);setMessage('');
@@ -101,8 +101,9 @@ export default function MarketingCampaigns(){
       ['owner_email','Owner email aktif *','email'],['budget_idr','Budget (IDR)','number'],
       ['start_date','Mulai','date'],['end_date','Berakhir','date']
      ] as const).filter(([key])=>editable||key!=='budget_idr').map(([key,label,type])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
-       <input className={input+(key==='code'?' bg-slate-50 font-mono font-semibold text-slate-700':'' )}
-        type={type} readOnly={key==='code'} disabled={!editable||busy}
+       <input className={input+(key==='code'?' cursor-not-allowed bg-slate-100 font-mono font-semibold text-slate-700 opacity-100':'' )}
+        type={type} disabled={key==='code'||!editable||busy}
+        aria-label={key==='code'?'Kode unik Campaign, dibuat otomatis':undefined}
         title={key==='code'?'Kode dibuat otomatis dan tidak dapat diubah.':''}
         value={form[key]} onChange={e=>{if(key!=='code')setForm(x=>({...x,[key]:e.target.value}));}}/>
       {key==='code'&&<span className="mt-1 block text-[11px] font-normal leading-relaxed text-slate-500">
