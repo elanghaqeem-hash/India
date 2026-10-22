@@ -44,7 +44,9 @@ async function sql(db,query){
 async function preflight(c){
  const r=await fetch(new URL('/api/sales/feasibility?opportunity_id=uat-preflight-only',c.base),{
    redirect:'manual',headers:{Accept:'application/json'},signal:AbortSignal.timeout(16000)});
- check(r.status===403,'Cloudflare Access anonymous HTTP 403');
+ const loc=r.headers.get('location')||'';
+ const accessRedirect=r.status>=300&&r.status<400&&/cloudflareaccess\\.com|\\/cdn-cgi\\/access\\//.test(loc);
+ check([401,403].includes(r.status)||accessRedirect,'Cloudflare Access rejects anonymous request (HTTP '+r.status+')');
  const s=await cf('/workers/scripts/'+c.worker+'/settings');
  const bind=(s.bindings||[]).filter(x=>x.name==='INDIA_DB');
  check(bind.length===1&&(bind[0].id||bind[0].database_id)===c.db,'actual UAT Worker bound to UAT D1');
