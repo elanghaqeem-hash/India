@@ -52,7 +52,7 @@ export async function GET(req:Request){
    db.prepare("SELECT email,role FROM india_members WHERE active=1 AND role IN ('sales','admin') ORDER BY email").all(),
    db.prepare('SELECT sales_email,manager_email FROM india_sales_team_managers WHERE tenant_id=?').bind(TENANT).all<{sales_email:string;manager_email:string}>()
   ]);
-  const utc=(t:string)=>Date.parse(/^\\d{4}-\\d{2}-\\d{2} /.test(t)?t.replace(' ','T')+'Z':t)||0;
+  const utc=(t:string)=>Date.parse(/^\d{4}-\d{2}-\d{2} /.test(t)?t.replace(' ','T')+'Z':t)||0;
   const timeline=[...events.results,...legacyLeads.results,...legacyDeals.results].sort((a,b)=>utc(String(b.at))-utc(String(a.at))).slice(0,250);
   return reply({success:true,role,identityEmail:email,tasks:tasks.results,events:timeline,alerts:alerts.results,
    slas:slas.results,owners:role==='admin'?owners.results:[{email,role}],managers:role==='admin'?managers.results:managers.results.filter(m=>m.sales_email===email),
