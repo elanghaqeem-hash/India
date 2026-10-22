@@ -4,7 +4,7 @@ Tanggal: 22 Oktober 2026 (Asia/Jakarta). Basis sumber: PR #21 head `f36695c395eb
 
 ## Ringkasan release gate
 
-**PARTIAL PASS — production review/merge BLOCKED.** Backup/export, logical restore, rehearsal dan migrasi D1 UAT berhasil. Pengujian logika reminder/overdue/SLA/escalation terverifikasi di D1 UAT dan idempotent. Pengujian login signed-human JWT untuk tiga peran serta runtime scheduled event belum terpenuhi; Worker frontend UAT belum menjalankan sumber PR #21.
+**PARTIAL PASS — production review/merge BLOCKED.** Backup/export, logical restore, rehearsal dan migrasi D1 UAT berhasil. Pengujian logika reminder/overdue/SLA/escalation terverifikasi di D1 UAT dan idempotent. **Runtime Cron scheduled invocation dan alert D1 terbukti.** Pengujian login signed-human JWT untuk tiga peran belum terpenuhi; Worker frontend UAT belum menjalankan sumber PR #21.
 
 | Tahap | Status dan bukti |
 | --- | --- |
@@ -16,7 +16,7 @@ Tanggal: 22 Oktober 2026 (Asia/Jakarta). Basis sumber: PR #21 head `f36695c395eb
 | Data preservation | PASS: before / after / after QA cleanup: 2 Leads, 4 Customer Accounts, 4 Opportunities, 14 Sales audit; no QA fixture left; zero FK violations; `quick_check=ok` |
 | Cron Worker | DEPLOYED UAT: `india-sales-activity-uat` version `b4e7e40b-7675-4000-b2ed-ae0b1d4e75cf` at 100%, D1 binding UAT only. Schedule temporarily set to 1 minute for observation, restored to `*/15 * * * *` |
 | Cron logic on real UAT D1 | PASS manual execution of the seven exact SQL statements taken from PR #21 source against UAT: 1 reminder, 1 overdue, 1 Lead SLA, 2 manager escalations; second execution created no duplicates; zero FK violations. All tagged QA records removed afterward |
-| Actual Cloudflare scheduled invocation | NOT VERIFIED: no fresh alert was observed from an independent UAT-only probe while temporary schedule was active. Cron changes can take up to 15 minutes to propagate. Manual SQL invocation is **not** proof of a scheduled Worker invocation |
+| Actual Cloudflare scheduled invocation | PASS: Cloudflare Workers telemetry mencatat `scheduled` Worker `india-sales-activity-uat`, version `b4e7e40b-7675-4000-b2ed-ae0b1d4e75cf`, `outcome=ok` pada 2026-10-22 05:18:09 UTC. Probe `pr21-uat-realcron-proof` dibuat pada 05:17:26 UTC dengan **0 alert**; setelah invocation 05:18:09 terbentuk 3 alert D1 (1 overdue + 2 unassigned_manager) bertimestamp 05:18:09, **tanpa replay SQL manual terhadap probe tersebut**. Konfigurasi dashboard dikembalikan menjadi `*/15 * * * *` (perubahan terpropagasi bertahap) |
 | Real Cloudflare Access multirole | BLOCKED: two active Sales memberships in UAT D1 are non-deliverable `.invalid` fixtures, not actual human QA mailboxes. UAT Access app allows approved administrator only; real Sales A/Sales B and Admin JWTs were not provided/tested. Do not fabricate signed JWTs or relax the Access policy |
 | UAT frontend version | BLOCKED: `uat-india` `INDIA_RELEASE_SHA` begins `8de0717a`, not the PR #21 source SHA. Do not claim `/api/sales/activities` or mobile UI real-Access UAT until the reviewed PR branch is deployed to the dedicated UAT Worker |
 | Production | UNCHANGED: `india` Worker was not updated, production D1 remains migration 0012 and separate from UAT, no production Cron deployment |
@@ -26,7 +26,7 @@ Tanggal: 22 Oktober 2026 (Asia/Jakarta). Basis sumber: PR #21 head `f36695c395eb
 1. Provision **real, distinct, approved QA mailboxes** for Sales A, Sales B, and an Admin/Manager; provide membership with correct roles in isolated UAT D1. Configure UAT-only Cloudflare Access allow policies narrowly for these identities; do not use fixture emails or bypass RS256 token verification.
 2. Build and deploy exact PR #21 commit to `uat-india`, pin `INDIA_DB` to isolated UAT D1, preserve separate Access AUD/issuer, then attest Worker deployed SHA and binding through API.
 3. Use genuine signed human Cloudflare Access JWTs **outside chat and repository logs** for HTTP/browser tests: Sales A and Sales B isolation, Admin calendar filtering, schedule/complete/cancel/reschedule, CAS conflict, expired login, cross-owner denial and mobile browser. Record status codes and D1 audits, not JWT values.
-4. Observe at least one **actual Cron scheduled Worker run**, prove UAT alert creation from an untouched sentinel, and prove dedupe on a subsequent run. Evidence must name source Worker version, UTC invocation timestamp, log event/Worker telemetry and exact UAT D1 alert IDs (do not reveal customer data).
+4. **Completed except subsequent scheduled dedupe observation:** actual Cron scheduled invocation and untouched probe-to-D1 alert verified at 05:18:09 UTC. Manual twice replay already proved deduplication; the next distinct scheduled invocation should independently reconfirm no duplicate alert rows.
 5. Re-run full GitHub CI, verify D1 FK/quick-check and row-preservation, clean synthetic QA data, submit PR #21 for review only after all gates are green. Production backup, migration and deployment require separate explicit go-live authorization.
 
 ### Privacy / security
