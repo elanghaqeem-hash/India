@@ -21,7 +21,7 @@ const soft=new Set(['NO_BUDGET','TIMING_LATER','NO_RESPONSE']);
 const field='w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none';
 const pill=(t:string)=>t==='Hot'?'bg-red-50 text-red-700':t==='Warm'?'bg-amber-50 text-amber-800':'bg-blue-50 text-blue-700';
 const rate=(n:number,d:number)=>d?((n/d)*100).toFixed(1)+'%':'0%';
-const today=()=>new Date().toLocaleDateString('en-CA');
+const today=()=>new Date().toISOString().slice(0,10);
 async function request(method:'GET'|'POST',url:string,data?:Record<string,unknown>){
  const res=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
   headers:{'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});
