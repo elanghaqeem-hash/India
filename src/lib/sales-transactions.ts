@@ -18,7 +18,7 @@ export function dealGuard(d:FlowDeal){
  return {condition:"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id='defendit360' AND flow_version=?)",args:[d.id,d.flow_version]};
 }
 export function transactionError(e:unknown){
- return /FLOW_CONFLICT|COMPLIANCE_CONFLICT|REVENUE_CONFLICT|CHECK constraint|UNIQUE constraint|FOREIGN KEY constraint/i.test(String(e))
+ return /FLOW_CONFLICT|COMPLIANCE_CONFLICT|READINESS_CONFLICT|REVENUE_CONFLICT|CHECK constraint|UNIQUE constraint|FOREIGN KEY constraint/i.test(String(e))
   ?{status:409,message:'Data atau persetujuan berubah. Muat ulang; scope, proposal, submission, negosiasi dan PO harus memakai versi paket yang sama.'}
   :{status:503,message:'Transaksi tidak tersimpan. Periksa database dan migrasi 0012.'};
 }
