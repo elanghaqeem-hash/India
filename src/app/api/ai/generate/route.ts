@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { runPriorityChain } from '@/lib/ai-credential-vault';
-import { parseConversationHistory, type AIConversationRequest } from '@/lib/ai-conversation';
+import { parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment, type AIConversationRequest } from '@/lib/ai-conversation';
 import { containsPersonalIdentifier } from '@/lib/ai-data-policy';
 
 export const dynamic='force-dynamic';
@@ -9,7 +9,9 @@ const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:pri
 
 const ICOP_CHAT_INSTRUCTION = [
  'Anda adalah ICOP AI Business Assistant untuk DefendIT360, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
- 'Jawab dalam Bahasa Indonesia secara profesional dan relevan dengan pertanyaan terakhir.',
+ 'WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia (kecuali nama merek, istilah teknis, dan kode), dengan profesional dan relevan terhadap pertanyaan terakhir.',
+ 'Instruksi gaya, bahasa, dan format adalah PREFERENSI sepanjang sesi, bukan penggantian topik. Konfirmasi secara singkat sambil mempertahankan konteks sebelumnya; jangan menjawab sebagai percakapan baru.',
+ 'Jangan menanyakan kembali topik yang sudah dibahas atau memberikan pembuka generik setelah instruksi gaya. Lanjutkan substansi topik sebelumnya.',
  'Perlakukan rangkaian pesan pengguna dan asisten sebagai SATU percakapan: identifikasi topik aktif dari konteks terbaru.',
  'Pertanyaan lanjutan singkat seperti "alat apa saja", "biayanya", "bagaimana caranya", "risikonya" harus merujuk kepada topik sebelumnya.',
  'Contoh: bila pembicaraan tentang penetration testing, "alat apa saja yang digunakan?" berarti alat penetration testing, bukan alat rumah tangga.',
@@ -43,6 +45,14 @@ export async function POST(req:Request){
  if(history===null)return json({success:false,message:'Format atau panjang riwayat percakapan tidak valid.'},400);
  if(containsPersonalIdentifier(prompt)||history.some(turn=>containsPersonalIdentifier(turn.content)))
   return json({success:false,message:'Hapus email, telepon, NIK/NPWP dan data pribadi sebelum mengirim ke provider AI.'},422);
+
+ // Answer a pure language-preference update deterministically. No external call,
+ // no loss of prior topic, and no extra exposure of prior discussion to a model.
+ if(isIndonesianLanguagePreference(prompt)){
+  return json({success:true,content:languagePreferenceAcknowledgment(history),
+   providerUsed:'ICOP (pengaturan percakapan)',modelUsed:'local-instruction',
+   latencyMs:0,tokensEstimate:0,isFallback:false});
+ }
 
  const conversation:AIConversationRequest = {
   system:ICOP_CHAT_INSTRUCTION,
