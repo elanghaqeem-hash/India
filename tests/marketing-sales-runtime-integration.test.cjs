@@ -24,6 +24,8 @@ class D1Mock{
   this.sql.exec(source('migrations/0022_indonesia_postal_reference.sql'));
   this.sql.prepare('INSERT INTO india_postal_areas(region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind,source_version) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
    .run('31.71.01.1001','12345','31','DKI Jakarta','31.71','Kota Jakarta Pusat','31.71.01','Gambir','Gambir','Kelurahan','UAT-SYNTHETIC');
+  this.sql.prepare('INSERT INTO india_postal_import_state(singleton,status,source_version,row_count,province_count,postal_count) VALUES(?,?,?,?,?,?)')
+   .run(1,'ready','UAT-SYNTHETIC',83712,38,15000);
   for(const [key,mail] of Object.entries(users))
     this.sql.prepare("INSERT INTO india_members(email,role,active) VALUES(?,?,1)").run(mail,key==='a'||key==='b'?'sales':key);
  }
