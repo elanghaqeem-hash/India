@@ -3,7 +3,7 @@
 -- This migration is additive. No prior approvals, documents, or history are rewritten.
 CREATE VIEW india_tender_vault_originals AS
  SELECT d.tenant_id,d.opportunity_id,d.kind,d.file_name,
-        'vault:'||d.id AS evidence_reference,d.sha256,d.id AS document_id
+        'library:'||d.id AS evidence_reference,d.sha256,d.id AS document_id
  FROM india_document_library d
  WHERE d.chunk_count>0 AND
        (SELECT count(*) FROM india_document_library_chunks c WHERE c.document_id=d.id)=d.chunk_count;
