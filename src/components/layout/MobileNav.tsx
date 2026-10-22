@@ -16,6 +16,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
     { label: 'Campaigns', href: '/sales/campaigns', icon: Megaphone },
     { label: 'Leads', href: '/sales/leads', icon: Megaphone },
     { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
+    { label: 'Vault', href: '/sales/documents', icon: ClipboardCheck },
     { label: 'Demo 360', href: '/', icon: LayoutDashboard },
     { label: 'Scoping', href: '/scoping', icon: FileSearch },
     { label: 'Price Demo', href: '/pricing', icon: Calculator },
