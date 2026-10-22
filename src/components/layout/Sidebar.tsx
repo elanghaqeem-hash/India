@@ -33,6 +33,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
     { name: 'Marketing & Leads', href: '/sales/leads', icon: Megaphone, badge: 'D1' },
     { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
+    { name: 'Document Vault', href: '/sales/documents', icon: FileCheck2, badge: 'Secure' },
     {
       name: 'Legacy 360 (Demo)',
       href: '/',
