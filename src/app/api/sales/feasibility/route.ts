@@ -64,6 +64,7 @@ export async function GET(req:Request){
   const publicCosts=finance?data.costs:data.costs.map(x=>({id:x.id,cost_type:x.cost_type,description:x.description,sku:x.sku,unit:x.unit,quantity:x.quantity,periods:x.periods,supplier_offer_id:x.supplier_offer_id}));
   const publicOffers=finance?data.offers:data.offers.map(x=>({id:x.id,vendor_name:x.vendor_name,scope:x.scope,unit:x.unit,valid_until:x.valid_until,status:x.status}));
   const publicAllocations=finance?data.allocations:data.allocations.map(({daily_cost_snapshot,...x})=>x);
+  if(!finance)displayReport.gaps=displayReport.gaps.map((x:string)=>x.startsWith('Gross margin ')?'Margin HPP belum memenuhi target Finance.':x);
   return reply({success:true,role,identityEmail:email,deal:{id,title:d.title,stage:d.stage,flow_version:d.flow_version},plan:data.plan,
    people:publicPeople,allocations:publicAllocations,costs:publicCosts,offers:publicOffers,report:displayReport});
  }catch{return fail('Modul Feasibility belum siap: pastikan migrasi D1 0016, 0021, 0022.',503);}
@@ -150,6 +151,9 @@ export async function POST(req:Request){
    if(!actorRoles.review.includes(role as 'admin'|'finance'|'approver'))return fail('Reviewer feasibility harus Finance/Approver/Admin',403);
    if(!Number.isInteger(p.version)||!['approved','rejected'].includes(str(p.decision,20))||str(p.review_notes,1200).length<12)return fail('Versi, keputusan, dan catatan review minimal 12 karakter',422);
    const {data,report}=await readReport(db,d);
+   const ownCost=await db.prepare('SELECT id FROM india_feasibility_costs WHERE tenant_id=? AND opportunity_id=? AND lower(created_by)=lower(?) LIMIT 1').bind(TENANT,d.id,email).first();
+   const ownAllocation=await db.prepare('SELECT id FROM india_resource_allocations WHERE tenant_id=? AND opportunity_id=? AND lower(created_by)=lower(?) LIMIT 1').bind(TENANT,d.id,email).first();
+   if(ownCost||ownAllocation)return fail('Reviewer tidak boleh menyetujui alokasi atau biaya yang dibuat sendiri',403);
    if(!data.plan||data.plan.version!==p.version||data.plan.status!=='draft')return fail('Plan draft berubah atau belum tersedia',409);
    if(data.plan.created_by.toLowerCase()===email)return fail('Maker tidak boleh menyetujui rencananya sendiri',403);
    if(p.decision==='approved'&&!report.approval_ready)return fail('Feasibility belum siap: '+report.gaps.join('; '),409);
