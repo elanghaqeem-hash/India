@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { validateBoQ, boqTotals, can } from '@/lib/boq-domain';
 import { checkBoqLink } from '@/lib/sales-boq-link';
+import {atomicSales} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 type Row={id:string;tenant_id:string;customer_name:string;project_name:string;quotation_number:string;service_type:string;opportunity_id:string|null;version:number;status:string;vat_rate:number;payment_terms:string;line_items_json:string;cost_items_json:string;notes:string|null;created_by:string;updated_by:string;approved_by:string|null;created_at:string;updated_at:string};
 const respond=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
@@ -38,11 +39,11 @@ export async function POST(req:Request){
    const linkError=checkBoqLink(value,deal,account,role,email);
    if(linkError)return problem(linkError,409);
   const id=crypto.randomUUID();
-  await db.prepare('INSERT INTO india_boq (id,tenant_id,project_name,customer_name,quotation_number,service_type,opportunity_id,vat_rate,payment_terms,line_items_json,cost_items_json,notes,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  await atomicSales(db,"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id=? AND stage=? AND data_json=?)",[deal!.id,'defendit360',deal!.stage,deal!.data_json],[db.prepare('INSERT INTO india_boq (id,tenant_id,project_name,customer_name,quotation_number,service_type,opportunity_id,vat_rate,payment_terms,line_items_json,cost_items_json,notes,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
   .bind(id,'defendit360',value.project_name,value.customer_name,value.quotation_number,value.service_type,
-   value.opportunity_id||null,value.vat_rate,value.payment_terms,JSON.stringify(value.line_items),JSON.stringify(value.cost_items||[]),value.notes||null,email,email).run();
-  await db.prepare('INSERT INTO india_audit_log(id,tenant_id,boq_id,action,actor_email) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),'defendit360',id,'CREATE',email).run();
+   value.opportunity_id||null,value.vat_rate,value.payment_terms,JSON.stringify(value.line_items),JSON.stringify(value.cost_items||[]),value.notes||null,email,email),
+  db.prepare('INSERT INTO india_audit_log(id,tenant_id,boq_id,action,actor_email) VALUES (?,?,?,?,?)')
+  .bind(crypto.randomUUID(),'defendit360',id,'CREATE',email)]);
   const row=await db.prepare('SELECT * FROM india_boq WHERE id=?').bind(id).first<Row>();
   return respond({success:true,boq:visible(row!,role)},201);
  }catch(e){const m=e instanceof Error?e.message:'Gagal menyimpan BoQ';return problem(m,m.includes('UNIQUE constraint')?409:400);}

@@ -21,7 +21,7 @@ export type SalesAccount={
 };
 export type SalesDeal={
  id:string; company_id:string; company_name:string; title:string; stage:SalesStage;
- estimated_value:number; fields:SalesFields; created_at:string; created_by?:string;
+ estimated_value:number; flow_version?:number; fields:SalesFields; created_at:string; created_by?:string;
 };
 export const ACCOUNT_FIELDS=[
  ['client_tier','Segmentasi pelanggan'],['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],

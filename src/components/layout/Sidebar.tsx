@@ -65,7 +65,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       highlight: pendingApprovalsCount > 0,
     },
     {
-      name: 'Proposal Gallery (Demo)',
+      name: 'Presales / Proposal',
       href: '/proposals',
       icon: FileSpreadsheet,
       badge: null,

@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
@@ -23,8 +23,9 @@
     "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
     "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs tests/marketing-campaigns.test.cjs",
     "test:india-negative": "node --experimental-strip-types --test tests/india-negative-uat.test.cjs tests/india-negative-api.test.cjs",
-    "test:browser-http-uat": "node --test tests/browser-http-uat.test.cjs",
-    "test:runtime-compat": "node --test tests/next16-compat.test.cjs"
+    "test:browser-http-uat": "node --test tests/browser-http-uat.test.cjs tests/sales-lifecycle-browser.cjs",
+    "test:runtime-compat": "node --test tests/next16-compat.test.cjs",
+    "test:sales-transactions": "node --test tests/sales-lifecycle-transactions.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

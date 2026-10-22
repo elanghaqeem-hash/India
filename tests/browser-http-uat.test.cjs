@@ -18,7 +18,7 @@ const roles=[
   {name:'legal',canCreate:false},
 ];
 test('HTTP gate: unauthenticated CRM, BoQ and AI endpoints fail closed in localhost Worker-less runtime',async()=>{
- for(const endpoint of ['/api/sales?entity=accounts','/api/boq','/api/ai/assist']){
+ for(const endpoint of ['/api/sales?entity=accounts','/api/boq','/api/ai/assist','/api/sales/lifecycle?opportunity_id=opp-qa','/api/proposals?opportunity_id=opp-qa']){
   const response=await fetch(base+endpoint,{headers:{Accept:'application/json'}});
   assert.ok([401,403,503].includes(response.status),endpoint+' unexpectedly returned '+response.status);
   const body=await response.json();

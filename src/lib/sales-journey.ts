@@ -4,7 +4,7 @@ export type JourneyState='complete'|'pending'|'blocked'|'manual_review';
 export type JourneyGate={key:string;label:string;owner:string;state:JourneyState;missing:string[];description:string};
 export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
  lead_number?:string|null;boq_status?:string|null;boq_linked?:boolean;
- quotation_record?:boolean;submission_proof?:boolean;po_check?:boolean;po_original?:boolean;
+ release_status?:string|null;negotiation_decision?:string|null;quotation_record?:boolean;submission_proof?:boolean;po_check?:boolean;po_original?:boolean;
  legal_approved?:boolean;procurement_gaps?:string[];procurement_required?:boolean;
 }):JourneyGate[]{
  const accountGaps=validateAccount(a);
@@ -26,7 +26,7 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
    'Data pelanggan wajib sebelum Qualified'),
   gate('qualification','Lead/Deal Qualification','Sales',phase('qualified').length?'blocked':'complete',phase('qualified'),
    'Need, budget, pengambil keputusan, procurement, dan target'),
-  gate('scoping','Technical Scoping','Presales',phase('discovery').length?'blocked':'complete',phase('discovery'),
+  gate('scoping','Technical Scoping','Presales',phase('discovery').length||input.release_status===null?'blocked':'complete',input.release_status===null?['Validasi Presales pada paket aktif belum tersedia']:phase('discovery'),
    'Scoping teknis, aset, deliverables, dan model delivery'),
   gate('bid','Tender / RKS-KAK / Bid GO','Sales / Presales / Approver',
    tenderRequired?
@@ -37,15 +37,16 @@ export function salesJourney(a:SalesAccount,d:SalesDeal,input:{
   gate('commercial','BoQ & Commercial Approval','Finance / Approver',boqLinked?'complete':'blocked',
    boqLinked?[]:['BoQ approved harus cocok Opportunity ID, customer dan proyek'],
    'Referensi BoQ final, costing dan independen approval'),
+  gate('proposal','Proposal / SOW Approval','Presales / Approver',input.release_status==='approved'?'complete':'blocked',input.release_status==='approved'?[]:['Proposal paket aktif belum approved'],'Proposal dan checksum terikat ke versi BoQ dan scope yang sama'),
   gate('quotation','Quotation DOCX','Sales / Approver',
-   offer&&boqLinked?'manual_review':'blocked',
-   offer&&boqLinked?['Persetujuan dokumen final/penandatangan belum otomatis dibuktikan']:phase('quotation_sent'),
+   offer&&boqLinked?(input.release_status==='approved'?'complete':'manual_review'):'blocked',
+   offer&&boqLinked?(input.release_status==='approved'?[]:['Persetujuan dokumen final/penandatangan belum otomatis dibuktikan']):phase('quotation_sent'),
    'Generator Word adalah draft; pengiriman dan tanda tangan memerlukan bukti'),
   gate('submission','Proof of Submission','Sales',signedProof?'complete':'blocked',
    signedProof?[]:['Bukti pengiriman/acknowledgment quotation belum tercatat dan disahkan'],
    'Diperlukan sebelum kontrak/PO digunakan sebagai keputusan pelanggan'),
-  gate('negotiation','Negotiation','Sales',negotiation?'manual_review':'blocked',
-   negotiation?['Approval revisi harga/scope perlu divalidasi manusia']:phase('negotiation'),
+  gate('negotiation','Negotiation','Sales',input.negotiation_decision==='approved'?'complete':negotiation?'manual_review':'blocked',
+   input.negotiation_decision==='approved'?[]:negotiation?['Keputusan pelanggan dengan bukti pada versi paket aktif diperlukan']:phase('negotiation'),
    'Negosiasi dan perubahan komersial dengan riwayat versi'),
   gate('po','PO / Contract Review','Finance / Legal',
    input.po_check&&poOriginal&&input.legal_approved?'complete':input.po_check?'manual_review':'blocked',

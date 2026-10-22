@@ -6,28 +6,25 @@ import { salesJourney } from '@/lib/sales-journey';
 import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvidence} from '@/lib/sales-procurement';
 import {submissionMatches,type Submission} from '@/lib/sales-submission';
 import {validAwardForWon,type AwardDoc} from '@/lib/sales-award';
-import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, cleanFields, safeID, documentChecklist,
+import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, dateValid, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
+import {atomicSales,currentRelease,dealGuard,salesAudit,transactionError,poSnapshot,type FlowDeal} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 const answer=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 const fail=(message:string,status=400)=>answer({success:false,message},status);
 const allowed=(role:string,roles:string[])=>roles.includes(role);
 const ownOrigin=(req:Request)=>!req.headers.get('origin')||req.headers.get('origin')===new URL(req.url).origin;
 type AcctRow={id:string;legal_name:string;customer_number:string|null;data_json:string;created_at:string;created_by:string|null};
-type DealRow={id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_at:string;created_by:string|null};
+type DealRow=FlowDeal & {id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_at:string;created_by:string|null};
 type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;version:number;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
-type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;po_reference:string;po_amount_before_vat:number;quotation_amount_before_vat:number;verified_by:string;verified_at:string};
+type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;po_reference:string;po_amount_before_vat:number;quotation_amount_before_vat:number;verified_by:string;verified_at:string;release_id:string|null};
 const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
-const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
+const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,flow_version:r.flow_version,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 async function getAccount(db:D1DB,id:string):Promise<AcctRow|null>{
  return db.prepare('SELECT * FROM india_sales_accounts WHERE id=? AND tenant_id=?').bind(id,TENANT).first<AcctRow>();
 }
 async function getDeal(db:D1DB,id:string):Promise<DealRow|null>{
  return db.prepare('SELECT * FROM india_sales_opportunities WHERE id=? AND tenant_id=?').bind(id,TENANT).first<DealRow>();
-}
-async function audit(db:D1DB,entity:string,id:string,action:string,email:string,from:string|null=null,to:string|null=null,summary=''){
- await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,from_stage,to_stage,actor_email,summary) VALUES (?,?,?,?,?,?,?,?,?)')
- .bind(crypto.randomUUID(),TENANT,entity,id,action,from,to,summary.slice(0,300)).run();
 }
 const servicePerms=['admin','sales','presales','finance','approver','legal'];
 const salesPerms=['admin','sales'];
@@ -88,12 +85,15 @@ export async function GET(req:Request){
     const requirements=await db.prepare('SELECT kind,status,compliance_status,reviewed_by,file_reference,source_content_hash FROM india_sales_requirements WHERE tenant_id=? AND opportunity_id=?').bind(TENANT,id).all<RequirementEvidence>();
     procurementGaps.push(...procurementGate(tenderProcess,existingBid,requirements.results));
    }
-   const dualReviewedAward=awardDocs.results.some(x=>validAwardForWon(x,d.fields.po_number||''));
+   const release=await currentRelease(db,d.id);
+   const latestNegotiation=release?await db.prepare('SELECT decision FROM india_sales_negotiations WHERE release_id=? ORDER BY rowid DESC LIMIT 1').bind(release.id).first<{decision:string}>():null;
+   const currentAwards=release?await db.prepare('SELECT * FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=? AND release_id=?').bind(TENANT,d.id,release.id).all<AwardDoc & {po_data_json:string}>():{results:[]};
+   const dualReviewedAward=currentAwards.results.some(x=>validAwardForWon(x,d.fields.po_number||'')&&x.po_data_json===poSnapshot(d.fields));
    const journey=salesJourney(account(acct),d,{
     lead_number:originLead?.lead_number||null,boq_status:chosen?.status||null,boq_linked:!!chosen,
-    quotation_record:documents.results.some(x=>x.kind==='quotation'),
+    quotation_record:release?.status==='approved',release_status:release?.status||null,negotiation_decision:latestNegotiation?.decision||null,
     // A document reference/attestation is NOT equivalent to proof of submission or original PO.
-    submission_proof:!!confirmedSubmission,po_check:!!po,po_original:dualReviewedAward,legal_approved:dualReviewedAward,procurement_gaps:procurementGaps,procurement_required:tenderRequired
+    submission_proof:!!confirmedSubmission&&release?.status==='approved',po_check:!!po&&!!release&&po.release_id===release.id,po_original:dualReviewedAward,legal_approved:dualReviewedAward,procurement_gaps:procurementGaps,procurement_required:tenderRequired
    });
    return answer({success:true,deal:d,account:account(acct),boqs:boqs.results,poCheck:po,history:history.results,activities:activities.results,documents:documents.results,submissions:submissions.results,awardDocuments:awardDocs.results,journey,
     checklist:documentChecklist(d,account(acct)),originLead,role:auth.identity.role,identityEmail:auth.identity.email});
@@ -118,9 +118,8 @@ export async function POST(req:Request){
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
    const fields=cleanFields(p.fields||{},ACCOUNT_KEYS);
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
-   await db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
-    .bind(id,TENANT,legal_name,customer_number,JSON.stringify(fields),email).run();
-   await audit(db,'account',id,'CREATE',email);
+   await db.batch([db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
+    .bind(id,TENANT,legal_name,customer_number,JSON.stringify(fields),email),db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,'account',id,'CREATE',email)]);
    return answer({success:true,id,customer_number,missing:[]},201);
   }
   if(kind==='deal'){
@@ -132,9 +131,8 @@ export async function POST(req:Request){
    if(!canReadAccount(role,email,ownerAccount.created_by))return fail('Tidak memiliki akses ke Customer Account ini',403);
    const fields=cleanFields(p.fields||{},DEAL_KEYS);
    const id=crypto.randomUUID();
-   await db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
-    .bind(id,TENANT,company_id as string,title,'prospecting',amount,JSON.stringify(fields),email).run();
-   await audit(db,'deal',id,'CREATE',email,null,'prospecting');
+   await db.batch([db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES (?,?,?,?,?,?,?,?)")
+    .bind(id,TENANT,company_id as string,title,'prospecting',amount,JSON.stringify(fields),email),salesAudit(db,id,'CREATE',email,'',null,'prospecting')]);
    return answer({success:true,id},201);
   }
   if(kind==='activity'){
@@ -145,9 +143,9 @@ export async function POST(req:Request){
    const subject=String(p.subject||'').trim(),detail=String(p.detail||'').trim(),date=String(p.next_action_at||'');
    if(!subject||subject.length>200||detail.length>2000||date.length>30)return fail('Aktivitas tidak valid');
    const id=crypto.randomUUID();
-   await db.prepare('INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,next_action_at,created_by) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(id,TENANT,p.opportunity_id as string,String(p.kind),subject,detail,date||null,email).run();
-   await audit(db,'deal',String(p.opportunity_id),'ACTIVITY',email);
+   const guard=dealGuard(activityDeal);
+   await atomicSales(db,guard.condition,guard.args,[db.prepare('INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,next_action_at,created_by) VALUES (?,?,?,?,?,?,?,?)')
+    .bind(id,TENANT,p.opportunity_id as string,String(p.kind),subject,detail,date||null,email),salesAudit(db,String(p.opportunity_id),'ACTIVITY',email)]);
    return answer({success:true,id},201);
   }
   if(kind==='verify_po'){
@@ -157,18 +155,26 @@ export async function POST(req:Request){
    if(!raw||!acct)return fail('Opportunity tidak ditemukan',404);
    if(raw.created_by?.trim().toLowerCase()===email.trim().toLowerCase())return fail('Segregation of Duties: pembuat opportunity tidak boleh melakukan verifikasi PO, termasuk Admin.',403);
    const d=deal(raw,account(acct));
+   if(p.flow_version!==undefined&&p.flow_version!==raw.flow_version)return fail('Data berubah pada sesi lain, muat ulang',409);
    if(d.stage!=='pending_po')return fail('PO dapat diverifikasi hanya pada Pending PO',409);
    if(p.confirmed_documents!==true)return fail('Finance/Approver wajib menyatakan telah memeriksa dokumen PO asli, ruang lingkup, nominal dan quotation.',422);
    const check=await requireBoq(db,d,account(acct));
    if('problem' in check)return fail(String(check.problem),409);
+   const release=await currentRelease(db,d.id);
+   if(!release||release.status!=='approved'||release.boq_id!==check.boq.id)return fail('Proposal approved versi aktif wajib sebelum verifikasi PO',409);
+   const awards=await db.prepare('SELECT * FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=? AND release_id=?').bind(TENANT,d.id,release.id).all<AwardDoc & {po_data_json:string}>();
+   const award=awards.results.find(x=>validAwardForWon(x,d.fields.po_number||'')&&x.po_data_json===poSnapshot(d.fields));
+   if(!award)return fail('PO asli dengan data yang sama harus direview Finance dan Legal secara independen',409);
    const number=d.fields.po_number||'',date=d.fields.po_date||'',reference=d.fields.po_reference||'',n=Number(d.fields.po_amount_before_vat);
-   if(!number||!/^\d{4}-\d{2}-\d{2}$/.test(date)||!reference||reference.length<8||!Number.isFinite(n)||n<=0)
+   if(!number||!dateValid(date)||!reference||reference.length<8||!Number.isFinite(n)||n<=0)
      return fail('Nomor, tanggal, referensi bukti PO dan nilai PO harus lengkap',409);
    if(Math.abs(n-check.subtotal)>0.01)return fail('Nilai PO berbeda dari BoQ approved. Lakukan revisi dan approval terlebih dahulu.',409);
    if(!d.fields.scope_reconciliation||d.fields.scope_reconciliation.length<15)return fail('Catatan konfirmasi scope dan termin minimal 15 karakter.',409);
-   await db.prepare('INSERT INTO india_sales_po_checks(opportunity_id,tenant_id,boq_id,po_number,po_date,po_reference,po_amount_before_vat,quotation_amount_before_vat,verified_by) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(opportunity_id) DO UPDATE SET boq_id=excluded.boq_id,po_number=excluded.po_number,po_date=excluded.po_date,po_reference=excluded.po_reference,po_amount_before_vat=excluded.po_amount_before_vat,quotation_amount_before_vat=excluded.quotation_amount_before_vat,verified_by=excluded.verified_by,verified_at=CURRENT_TIMESTAMP')
-    .bind(d.id,TENANT,check.boq.id,number,date,reference,n,check.subtotal,email).run();
-   await audit(db,'deal',d.id,'VERIFY_PO',email,null,null,'Pemeriksa menyatakan PO asli dan BoQ disandingkan; evidence berupa referensi, belum arsip digital');
+   const guard=dealGuard(raw);
+   await atomicSales(db,guard.condition,guard.args,[db.prepare('INSERT INTO india_sales_po_checks(opportunity_id,tenant_id,boq_id,po_number,po_date,po_reference,po_amount_before_vat,quotation_amount_before_vat,verified_by,release_id,award_id) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(opportunity_id) DO UPDATE SET boq_id=excluded.boq_id,po_number=excluded.po_number,po_date=excluded.po_date,po_reference=excluded.po_reference,po_amount_before_vat=excluded.po_amount_before_vat,quotation_amount_before_vat=excluded.quotation_amount_before_vat,verified_by=excluded.verified_by,release_id=excluded.release_id,award_id=excluded.award_id,verified_at=CURRENT_TIMESTAMP')
+    .bind(d.id,TENANT,check.boq.id,number,date,reference,n,check.subtotal,email,release.id,award.id),
+    salesAudit(db,d.id,'VERIFY_PO',email,'Paket v'+release.version+' / award '+award.id)
+   ]);
    return answer({success:true,verified_by:email});
   }
   if(kind==='document'){
@@ -183,13 +189,13 @@ export async function POST(req:Request){
    const missing=doc==='customer_registration'?checklist.registration:doc==='project_form'?checklist.project:[];
    // Metadata and a completed checklist do not establish that an original file exists or is signed.
    const status='draft';
-   await db.prepare('INSERT INTO india_sales_documents(id,tenant_id,opportunity_id,kind,status,reference,checklist_json,created_by) VALUES (?,?,?,?,?,?,?,?)')
-    .bind(crypto.randomUUID(),TENANT,id as string,doc,status,ref,JSON.stringify(missing),email).run();
-   await audit(db,'deal',id as string,'DOCUMENT_'+doc.toUpperCase(),email,null,null,'Status '+status);
+   const guard=dealGuard(raw);
+   await atomicSales(db,guard.condition,guard.args,[db.prepare('INSERT INTO india_sales_documents(id,tenant_id,opportunity_id,kind,status,reference,checklist_json,created_by) VALUES (?,?,?,?,?,?,?,?)')
+    .bind(crypto.randomUUID(),TENANT,id as string,doc,status,ref,JSON.stringify(missing),email),salesAudit(db,id as string,'DOCUMENT_'+doc.toUpperCase(),email,'Status '+status)]);
    return answer({success:true,status,missing});
   }
   return fail('Aksi tidak dikenali');
- }catch(e){return /UNIQUE|constraint failed/i.test(String(e))?fail('Customer ID, nama legal atau nomor dokumen sudah terdaftar.',409):fail('Gagal menyimpan transaksi Sales. Periksa izin atau skema D1.',503);}
+ }catch(e){const t=transactionError(e);return fail(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -209,10 +215,10 @@ export async function PATCH(req:Request){
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim().replace(/\s+/g,' ');
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
-   const result=await db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
-    .bind(name,JSON.stringify(fields),row.id,TENANT,row.data_json).run();
-   if((result as any).meta?.changes===0)return fail('Data berubah pada sesi lain; refresh',409);
-   await audit(db,'account',row.id,'UPDATE',email);
+   await atomicSales(db,'EXISTS(SELECT 1 FROM india_sales_accounts WHERE id=? AND tenant_id=? AND data_json=? AND legal_name=?)',[row.id,TENANT,row.data_json,row.legal_name],[
+    db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=?').bind(name,JSON.stringify(fields),row.id,TENANT),
+    db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,'account',row.id,'UPDATE',email,'Perubahan Customer diperiksa ulang pada paket penawaran aktif')
+   ]);
    return answer({success:true,missing:[]});
   }
   if(p.entity==='deal'||p.entity==='transition'){
@@ -221,6 +227,7 @@ export async function PATCH(req:Request){
    if(!row||!a)return fail('Opportunity / pelanggan tidak ditemukan',404);
    if(!canReadDeal(role,email,row.created_by))return fail('Opportunity bukan milik akun Sales ini',403);
    const d=deal(row,account(a));
+   if(p.flow_version!==undefined&&p.flow_version!==row.flow_version)return fail('Data berubah pada sesi lain, muat ulang',409);
    if(p.entity==='deal'){
     if(d.stage==='closed_won'||d.stage==='closed_lost')return fail('Opportunity sudah ditutup, gunakan prosedur reopen atau koreksi',409);
     const allowedFields=cleanFields(p.fields||{},DEAL_KEYS);
@@ -229,11 +236,11 @@ export async function PATCH(req:Request){
     const amount=p.estimated_value===undefined?d.estimated_value:Number(p.estimated_value);
     if(!title||title.length>240||!Number.isFinite(amount)||amount<=0||amount>1e14)return fail('Judul dan nilai tidak valid');
     const fields={...d.fields,...allowedFields};
-    const updated=await db.prepare('UPDATE india_sales_opportunities SET title=?,estimated_value_idr=?,data_json=? WHERE id=? AND tenant_id=? AND data_json=?')
-     .bind(title,amount,JSON.stringify(fields),d.id,TENANT,row.data_json).run();
-    if((updated as any).meta?.changes===0)return fail('Opportunity telah berubah, muat ulang',409);
-    await db.prepare('DELETE FROM india_sales_po_checks WHERE opportunity_id=? AND tenant_id=?').bind(d.id,TENANT).run();
-    await audit(db,'deal',d.id,'UPDATE',email);
+    const guard=dealGuard(row);
+    await atomicSales(db,guard.condition,guard.args,[
+     db.prepare('UPDATE india_sales_opportunities SET title=?,estimated_value_idr=?,data_json=? WHERE id=? AND tenant_id=?').bind(title,amount,JSON.stringify(fields),d.id,TENANT),
+     salesAudit(db,d.id,'UPDATE',email,'Perubahan material membatalkan paket dan persetujuan terkait')
+    ]);
     return answer({success:true});
    }
    if(!canChangeStage(role,email,row.created_by))return fail('Hanya Sales pemilik deal atau Admin boleh mengubah stage',403);
@@ -281,12 +288,13 @@ export async function PATCH(req:Request){
        Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>0.01)
       return fail('Verifikasi PO oleh Finance/Approver harus selesai dengan bukti yang sama.',409);
    }
-   const changed=await db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=? AND stage=? AND data_json=?')
-    .bind(stage,d.id,TENANT,d.stage,row.data_json).run();
-   if((changed as any).meta?.changes===0)return fail('Stage diperbarui oleh pengguna lain, muat ulang',409);
-   await audit(db,'deal',d.id,'STAGE',email,d.stage,stage);
+   const guard=dealGuard(row);
+   await atomicSales(db,guard.condition,guard.args,[
+    db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=?').bind(stage,d.id,TENANT),
+    salesAudit(db,d.id,'STAGE',email,'',d.stage,stage)
+   ]);
    return answer({success:true,stage});
   }
   return fail('Jenis perubahan tidak dikenali');
- }catch{return fail('Perubahan tidak tersimpan, periksa koneksi dan struktur data.',503);}
+ }catch(e){const t=transactionError(e);return fail(t.message,t.status);}
 }

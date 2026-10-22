@@ -1,10 +1,11 @@
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
-import {safeID,TENANT,emailValid} from '@/lib/sales-workflow';
+import {safeID,TENANT,emailValid,dateValid} from '@/lib/sales-workflow';
 import {sha256Valid,verifySubmissionRights,type Submission} from '@/lib/sales-submission';
+import {atomicSales,currentRelease,dealGuard,salesAudit,transactionError,type FlowDeal} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 const resp=(x:unknown,s=200)=>Response.json(x,{status:s,headers:privateHeaders});
 const err=(message:string,s=400)=>resp({success:false,message},s);
-type DealRow={id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string};
+type DealRow=FlowDeal & {id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string};
 type BoqRow={id:string;opportunity_id:string|null;version:number;quotation_number:string;status:string;customer_name:string;project_name:string};
 const origin=(r:Request)=>!r.headers.get('origin')||r.headers.get('origin')===new URL(r.url).origin;
 const canSee=(role:string,email:string,owner:string)=>role!=='sales'||email.toLowerCase()===owner.toLowerCase();
@@ -51,17 +52,21 @@ export async function POST(req:Request){
    sentAt=String(p.sent_at||'').trim();
   if(!['email','procurement_portal','physical'].includes(channel)||!emailValid(recipient)||
      evidence.length<8||evidence.length>400||!sha256Valid(digest)||
-     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(sentAt)||Number.isNaN(Date.parse(sentAt)))
+     !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]\d{2}:\d{2})$/.test(sentAt)||!dateValid(sentAt.slice(0,10))||Number.isNaN(Date.parse(sentAt))||Date.parse(sentAt)>Date.now()+300000)
     return err('Channel, penerima, timestamp, bukti dokumen dan SHA-256 harus valid',422);
-  const ref=crypto.randomUUID();
-  await db.batch([
-   db.prepare('INSERT INTO india_sales_submissions(id,tenant_id,opportunity_id,boq_id,quotation_number,boq_version,recipient_email,channel,sent_at,evidence_reference,evidence_sha256,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-    .bind(ref,TENANT,id,boq.id,boq.quotation_number,boq.version,recipient,channel,sentAt,evidence,digest,email),
+  const release=await currentRelease(db,id);
+  if(!release||release.status!=='approved'||release.boq_id!==boq.id)return err('Proposal versi aktif harus approved sebelum submission',409);
+  const approvedAt=release.approved_at?Date.parse(release.approved_at.replace(' ','T')+'Z'):NaN;
+  if(!Number.isFinite(approvedAt)||Date.parse(sentAt)<approvedAt)return err('Waktu pengiriman harus setelah persetujuan proposal versi aktif',422);
+  const ref=crypto.randomUUID(),guard=dealGuard(d);
+  await atomicSales(db,guard.condition,guard.args,[
+   db.prepare('INSERT INTO india_sales_submissions(id,tenant_id,opportunity_id,boq_id,quotation_number,boq_version,recipient_email,channel,sent_at,evidence_reference,evidence_sha256,created_by,release_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(ref,TENANT,id,boq.id,boq.quotation_number,boq.version,recipient,channel,sentAt,evidence,digest,email,release.id),
    db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
     .bind(crypto.randomUUID(),TENANT,'deal',id,'QUOTATION_SUBMITTED',email,boq.quotation_number+' v'+boq.version+' via '+channel)
   ]);
   return resp({success:true,id:ref,status:'reported',requiresReview:true},201);
- }catch(e){const str=String(e);return err(str.includes('UNIQUE')?'Bukti pengiriman duplikat: gunakan revisi quotation jika berubah':'Gagal mencatat pengiriman quotation; periksa database/migrasi.',str.includes('UNIQUE')?409:503);}
+ }catch(e){const t=transactionError(e);return err(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return a.response;
@@ -76,10 +81,13 @@ export async function PATCH(req:Request){
   const deny=verifySubmissionRights(row,role,email);if(deny)return err(deny,403);
   const notes=String(p.review_notes||'').trim(),action=String(p.action||'');
   if(!['verified','rejected'].includes(action)||notes.length<15||notes.length>1500)return err('Status dan catatan pemeriksaan minimal 15 karakter wajib',422);
-  const updated=await db.prepare("UPDATE india_sales_submissions SET status=?,verified_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=? AND status='reported'")
-   .bind(action,email,notes,TENANT,id).run();
-  if((updated as unknown as {meta?:{changes?:number}}).meta?.changes===0)return err('Bukti pengiriman sudah diperiksa pengguna lain',409);
-  await audit(db,row.opportunity_id,'QUOTATION_EVIDENCE_'+action.toUpperCase(),email,row.quotation_number+' '+notes.slice(0,80));
+  const parent=await deal(db,row.opportunity_id);if(!parent||['closed_won','closed_lost'].includes(parent.stage))return err('Opportunity tertutup',409);
+  const guard=dealGuard(parent);
+  guard.condition+=" AND EXISTS(SELECT 1 FROM india_sales_submissions WHERE id=? AND tenant_id=? AND status='reported')";guard.args.push(id,TENANT);
+  await atomicSales(db,guard.condition,guard.args,[
+   db.prepare("UPDATE india_sales_submissions SET status=?,verified_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=? AND status='reported'").bind(action,email,notes,TENANT,id),
+   salesAudit(db,row.opportunity_id,'QUOTATION_EVIDENCE_'+action.toUpperCase(),email,row.quotation_number+' '+notes.slice(0,80))
+  ]);
   return resp({success:true,status:action,reviewer:email});
- }catch{return err('Verifikasi bukti submission gagal atau schema D1 belum siap',503);}
+ }catch(e){const t=transactionError(e);return err(t.message,t.status);}
 }
