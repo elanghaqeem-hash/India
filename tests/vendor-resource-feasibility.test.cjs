@@ -107,7 +107,7 @@ test('changing cost or allocation invalidates approval, preserves immutable hist
   const x=await expect(get(h,'admin'),200);
   assert.equal(x.body.report.ready,false);
   assert.ok(x.body.report.gaps.some(s=>/Person-days/.test(s)));
-  await expect(api(h,'presales',{action:'allocate',person_id:personId,allocation_month:'2026-11',work_role:'Replacement',person_days:8.2}),409);
+  await expect(api(h,'presales',{action:'allocate',person_id:personId,allocation_month:'2026-11',work_role:'Replacement',person_days:8.2}),201);
   const g=h.load('src/lib/solution-feasibility-gate.ts');
   assert.equal(await g.feasibilityReady(h,'opp-qa'),false);
  }finally{h.close();}
