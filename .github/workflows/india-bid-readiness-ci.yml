@@ -1,9 +1,9 @@
 name: INDIA Tender Compliance Bid Readiness
 on:
   push:
-    branches: [feat/india-tender-bid-readiness-20261022]
+    branches: [feat/india-tender-bid-readiness-20261022, feat/india-ag-vault-tender-integration-20261022]
   pull_request:
-    branches: [main, feat/india-p1-p2-integration-20261022]
+    branches: [main, feat/india-p1-p2-integration-20261022, feat/india-tender-bid-readiness-20261022]
   workflow_dispatch:
 permissions:
   contents: read
