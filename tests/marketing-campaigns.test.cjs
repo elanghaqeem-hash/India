@@ -53,10 +53,13 @@ test('Campaign creation auto-generates missing code on server with collision han
  assert.match(api,/UNIQUE constraint failed/);
  assert.match(api,/attempt<4/);
  assert.match(api,/body\.code\.trim\(\)\.toUpperCase\(\)!==current\.code/);
- assert.match(page,/code:generateCampaignCode\(\)/);
+ assert.match(page,/setForm\(\{\.\.\.empty\(\),code:generateCampaignCode\(\)\}\)/);
  assert.match(page,/Kode unik \(otomatis\)/);
- assert.match(page,/readOnly=\{key==='code'\}/);
+ assert.match(page,/disabled=\{key==='code'\|\|!editable\|\|busy\}/);
+ assert.match(page,/\{\.\.\.form,budget_idr:Number\(form\.budget_idr\)\}/);
  assert.doesNotMatch(page,/Kode unik \*/);
+ // Do not generate random values during the server/client initial render (hydration safety).
+ assert.match(page,/const empty=\(\)=>\(\{code:''/);
 });
 test('Campaign migration adds validated master and Lead attribution FK without fake rows',()=>{
  const db=new DatabaseSync(':memory:');
