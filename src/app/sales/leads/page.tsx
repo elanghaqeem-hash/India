@@ -109,6 +109,7 @@ export default function MarketingLeads(){
   <div className="flex flex-wrap gap-2">
    <Link href="/sales/campaigns" className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Kelola Campaign &amp; Attribution →</Link>
    <Link href="/sales/pipeline" className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold text-slate-700">Sales Pipeline →</Link>
+   <Link href="/sales/activities" className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Jadwal &amp; Follow-up →</Link>
   </div>
   {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <section className="grid grid-cols-3 gap-2">
