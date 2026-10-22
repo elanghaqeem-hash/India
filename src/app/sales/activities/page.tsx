@@ -11,7 +11,8 @@ type Target={id:string;name:string;kind:'lead'|'opportunity';owner:string};
 const kinds:Record<string,string>={visit:'Kunjungan',call:'Telepon',meeting:'Meeting',follow_up:'Follow-up'};
 const statusName:Record<string,string>={scheduled:'Dijadwalkan',rescheduled:'Dijadwalkan ulang',completed:'Selesai',cancelled:'Dibatalkan'};
 const input='min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 outline-none';
-const fmt=(v:string)=>new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(v));
+const asInstant=(v:string)=>new Date(/^\\d{4}-\\d{2}-\\d{2} /.test(v)?v.replace(' ','T')+'Z':v);
+const fmt=(v:string)=>new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(asInstant(v));
 const localInput=(d:Date)=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 async function call(method:'GET'|'POST'|'PATCH',path:string,body?:Record<string,unknown>){
  const r=await fetch(path,{method,cache:'no-store',credentials:'same-origin',headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
@@ -56,7 +57,7 @@ export default function SalesActivities(){
  const breached=(snapshot?.slas||[]).filter(x=>!x.first_response_at&&new Date(x.response_due_at).getTime()<=now);
  const monday=useMemo(()=>{const d=new Date();d.setHours(0,0,0,0);d.setDate(d.getDate()-(d.getDay()+6)%7+week*7);return d;},[week]);
  const days=Array.from({length:7},(_,i)=>{const d=new Date(monday);d.setDate(d.getDate()+i);return d;});
- const dayKey=(d:Date)=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+ const dayKey=(d:Date)=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Jakarta',year:'numeric',month:'2-digit',day:'2-digit'}).format(d);
  const taskCard=(t:Task,actions=true)=><article key={t.id} className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
   <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-bold text-blue-800">{kinds[t.kind]||t.kind}</span>
    <span className="text-[11px] font-semibold text-slate-600">{fmt(t.start_at)} — {fmt(t.due_at)} WIB</span></div>
@@ -115,7 +116,7 @@ export default function SalesActivities(){
    <div className="mb-4 flex flex-wrap items-center justify-between gap-2"><h2 className="flex items-center gap-2 text-sm font-bold"><CalendarDays size={16}/> Kalender mingguan · WIB</h2>
     <div className="flex gap-2"><button className="rounded-lg border px-3 py-1 text-xs" onClick={()=>setWeek(x=>x-1)}>←</button><button className="rounded-lg border px-3 py-1 text-xs" onClick={()=>setWeek(0)}>Hari ini</button><button className="rounded-lg border px-3 py-1 text-xs" onClick={()=>setWeek(x=>x+1)}>→</button></div></div>
    <div className="grid min-w-0 gap-2 md:grid-cols-7">{days.map(d=>{
-    const mine=tasks.filter(t=>dayKey(new Date(t.start_at))===dayKey(d));
+    const mine=tasks.filter(t=>dayKey(asInstant(t.start_at))===dayKey(d));
     return <div key={dayKey(d)} className="min-w-0 rounded-lg border bg-slate-50 p-2">
      <div className="mb-2 text-xs font-bold">{new Intl.DateTimeFormat('id-ID',{weekday:'short',day:'numeric',month:'short'}).format(d)}</div>
      <div className="space-y-2">{mine.map(t=><div key={t.id} className={'rounded-md bg-white p-2 text-[11px] shadow-sm '+(t.status!=='planned'?'opacity-50':'')}>
