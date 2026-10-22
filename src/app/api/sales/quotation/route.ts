@@ -4,12 +4,13 @@ import { createQuotationDocx, type QuotationDetails } from '@/lib/quotation-docx
 import { TENANT } from '@/lib/sales-workflow';
 import { canReadDeal } from '@/lib/sales-access';
 import type { Proposal, ProposalLineItem } from '@/lib/types';
+import {atomicSales,currentRelease,dealGuard,salesAudit,type FlowDeal} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 
 const deny=(message:string,status=400)=>Response.json({success:false,message},{status,headers:privateHeaders});
-type DealRow={id:string;company_id:string;title:string;stage:string;data_json:string;created_by:string|null};
+type DealRow=FlowDeal & {id:string;company_id:string;title:string;stage:string;data_json:string;created_by:string|null};
 type AccountRow={id:string;legal_name:string;data_json:string};
-type BoQRow={id:string;opportunity_id:string|null;customer_name:string;project_name:string;quotation_number:string;version:number;status:string;line_items_json:string;cost_items_json:string;vat_rate:number;payment_terms:string;approved_by:string|null;created_by:string;created_at:string;};
+type BoQRow={id:string;opportunity_id:string|null;customer_name:string;project_name:string;quotation_number:string;version:number;edit_seq:number;status:string;line_items_json:string;cost_items_json:string;vat_rate:number;payment_terms:string;approved_by:string|null;created_by:string;created_at:string;};
 const str=(v:unknown)=>typeof v==='string'?v.trim():'';
 const clean=(v:string)=>v.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60);
 /** Download approved D1 quotation using INDIA's already implemented 3-format DOCX generator. */
@@ -36,6 +37,8 @@ export async function GET(req:Request){
    boq.project_name.trim().toLowerCase()!==row.title.trim().toLowerCase()||
    (fields.quotation_number&&fields.quotation_number!==boq.quotation_number))
    return deny('Nama proyek, pelanggan atau nomor quotation belum sesuai dengan BoQ approved.',409);
+  const release=await currentRelease(db,id);
+  if(!release||release.status!=='approved'||release.boq_id!==boq.id||release.boq_version!==boq.version)return deny('Proposal versi aktif harus approved sebelum ekspor quotation',409);
   const days=Number(fields.quotation_valid_days),until=fields.quotation_valid_until||'';
   if(!Number.isInteger(days)||days<=0||days>365||!/\d{4}-\d{2}-\d{2}/.test(until))
    return deny('Lengkapi masa berlaku dan tanggal akhir quotation di Sales Form sebelum ekspor.',409);
@@ -68,9 +71,11 @@ export async function GET(req:Request){
    paymentNotes:str(fields.quotation_payment_notes),exclusions:str(fields.exclusions),
    rules:str(fields.methodology),logSources:str(fields.asset_profile),
   };
+  if(params.get('output')==='preview')return Response.json({success:true,proposal,details:detail,release_id:release.id},{headers:privateHeaders});
   const bytes=createQuotationDocx(proposal,'auto',detail);
-  await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
-   .bind(crypto.randomUUID(),TENANT,'deal',id,'QUOTATION_EXPORT',auth.identity.email,'DOCX '+boq.quotation_number+' v'+boq.version).run();
+  const guard=dealGuard(row);
+  guard.condition+=" AND EXISTS(SELECT 1 FROM india_sales_releases WHERE id=? AND status='approved') AND EXISTS(SELECT 1 FROM india_boq WHERE id=? AND edit_seq=? AND status='approved')";guard.args.push(release.id,boq.id,boq.edit_seq);
+  await atomicSales(db,guard.condition,guard.args,[salesAudit(db,id,'QUOTATION_EXPORT',auth.identity.email,'DOCX '+boq.quotation_number+' v'+boq.version+' / paket v'+release.version)]);
   const output=new Uint8Array(bytes.length);output.set(bytes);
   return new Response(output.buffer,{status:200,headers:{...privateHeaders,
    'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

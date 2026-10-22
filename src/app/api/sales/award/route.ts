@@ -1,12 +1,13 @@
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {TENANT,safeID} from '@/lib/sales-workflow';
 import {validDigest,awardReviewAllowed,validAwardForWon,type AwardDoc} from '@/lib/sales-award';
+import {atomicSales,currentRelease,dealGuard,salesAudit,transactionError,poSnapshot,type FlowDeal} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 const res=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders});
 const deny=(message:string,status=400)=>res({success:false,message},status);
 const trustedOrigin=(r:Request)=>!r.headers.get('origin')||r.headers.get('origin')===new URL(r.url).origin;
-type Deal={id:string;stage:string;created_by:string;data_json:string};
-const readDeal=(db:D1DB,id:string)=>db.prepare('SELECT id,stage,created_by,data_json FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT,id).first<Deal>();
+type Deal=FlowDeal & {id:string;stage:string;created_by:string;data_json:string};
+const readDeal=(db:D1DB,id:string)=>db.prepare('SELECT * FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT,id).first<Deal>();
 const allowed=['admin','sales','presales','finance','approver','legal'];
 const visible=(role:string,email:string,d:Deal)=>role!=='sales'||d.created_by.toLowerCase()===email.toLowerCase();
 async function payload(r:Request){const body=await r.text();if(body.length>13000)throw Error('Payload terlalu besar');
@@ -50,15 +51,17 @@ export async function POST(req:Request){
      !validDigest(digest))return deny('Jenis, nomor dokumen, referensi arsip, dan SHA-256 asli harus diisi',422);
   if(['po','spk'].includes(kind)&&number.toLowerCase()!==String(f.po_number||'').trim().toLowerCase())
    return deny('Nomor PO/SPK harus sama dengan po_number pada Sales Form',409);
-  const docId=crypto.randomUUID();
-  await db.batch([
-   db.prepare('INSERT INTO india_sales_award_documents(id,tenant_id,opportunity_id,document_kind,document_number,file_name,archive_reference,original_sha256,created_by) VALUES (?,?,?,?,?,?,?,?,?)')
-    .bind(docId,TENANT,opportunityId,kind,number,filename,archive,digest.toLowerCase(),email),
+  const release=await currentRelease(db,opportunityId);
+  if(!release||release.status!=='approved')return deny('Proposal approved versi aktif wajib untuk registrasi PO',409);
+  const docId=crypto.randomUUID(),guard=dealGuard(deal);
+  await atomicSales(db,guard.condition,guard.args,[
+   db.prepare('INSERT INTO india_sales_award_documents(id,tenant_id,opportunity_id,document_kind,document_number,file_name,archive_reference,original_sha256,created_by,release_id,po_data_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+    .bind(docId,TENANT,opportunityId,kind,number,filename,archive,digest.toLowerCase(),email,release.id,poSnapshot(f)),
    db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)')
     .bind(crypto.randomUUID(),TENANT,'deal',opportunityId,'AWARD_EVIDENCE_REGISTER',email,kind+' '+number)
   ]);
   return res({success:true,id:docId,verified:false,requiresFinanceAndLegal:true},201);
- }catch{return deny('Registrasi award gagal atau D1 belum dimigrasikan',503);}
+ }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -78,9 +81,10 @@ export async function PATCH(req:Request){
   const sql=field==='finance'
    ?"UPDATE india_sales_award_documents SET finance_reviewed_by=?,finance_reviewed_at=CURRENT_TIMESTAMP,finance_review_notes=? WHERE id=? AND tenant_id=? AND finance_reviewed_by IS NULL"
    :"UPDATE india_sales_award_documents SET legal_reviewed_by=?,legal_reviewed_at=CURRENT_TIMESTAMP,legal_review_notes=? WHERE id=? AND tenant_id=? AND legal_reviewed_by IS NULL";
-  const result=await db.prepare(sql).bind(email,notes,id,TENANT).run();
-  if((result as unknown as {meta?:{changes?:number}}).meta?.changes===0)return deny('Bukti sudah direview oleh pengguna lain',409);
-  await audit(db,doc.opportunity_id,'AWARD_'+field.toUpperCase()+'_REVIEW',email,doc.document_number);
+  const parent=await readDeal(db,doc.opportunity_id);if(!parent||['closed_won','closed_lost'].includes(parent.stage))return deny('Opportunity tertutup',409);
+  const guard=dealGuard(parent);
+  guard.condition+=' AND EXISTS(SELECT 1 FROM india_sales_award_documents WHERE id=? AND '+field+'_reviewed_by IS NULL)';guard.args.push(id);
+  await atomicSales(db,guard.condition,guard.args,[db.prepare(sql).bind(email,notes,id,TENANT),salesAudit(db,doc.opportunity_id,'AWARD_'+field.toUpperCase()+'_REVIEW',email,doc.document_number)]);
   return res({success:true,review_kind:field,reviewed_by:email});
- }catch{return deny('Review award gagal. Periksa izin dan migrasi D1',503);}
+ }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
 }

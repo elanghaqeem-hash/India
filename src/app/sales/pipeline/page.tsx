@@ -135,13 +135,13 @@ export default function SalesPipelinePage(){
   // Presales submits only modified technical fields; never quote/PO/commercial fields.
   const changes=Object.fromEntries(Object.entries(dealFields).filter(([k,v])=>v!==(detail.deal.fields[k]||'')));
   if(role==='presales'&&!Object.keys(changes).some(k=>PRESALES_FIELDS.has(k))){setMessage('Tidak ada perubahan teknis yang perlu disimpan.');return;}
-  const payload=role==='presales'?{entity:'deal',id:selectedId,fields:Object.fromEntries(Object.entries(changes).filter(([k])=>PRESALES_FIELDS.has(k)))}:
-    {entity:'deal',id:selectedId,title:dealTitle,estimated_value:Number(amount),fields:dealFields};
+  const payload=role==='presales'?{entity:'deal',id:selectedId,flow_version:detail.deal.flow_version,fields:Object.fromEntries(Object.entries(changes).filter(([k])=>PRESALES_FIELDS.has(k)))}:
+    {entity:'deal',id:selectedId,flow_version:detail.deal.flow_version,title:dealTitle,estimated_value:Number(amount),fields:dealFields};
   void run(()=>request('PATCH','/api/sales',payload),'Detail opportunity diperbarui. Verifikasi PO lama dibatalkan jika ada.',selectedId);
  };
- const transition=(stage:SalesStage)=>void run(()=>request('PATCH','/api/sales',{entity:'transition',id:selectedId,stage}),'Tahap berubah menjadi '+stageLabel(stage),selectedId);
+ const transition=(stage:SalesStage)=>void run(()=>request('PATCH','/api/sales',{entity:'transition',id:selectedId,flow_version:detail?.deal.flow_version,stage}),'Tahap berubah menjadi '+stageLabel(stage),selectedId);
  const verify=()=>{if(!window.confirm('Konfirmasi Finance/Approver: Anda sudah memeriksa dokumen PO asli, nomor/tanggal, scope, nilai sebelum PPN, dan kesesuaian quotation final?'))return;
-  void run(()=>request('POST','/api/sales',{entity:'verify_po',id:selectedId,confirmed_documents:true}),'Pemeriksaan PO terhadap BoQ approved dicatat beserta identitas pemeriksa.',selectedId);
+  void run(()=>request('POST','/api/sales',{entity:'verify_po',id:selectedId,flow_version:detail?.deal.flow_version,confirmed_documents:true}),'Pemeriksaan PO terhadap BoQ approved dicatat beserta identitas pemeriksa.',selectedId);
  };
  const logActivity=()=>void run(()=>request('POST','/api/sales',{entity:'activity',opportunity_id:selectedId,kind:activityKind,subject:activitySubject,detail:activityDetail}),'Aktivitas Sales tercatat.',selectedId);
  const registerDoc=()=>void run(()=>request('POST','/api/sales',{entity:'document',opportunity_id:selectedId,document_kind:docKind,reference:docRef}),'Metadata dokumen dan checklist tersimpan.',selectedId);
@@ -216,6 +216,7 @@ export default function SalesPipelinePage(){
     {mayMove&&detail.deal.stage==='closed_lost'&&<button disabled={busy} onClick={()=>transition('prospecting')} className="rounded-lg border px-3 py-2 text-xs font-bold">Reopen → Prospecting</button>}
     <Link href={'/sales/procurement?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-800">Tender / RKS-KAK / Bid Decision →</Link>
     <Link href={'/boq?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border px-3 py-2 text-xs font-semibold">Buat / Cek BoQ →</Link>
+    <Link href={'/proposals?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-800">Presales / Proposal / Negotiation →</Link>
     <Link href={'/sales/submission?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-emerald-200 px-3 py-2 text-xs font-semibold text-emerald-800">Submission & Evidence →</Link>
     <Link href={'/sales/award?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-800">PO/SPK & Legal Review →</Link>
     {detail.boqs.some(b=>b.status==='approved'&&b.id===dealFields.boq_id)&&<a href={'/api/sales/quotation?opportunity_id='+encodeURIComponent(selectedId)} className="rounded-lg border border-indigo-300 px-3 py-2 text-xs font-bold text-indigo-800">Generate Quotation Word (BoQ approved)</a>}
@@ -258,7 +259,7 @@ export default function SalesPipelinePage(){
    <DealFieldSections values={dealFields} readOnly={k=>!mayMove&&(role!=='presales'||!PRESALES_FIELDS.has(k))} onUpdate={(k,v)=>setDealFields(f=>({...f,[k]:v}))}/>
    <div className="flex flex-wrap items-center gap-3">
     <button disabled={busy||!['admin','sales','presales'].includes(role)||['closed_won','closed_lost'].includes(detail.deal.stage)} onClick={updateDeal} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white">{role==='presales'?'Simpan Parameter Teknis':'Simpan Semua Perubahan'}</button>
-    <p className="text-xs text-amber-700">Simpan perubahan sebelum pindah stage. Edit detail membatalkan verifikasi PO sebelumnya.</p>
+    <p className="text-xs text-amber-700">Simpan sebelum pindah tahap. Perubahan material membuka ulang paket penawaran; perubahan data PO memerlukan pemeriksaan ulang.</p>
    </div>
   </section>
   <div className="grid gap-4 lg:grid-cols-2">

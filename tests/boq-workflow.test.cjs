@@ -46,7 +46,10 @@ test('API mutations must use optimistic locking and only audit successful action
  const source=fs.readFileSync(path.join(__dirname,'../src/app/api/boq/[id]/route.ts'),'utf8');
  assert.ok(source.match(/edit_seq=edit_seq\+1/g)?.length>=4);
  assert.ok(source.match(/AND edit_seq=\?/g)?.length>=4);
- assert.ok(source.match(/meta\?\.changes!==1/g)?.length>=4);
+ assert.match(source,/await atomicSales/);
+ const transactions=fs.readFileSync(path.join(__dirname,'../src/lib/sales-transactions.ts'),'utf8');
+ assert.match(transactions,/INSERT INTO india_sales_tx_guards/);
+ assert.match(transactions,/return db.batch/);
  const testMigration=fs.readFileSync(path.join(__dirname,'../migrations/0002_india_boq_edit_seq.sql'),'utf8');
  assert.match(testMigration,/ADD COLUMN edit_seq INTEGER NOT NULL DEFAULT 0/);
 });
