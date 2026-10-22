@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
@@ -28,7 +28,8 @@
     "test:sales-transactions": "node --test tests/sales-lifecycle-transactions.test.cjs",
     "test:activities": "node --test tests/sales-activity-cron.test.cjs tests/sales-activity-handler.test.cjs",
     "test:lead-intelligence": "node --test tests/lead-intelligence.test.cjs",
-    "test:p1-p2": "node --test tests/p1-p2-commercial-integration.test.cjs"
+    "test:p1-p2": "node --test tests/p1-p2-commercial-integration.test.cjs",
+    "test:bid-readiness": "node --test tests/tender-bid-readiness.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
