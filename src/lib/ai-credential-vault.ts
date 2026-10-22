@@ -125,7 +125,7 @@ export async function runPriorityChain(db:D1DB,prompt:string):Promise<{
  content:string;providerUsed:string;modelUsed:string;latencyMs:number;tokensEstimate:number;isFallback:boolean;
 }>{
  const started=Date.now();
- const rows=(await getProviderRows(db)).filter(row=>row.enabled===1 && !!row.key_ciphertext &&
+ const rows=(await getProviderRows(db)).filter(row=>row.enabled===1 && row.tested_ok===1 && !!row.key_ciphertext &&
   isProviderId(row.provider_id)).sort((a,b)=>a.priority-b.priority);
  if(!rows.length)throw new Error('Belum ada provider AI aktif dengan API key.');
  const attempts=[] as string[];

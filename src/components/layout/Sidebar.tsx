@@ -17,6 +17,8 @@ import {
   ClipboardCheck,
   ClipboardList,
   Sparkles,
+  KanbanSquare,
+  Megaphone,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -27,15 +29,18 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   const pathname = usePathname();
 
   const navigation = [
+    { name: 'Marketing Campaigns', href: '/sales/campaigns', icon: Megaphone, badge: 'D1' },
+    { name: 'Marketing & Leads', href: '/sales/leads', icon: Megaphone, badge: 'D1' },
+    { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
     {
-      name: 'Deal 360 Workspace',
+      name: 'Legacy 360 (Demo)',
       href: '/',
       icon: LayoutDashboard,
       badge: null,
     },
     {
-      name: 'Customer Management',
+      name: 'Customer Master (Demo)',
       href: '/customers',
       icon: Building2,
       badge: null,
@@ -47,20 +52,20 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       badge: 'VAPT / SOC',
     },
     {
-      name: 'ICOP Pricing Engine',
+      name: 'Pricing Calculator (Draft)',
       href: '/pricing',
       icon: Calculator,
       badge: 'BoQ A-E',
     },
     {
-      name: 'Decision & DoA Center',
+      name: 'Decision Center (Demo)',
       href: '/approvals',
       icon: Stamp,
       badge: pendingApprovalsCount > 0 ? `${pendingApprovalsCount}` : null,
       highlight: pendingApprovalsCount > 0,
     },
     {
-      name: 'Quotation & Offer Gen',
+      name: 'Presales / Proposal',
       href: '/proposals',
       icon: FileSpreadsheet,
       badge: null,
@@ -72,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       badge: '2 Word',
     },
     {
-      name: 'Tender Management',
+      name: 'Tender Intelligence (Demo)',
       href: '/tender',
       icon: FileText,
       badge: 'LPSE/BUMN',
@@ -144,7 +149,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
             <span>DefendIT360 Baseline</span>
           </div>
           <p className="text-[11px] text-slate-600 leading-relaxed">
-            Rate Card 2026 disahkan. PPN 11%, terms 30-50-20, denda keterlambatan 1‰/hari.
+            Rate card, PPN, termin dan klausul pada modul demo harus diverifikasi Finance sebelum digunakan untuk transaksi pelanggan.
           </p>
           <div className="mt-2.5 flex items-center gap-1.5 text-[10px] font-semibold text-blue-700">
             <TrendingUp className="h-3 w-3" />

@@ -1,7 +1,7 @@
 'use client';
 import React,{useEffect,useState} from 'react';
 type Member={email:string;role:string;active:number};
-const roles=['admin','finance','presales','sales','approver','viewer'];
+const roles=['admin','marketing','finance','presales','sales','approver','legal','viewer'];
 export default function BoQUsers(){
  const [members,setMembers]=useState<Member[]>([]),[email,setEmail]=useState(''),[role,setRole]=useState('viewer'),[error,setError]=useState('');
  const load=async()=>{const r=await fetch('/api/boq/members',{cache:'no-store'}),j=await r.json();if(!r.ok)setError(j.message||'Akses ditolak');else setMembers(j.users);};

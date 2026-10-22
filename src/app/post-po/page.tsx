@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ClipboardCheck, Download, FileLock2, AlertCircle, CheckCircle2, ArrowRight, Plus, Trash2 } from 'lucide-react';
 import { appStore } from '@/lib/store';
 import {
@@ -9,6 +9,7 @@ import {
 } from '@/lib/post-po-documents';
 import { createDemoPostPoPacket, fillEmptyPostPoWithDummy, DUMMY_DATA_NOTICE } from '@/lib/post-po-dummy';
 import { downloadOfficialPostPoDocx } from '@/lib/post-po-official-layout';
+import { prefillFromSales } from '@/lib/sales-to-post-po';
 
 const SERVICE_GUIDANCE: Record<ServiceFamily,string> = {
   'VAPT':'Cantumkan objek aplikasi/web/API/mobile/jaringan, jumlah target, metode black/grey/white box, testing window, retest, dan deliverables yang tercantum PO/SOW.',
@@ -60,13 +61,29 @@ function PicFields({title,value,onChange}:{title:string;value:Pic;onChange:(v:Pi
 const serviceTypes:ServiceFamily[]=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'];
 
 export default function PostPoPage(){
- const [data,setData]=useState<PostPoPacket>(()=>createDemoPostPoPacket(newPostPoPacket(),'VAPT'));
+ const [data,setData]=useState<PostPoPacket>(()=>newPostPoPacket());
+ const [linkedOpportunity,setLinkedOpportunity]=useState('');
+ const [sourceLoading,setSourceLoading]=useState(false);
  const [exampleService,setExampleService]=useState<ServiceFamily>('VAPT');
  const [step,setStep]=useState<'sales'|'project'|'review'>('sales');
  const [message,setMessage]=useState('');
  const [selectedSalesCustomer,setSelectedSalesCustomer]=useState('');
  const [officialTemplates,setOfficialTemplates]=useState<{registration:File|null;project:File|null}>({registration:null,project:null});
  const [exportLoading,setExportLoading]=useState<'registration'|'project'|null>(null);
+ useEffect(()=>{
+  const id=new URLSearchParams(window.location.search).get('opportunity_id');
+  if(!id)return;
+  setSourceLoading(true);setMessage('');
+  fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store',credentials:'same-origin'})
+   .then(r=>r.json()).then(j=>{
+    if(!j.success)throw Error(j.message||'Data Sales tidak tersedia');
+    if(j.deal.stage!=='closed_won')throw Error('Form Post-PO hanya untuk Closed Won dengan PO tervalidasi.');
+    setData(prefillFromSales(j.account,j.deal,!!j.poCheck,Number(j.poCheck?.quotation_amount_before_vat||0)));
+    setLinkedOpportunity(id);setStep('sales');
+    setMessage('Data Sales dan PO diimpor dari D1. Lengkapi bukti dokumen serta KTP sebelum generate Word.');
+   }).catch(e=>setMessage(e instanceof Error?e.message:'Gagal mengambil data Sales'))
+   .finally(()=>setSourceLoading(false));
+ },[]);
  const availableSalesCustomers=appStore.getState().companies;
  const salesSource=availableSalesCustomers.find(x=>x.id===selectedSalesCustomer);
  const salesAudit=salesSource?auditExistingSalesCustomer(salesSource):null;
@@ -108,13 +125,13 @@ export default function PostPoPage(){
     </span>
    </div>
    <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-xs leading-relaxed text-amber-900">
-    <strong>Pratinjau aman:</strong> India saat ini belum memiliki autentikasi/RBAC dan database produksi yang terverifikasi.
-    Isian pada layar ini hanya berada dalam memori tab browser dan tidak dikirim/disimpan ke server. Jangan gunakan data KTP asli pada pratinjau publik.
-    Integrasi dengan input Sales historis, verifikasi PO asli, serta persetujuan legal/finance memerlukan backend produksi.
+    <strong>Kontrol data:</strong> Data Sales terverifikasi diambil dari D1 dengan Cloudflare Access. Edit formulir dan KTP di layar ini tidak disimpan ke CRM. Verifikasi bukti NPWP, KTP dan PO sebelum finalisasi dokumen.
    </div>
   </header>
 
-  <section className="rounded-2xl border border-violet-200 bg-white p-4 sm:p-5">
+  {sourceLoading&&<p role="status" className="rounded-lg bg-blue-50 p-3 text-xs">Mengambil data opportunity D1...</p>}
+  {linkedOpportunity&&<p className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-800">Terhubung dengan Opportunity {linkedOpportunity}. Bukti pribadi diisi langsung pada form ini.</p>}
+  {!linkedOpportunity&&<section className="rounded-2xl border border-violet-200 bg-white p-4 sm:p-5">
     <h2 className="text-sm font-bold text-slate-900">Isi data dummy pada Form Registrasi dan Form Project</h2>
     <p className="mt-1 text-xs text-slate-600">{DUMMY_DATA_NOTICE}</p>
     <p className="mt-1 text-xs text-slate-500">Saat pertama dibuka, form sudah berisi contoh VAPT. Anda dapat memilih skenario produk/layanan lain, melengkapi hanya field kosong, atau mengganti seluruh contoh.</p>
@@ -153,7 +170,7 @@ export default function PostPoPage(){
     {data.isDemo&&<p className="mt-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs font-bold text-amber-900">
       MODE SIMULASI AKTIF — Dokumen DOCX berlabel DATA DUMMY. Lulus validasi simulasi tidak berarti PO dan proyek layak Kick Off.
     </p>}
-  </section>
+  </section>}
 
   <section className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5">
    <div className="flex items-start gap-2">

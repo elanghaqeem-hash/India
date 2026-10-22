@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
   pull_request:
-    branches: [main]
+    branches: [main, feat/india-marketing-sales-consolidation-20261022]
   workflow_dispatch:
 
 permissions:
@@ -22,7 +22,11 @@ jobs:
       - name: Install project dependencies
         run: npm install --no-audit --no-fund
       - name: Mobile and print regression checks
-        run: npm run test:layout && npm run test:boq && npm run test:boq-domain && npm run test:boq-workflow && npm run test:quotation-docx && npm run test:post-po && npm run test:ai && npm run test:scoping-upload && npm run test:runtime-compat
+        run: npm run test:layout && npm run test:boq && npm run test:boq-domain && npm run test:boq-workflow && npm run test:quotation-docx && npm run test:post-po && npm run test:ai && npm run test:sales && npm run test:marketing && npm run test:scoping-upload && npm run test:india-negative && npm run test:runtime-compat
+      - name: Marketing Sales consolidation and atomic migration gates
+        run: npm run test:consolidation
+      - name: Presales Proposal Submission Negotiation PO transaction gates
+        run: npm run test:sales-transactions
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build

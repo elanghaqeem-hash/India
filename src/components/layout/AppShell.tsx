@@ -5,6 +5,7 @@ import { Navbar } from './Navbar';
 import { Sidebar } from './Sidebar';
 import { MobileNav } from './MobileNav';
 import { SystemRole } from '@/lib/types';
+import { AIWorkbench } from '@/components/ai/AIWorkbench';
 
 interface AppShellProps {
   children: React.ReactNode;
@@ -22,7 +23,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
         pendingApprovalsCount={pendingCount}
       />
       <div role="status" className="no-print border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs font-medium leading-relaxed text-amber-900">
-        Pratinjau India (DEMO) — seluruh data adalah contoh, bukan data pelanggan sebenarnya. Fitur penyimpanan, transaksi dan API dinonaktifkan sampai keamanan serta database siap.
+        AREA DEMO: dashboard lama dan beberapa modul masih menggunakan data simulasi. Sales Pipeline, Proposal, Negosiasi, PO dan BoQ memakai D1 serta autentikasi Cloudflare Access. Jangan menyamakan data contoh dengan data produksi.
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         <Sidebar pendingApprovalsCount={pendingCount} />
@@ -30,6 +31,7 @@ export const AppShell: React.FC<AppShellProps> = ({ children }) => {
           {children}
         </main>
       </div>
+      <AIWorkbench />
       <MobileNav pendingApprovalsCount={pendingCount} />
     </div>
   );

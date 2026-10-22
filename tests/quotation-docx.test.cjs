@@ -104,3 +104,18 @@ test('DOCX source-aligned letterhead and purple table contain the expected four 
   assert.match(xml, /63369B/);
   assert.match(xml, /RINCIAN HARGA PENAWARAN/);
 });
+
+test('quotation uses supplied authorized signatory instead of template sample name',async()=>{
+ const api=await exporter();
+ const xml=unpack(api.createQuotationDocx(base,'mobile',{
+  endUser:'Pelanggan Uji',recipientName:'Tim Procurement',
+  signatoryName:'Pengirim Disetujui',signatoryTitle:'Sales Manager',
+  quotationDate:'2026-10-19'
+ }),'word/document.xml');
+ assert.match(xml,/Pengirim Disetujui/);
+ assert.match(xml,/Sales Manager \| DefendIT360/);
+ assert.match(xml,/Tim Procurement/);
+ assert.doesNotMatch(xml,/Maria Hayu Utaminingtyas/);
+ const noSign=unpack(api.createQuotationDocx(base,'mobile'),'word/document.xml');
+ assert.match(noSign,/Nama penandatangan - belum dikonfirmasi/);
+});

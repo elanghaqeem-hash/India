@@ -4,14 +4,14 @@ const { readFileSync } = require('node:fs');
 const { join } = require('node:path');
 
 const root = join(__dirname, '..');
-const page = readFileSync(join(root, 'src/app/proposals/page.tsx'), 'utf8');
+const page = readFileSync(join(root, 'src/app/proposals/page.tsx'), 'utf8')+readFileSync(join(root, 'src/components/sales/ProposalWorkspace.tsx'), 'utf8');
 const sheet = readFileSync(join(root, 'src/components/quotation/QuotationDocument.tsx'), 'utf8');
 const css = readFileSync(join(root, 'src/app/globals.css'), 'utf8');
 const shell = readFileSync(join(root, 'src/components/layout/AppShell.tsx'), 'utf8');
 const navbar = readFileSync(join(root, 'src/components/layout/Navbar.tsx'), 'utf8');
 
 test('quotation displays three A4 pages with repeated branding and compact purple pricing table', () => {
-  assert.match(page, /<QuotationDocument proposal={selectedProp} format={docFormat} details={docDetails}/);
+  assert.match(page, /<QuotationDocument proposal={preview.proposal} format="auto" details={preview.details}/);
   assert.match(sheet, /quote-letter-page/);
   assert.match(sheet, /quote-details-page/);
   assert.match(sheet, /quote-terms-page/);
