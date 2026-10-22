@@ -53,7 +53,8 @@ export default function BidReadinessPage(){
      <h2 className="text-sm font-bold text-amber-900">Open gaps ({d.report.gaps.length})</h2>
      <ul className="mt-2 list-disc space-y-1 pl-5 text-xs text-amber-950">{d.report.gaps.map((g,i)=><li key={i}>{g}</li>)}</ul>
     </div>}
-    <p className="mt-3 text-xs text-slate-500">Referensi arsip dan checksum SHA-256 adalah metadata; verifikasi file asli di Document Vault tetap diperlukan sebelum penawaran final.</p>
+    <p className="mt-3 text-xs text-slate-500">READY hanya berlaku jika evidence mandatory cocok dengan file asli terenkripsi Document Vault dan reviewer independen menyetujuinya.</p>
+    <Link className="mt-3 inline-flex rounded-lg border border-blue-200 px-3 py-2 text-xs font-bold text-blue-800" href={'/sales/documents?opportunity_id='+encodeURIComponent(w.id)}>Buka Document Vault untuk unggah RKS/KAK dan bukti tender asli</Link>
    </section>
    {edit&&!w.busy&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs font-semibold">Perubahan paket dibatasi sampai Solution Design. Revisi resmi setelah tahap tersebut harus mengikuti workflow pengembalian stage yang diaudit.</p>}
    <div className="grid items-start gap-4 xl:grid-cols-2">
