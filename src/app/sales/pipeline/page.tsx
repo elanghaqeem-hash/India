@@ -2,6 +2,8 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
+import { StageFilter } from '@/components/sales/StageFilter';
+import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -94,7 +96,7 @@ export default function SalesPipelinePage(){
  const [dealFields,setDealFields]=useState<SalesFields>({});
  const [message,setMessage]=useState('');
  const [busy,setBusy]=useState(false);
- const [filter,setFilter]=useState('all');
+ const [filter,setFilter]=useState<StageFilterValue>('all');
  const [activitySubject,setActivitySubject]=useState('');
  const [activityDetail,setActivityDetail]=useState('');
  const [activityKind,setActivityKind]=useState('meeting');
@@ -146,6 +148,7 @@ export default function SalesPipelinePage(){
  const logActivity=()=>void run(()=>request('POST','/api/sales',{entity:'activity',opportunity_id:selectedId,kind:activityKind,subject:activitySubject,detail:activityDetail}),'Aktivitas Sales tercatat.',selectedId);
  const registerDoc=()=>void run(()=>request('POST','/api/sales',{entity:'document',opportunity_id:selectedId,document_kind:docKind,reference:docRef}),'Metadata dokumen dan checklist tersimpan.',selectedId);
  const pipeline=deals.filter(d=>d.stage!=='closed_won'&&d.stage!=='closed_lost');
+ const filteredDeals=deals.filter(d=>filter==='all'||d.stage===filter);
  const value=pipeline.reduce((a,d)=>a+d.estimated_value,0),weighted=pipeline.reduce((a,d)=>a+d.estimated_value*stageProbability(d.stage)/100,0);
  const ordered=stages.filter(s=>!['closed_won','closed_lost'].includes(s));
  const idx=detail?ordered.indexOf(detail.deal.stage):-1;
@@ -174,13 +177,13 @@ export default function SalesPipelinePage(){
   <button key={k} onClick={()=>setTab(k)} className={'rounded-lg px-3 py-2 text-xs font-bold '+(tab===k?'bg-slate-900 text-white':'border bg-white text-slate-700')}>{l}</button>)}
  </nav>
  {tab==='pipeline'&&<section className="space-y-3">
-  <div className="flex flex-wrap items-center justify-between gap-2">
+  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
    <h2 className="font-bold">Daftar Peluang Penjualan</h2>
-   <select aria-label="Filter tahap" className={inputClass+' max-w-48'} value={filter} onChange={e=>setFilter(e.target.value)}>
-   <option value="all">Semua Tahap</option>{stages.map(([id,l])=><option key={id} value={id}>{l}</option>)}</select>
+   <StageFilter deals={deals} value={filter} onChange={setFilter}/>
   </div>
-  {deals.filter(d=>filter==='all'||d.stage===filter).length===0?<p className="rounded-lg border bg-white p-5 text-sm text-slate-500">Belum ada transaksi D1 pada filter ini. Daftarkan Customer lalu buat Opportunity tanpa data dummy.</p>:
-  <div className="grid gap-3 sm:grid-cols-2">{deals.filter(d=>filter==='all'||d.stage===filter).map(d=>
+  <p role="status" className="text-xs text-slate-500">Menampilkan <strong className="text-slate-800">{filteredDeals.length}</strong> dari <strong className="text-slate-800">{deals.length}</strong> Opportunity{filter!=='all'?' · '+stageLabel(filter):' · Semua Tahap'}.</p>
+  {filteredDeals.length===0?<p className="rounded-lg border bg-white p-5 text-sm text-slate-500">{deals.length===0?'Belum ada transaksi D1. Daftarkan Customer lalu buat Opportunity tanpa data dummy.':'Tidak ada Opportunity pada tahap ini. Pilih tahap lain atau gunakan Semua Tahap.'}</p>:
+  <div className="grid gap-3 sm:grid-cols-2">{filteredDeals.map(d=>
    <button key={d.id} type="button" onClick={()=>void loadDetail(d.id)} className="min-w-0 rounded-xl border bg-white p-4 text-left hover:border-blue-300">
     <div className="flex flex-wrap items-center justify-between gap-2"><span className="rounded-full bg-blue-50 px-2 py-1 text-[11px] font-semibold text-blue-800">{stageLabel(d.stage)}</span><span className="text-xs font-bold tabular-nums">{money(d.estimated_value)}</span></div>
     <h3 className="mt-2 truncate text-sm font-bold">{d.title}</h3><p className="text-xs text-slate-600">{d.company_name}</p>
