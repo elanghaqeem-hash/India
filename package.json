@@ -10,6 +10,7 @@
     "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
     "test:pricing": "node --test tests/pricing-technical-writer.test.cjs",
     "test:boq": "node --test tests/boq-export.test.cjs",

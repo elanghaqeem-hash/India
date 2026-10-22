@@ -26,11 +26,14 @@ FROM india_marketing_leads_phase18_archive l
 LEFT JOIN india_sales_opportunities o ON o.tenant_id=l.tenant_id
  AND o.id=l.converted_opportunity_id;
 -- The canonical lineage is the separate 1:1 bridge rather than duplicate IDs on the lead.
-INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by)
+INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by,converted_at)
 SELECT l.tenant_id,l.id,l.converted_account_id,l.converted_opportunity_id,
  COALESCE((SELECT e.actor_email FROM india_marketing_lead_events_phase18_archive e
    WHERE e.tenant_id=l.tenant_id AND e.lead_id=l.id AND e.action='CONVERT'
-   ORDER BY e.created_at DESC LIMIT 1),l.owner_email)
+   ORDER BY e.created_at DESC,e.id DESC LIMIT 1),l.owner_email),
+ COALESCE((SELECT e.created_at FROM india_marketing_lead_events_phase18_archive e
+   WHERE e.tenant_id=l.tenant_id AND e.lead_id=l.id AND e.action='CONVERT'
+   ORDER BY e.created_at DESC,e.id DESC LIMIT 1),l.updated_at)
 FROM india_marketing_leads_phase18_archive l
 WHERE l.status='converted';
 INSERT INTO india_marketing_lead_events(

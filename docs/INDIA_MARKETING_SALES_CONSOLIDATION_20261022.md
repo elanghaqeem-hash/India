@@ -26,7 +26,7 @@ Two distinct rollout paths, never mixed:
    - Verify `PRAGMA foreign_key_check` empty, row counts match archives, converted links point to the original Account/Opportunity, no duplicate customer identity, role preservation and all appropriate indexes. Commit only after all assertions are true.
    - After commit, inspect both the file-manifest names and integer versions; keep the archive immutable until governed retention is approved.
 
-**No production migration or automatic alteration of the existing live UAT database is performed by this GitHub PR.** The SQL pre/post bridge has no automatic deployment. D1 remote REST's independent SQL requests are NOT an atomic transaction: do not manually issue the individual bridge statements one by one. Use a reviewed atomic runner, rehearsal and a tested restore mechanism before touching the UAT D1. Verify whether the Cloudflare runtime supports the selected DDL atomicity path before execution.
+**Production remains unchanged.** On 22 October 2026 the isolated UAT database was migrated after export/restore verification and a successful remote rollback rehearsal. See [execution evidence](INDIA_PR19_UAT_MIGRATION_20261022.md). The bridge has no automatic deployment. Independent D1 REST requests are NOT one transaction: never issue the bridge statements individually. `scripts/india-pr18-canonical-plan.mjs` builds one 80-statement batch with preflight, data-preservation assertions and immutable archives. `scripts/india-uat-d1-bridge.mjs` pins the UAT database, verifies the backup SHA-256 and restore, compares the live source against the backup, and sends exactly one write request. It never retries an ambiguous write. Do not rerun the legacy bridge on the now-canonical UAT database.
 
 ### Data handling
 

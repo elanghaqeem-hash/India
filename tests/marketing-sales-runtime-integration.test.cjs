@@ -149,3 +149,34 @@ test('cross-owner existing Customer collision cannot produce orphan Opportunity 
   assert.equal(d.sql.prepare('SELECT COUNT(*) n FROM india_sales_lead_links').get().n,0);
  }finally{d.close();}
 });
+test('a conversion audit failure rolls back Lead, Customer, Opportunity and link and permits a safe retry',async()=>{
+ const d=new D1Mock(),call=api(d);
+ try{
+  const lead=await createdAndQualified(call,users.a,'ROLLBACK');
+  d.sql.exec("CREATE TRIGGER fail_conversion_audit BEFORE INSERT ON india_marketing_lead_events BEGIN SELECT RAISE(ABORT,'injected conversion audit failure'); END");
+  const request={entity:'convert',id:lead,version:2,opportunity_title:'UAT rollback',customer_fields:customer};
+  const failed=await call('POST',users.a,request);
+  assert.equal(failed.status,503);
+  const current=d.sql.prepare('SELECT status,version FROM india_marketing_leads WHERE id=?').get(lead);
+  assert.equal(current.status,'qualified');assert.equal(current.version,2);
+  for(const table of ['india_sales_accounts','india_sales_opportunities','india_sales_lead_links','india_marketing_lead_events'])
+   assert.equal(d.sql.prepare('SELECT COUNT(*) n FROM '+table).get().n,0,table);
+  d.sql.exec('DROP TRIGGER fail_conversion_audit');
+  assert.equal((await call('POST',users.a,request)).status,201);
+  assert.deepEqual(d.sql.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{d.close();}
+});
+test('simultaneous conversion retries return the same committed link without duplicate rows',async()=>{
+ const d=new D1Mock(),call=api(d);
+ try{
+  const lead=await createdAndQualified(call,users.a,'CONCURRENT');
+  const request={entity:'convert',id:lead,version:2,opportunity_title:'UAT concurrent',customer_fields:customer};
+  const replies=await Promise.all([call('POST',users.a,request),call('POST',users.a,request)]);
+  assert.ok(replies.every(r=>[200,201].includes(r.status)),JSON.stringify(replies));
+  assert.equal(replies[0].payload.customer_id,replies[1].payload.customer_id);
+  assert.equal(replies[0].payload.opportunity_id,replies[1].payload.opportunity_id);
+  for(const table of ['india_sales_accounts','india_sales_opportunities','india_sales_lead_links','india_marketing_lead_events'])
+   assert.equal(d.sql.prepare('SELECT COUNT(*) n FROM '+table).get().n,1,table);
+  assert.equal(d.sql.prepare('SELECT version FROM india_marketing_leads WHERE id=?').get(lead).version,3);
+ }finally{d.close();}
+});
