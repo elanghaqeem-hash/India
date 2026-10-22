@@ -94,7 +94,7 @@ function expect(result,status,name){
 function profile(){
  return {industry:'Information Technology',business_type:'Layanan Teknologi Informasi',employee_band:'100-500',
    company_phone:'02155501234',hq_address:'UAT TEST ONLY - NOT REAL ADDRESS',
-   hq_province:'DKI Jakarta',hq_postal:'12345'};
+   hq_province:'Jawa Barat',hq_postal:'40111',hq_village_code:'32.73.19.1001'};
 }
 function newLead(key,owner,value){
  return {entity:'lead',request_key:randomUUID(),account_name:'PT INDIA UAT '+key,
