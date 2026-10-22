@@ -37,8 +37,8 @@ Integer version 3 was missing from the old UAT ledger even though the Sales work
 
 ## Validation
 
-- Consolidation suite: **25/25 PASS**, including schema preservation, rollback after rename and after data copy, corrupted lineage, unexpected columns, duplicate bridge rejection, production-target guard, actual route-handler ownership, audit-failure rollback and simultaneous conversion retry.
-- Final combined local run: **196/196 PASS**, including browser subtests, with zero skips.
+- Consolidation suite: **26/26 PASS**, including schema preservation, rollback after rename and after data copy, corrupted lineage, unexpected columns, duplicate bridge rejection, production-target guard, actual route-handler ownership, audit-failure rollback simultaneous conversion retry and Marketing-to-Sales campaign handover.
+- Final combined local run: **197/197 PASS**, including browser subtests, with zero skips.
 - Existing regression suites: Sales/Marketing/BoQ/Quotation/Post-PO/AI/security checks pass locally; the 44 negative scenarios are retained.
 - Browser/HTTP fixture suite: **9/9 PASS**, six role interfaces on desktop/mobile plus unauthenticated access checks. Identity responses are test fixtures; this is not real Access authentication.
 - TypeScript, Next.js 16.4.2 production build and OpenNext Cloudflare packaging: **PASS**.

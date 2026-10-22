@@ -7,7 +7,7 @@ const {DatabaseSync}=require('node:sqlite');
 const root=path.resolve(__dirname,'..');
 const source=p=>fs.readFileSync(path.join(root,p),'utf8');
 const tenant='defendit360';
-const users={a:'uat.sales.a@india.invalid',b:'uat.sales.b@india.invalid',admin:'uat.admin@india.invalid',viewer:'uat.viewer@india.invalid'};
+const users={a:'uat.sales.a@india.invalid',b:'uat.sales.b@india.invalid',admin:'uat.admin@india.invalid',viewer:'uat.viewer@india.invalid',marketing:'uat.marketing@india.invalid'};
 const q={need:'Annual security assessment',budget_status:'Approved',decision_maker:'CISO',procurement_process:'Direct purchase',contact_phone:'081234567890'};
 const customer={industry:'Banking',business_type:'Financial Services',employee_band:'100-500',company_phone:'021000000',hq_address:'UAT synthetic address',hq_province:'DKI Jakarta',hq_postal:'12345'};
 class D1Mock{
@@ -56,7 +56,7 @@ function loadDomain(name,cache){
 }
 function api(db){
  const modules={};
- const sqlRoles=new Map([[users.a,'sales'],[users.b,'sales'],[users.admin,'admin'],[users.viewer,'viewer']]);
+ const sqlRoles=new Map([[users.a,'sales'],[users.b,'sales'],[users.admin,'admin'],[users.viewer,'viewer'],[users.marketing,'marketing']]);
  const customRequire=p=>{
   if(p==='@/lib/boq-auth')return {privateHeaders:{'Cache-Control':'no-store'},
    authorizeBoQ:async req=>{
@@ -178,5 +178,26 @@ test('simultaneous conversion retries return the same committed link without dup
   for(const table of ['india_sales_accounts','india_sales_opportunities','india_sales_lead_links','india_marketing_lead_events'])
    assert.equal(d.sql.prepare('SELECT COUNT(*) n FROM '+table).get().n,1,table);
   assert.equal(d.sql.prepare('SELECT version FROM india_marketing_leads WHERE id=?').get(lead).version,3);
+ }finally{d.close();}
+});
+test('Marketing hands a campaign-qualified Lead to Sales A with campaign attribution and owner intact',async()=>{
+ const d=new D1Mock(),call=api(d);
+ try{
+  d.sql.prepare("INSERT INTO india_marketing_campaigns(id,tenant_id,code,name,channel,status,owner_email,created_by,updated_by) VALUES(?,?,?,?,?,?,?,?,?)")
+   .run('campaign-uat',tenant,'QA-CAMPAIGN','UAT Banking Webinar','webinar','active',users.marketing,users.marketing,users.marketing);
+  const created=await call('POST',users.marketing,{...newLead(users.a,'HANDOVER'),campaign_id:'campaign-uat',campaign:''});
+  assert.equal(created.status,201,JSON.stringify(created.payload));
+  const lead=created.payload.id;
+  assert.equal((await call('PATCH',users.marketing,{id:lead,version:1,status:'qualified',qualification:q})).status,200);
+  assert.equal((await call('POST',users.marketing,{entity:'convert',id:lead,version:2,opportunity_title:'Forbidden conversion'})).status,403);
+  const otherSales=await call('GET',users.b);
+  assert.equal(otherSales.payload.leads.length,0);
+  const converted=await call('POST',users.a,{entity:'convert',id:lead,version:2,opportunity_title:'UAT campaign handover',customer_fields:customer});
+  assert.equal(converted.status,201,JSON.stringify(converted.payload));
+  const saved=d.sql.prepare('SELECT l.created_by,l.assigned_sales_email,l.campaign_id,l.campaign,o.created_by deal_owner,o.data_json FROM india_marketing_leads l JOIN india_sales_lead_links x ON x.lead_id=l.id JOIN india_sales_opportunities o ON o.id=x.opportunity_id WHERE l.id=?').get(lead);
+  assert.equal(saved.created_by,users.marketing);assert.equal(saved.assigned_sales_email,users.a);
+  assert.equal(saved.deal_owner,users.a);assert.equal(saved.campaign_id,'campaign-uat');
+  assert.equal(saved.campaign,'UAT Banking Webinar');
+  assert.match(JSON.parse(saved.data_json).opportunity_notes,/UAT Banking Webinar/);
  }finally{d.close();}
 });
