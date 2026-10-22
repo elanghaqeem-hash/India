@@ -94,8 +94,9 @@ export function buildExecutiveSalesDashboard(
    completed_tasks:Object.values(tasks).reduce((a,b)=>a+b,0),
    calls:tasks.call||0,meetings:tasks.meeting||0,visits:tasks.visit||0,follow_ups:tasks.follow_up||0};
  });
- const targetCoverage=by_owner.filter(o=>o.target_idr!==null);
- const totalTarget=targetCoverage.length===by_owner.length&&by_owner.length>0
+ const activeSalesOwners=new Set(members.map(m=>normalized(m.email)));
+ const targetCoverage=by_owner.filter(o=>activeSalesOwners.has(o.owner)&&o.target_idr!==null);
+ const totalTarget=targetCoverage.length===activeSalesOwners.size&&activeSalesOwners.size>0
   ?moneySum(targetCoverage.map(o=>o.target_idr!)):null;
  const booked=forecast.totals.booked_sales;
  const lossReasons=new Map<string,number>();
@@ -107,7 +108,7 @@ export function buildExecutiveSalesDashboard(
  return {
   period:forecast.period,today,policy_version:forecast.policy_version,
   totals:{
-   target_idr:totalTarget,target_defined:targetCoverage.length,target_required:by_owner.length,
+   target_idr:totalTarget,target_defined:targetCoverage.length,target_required:activeSalesOwners.size,
    booked_idr:booked,attainment_pct:totalTarget?percentage(booked,totalTarget):null,
    target_gap_idr:totalTarget===null?null:moneySum([totalTarget,-booked]),
    open_pipeline_idr:forecast.totals.open_pipeline,
