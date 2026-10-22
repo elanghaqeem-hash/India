@@ -16,6 +16,7 @@ const row={
  village_kind:'Kelurahan'
 };
 const db={prepare(statement){
+ if(statement.includes('india_postal_import_state'))return {first:async()=>({source_version:'test'})};
  assert.match(statement,/WHERE region_code=\? AND postal_code=\?/);
  return {bind(village,postal){
   return {first:async()=>village===row.region_code&&postal===row.postal_code?row:null};
@@ -42,4 +43,12 @@ test('postal requires an actual village selection',async()=>{
 });
 test('legacy Customer without postal data remains editable',async()=>{
  assert.deepEqual(await canonicalPostalFields(db,{hq_address:'Jl. Merdeka'}),{hq_address:'Jl. Merdeka'});
+});
+
+test('incomplete or unverified reference cannot validate address at write time',async()=>{
+ const pending={prepare(statement){
+  if(statement.includes('india_postal_import_state'))return {first:async()=>null};
+  throw Error('Village lookup cannot occur while reference is unverified');
+ }};
+ await assert.rejects(()=>canonicalPostalFields(pending,{hq_postal:'40111',hq_village_code:row.region_code}),/belum siap/);
 });
