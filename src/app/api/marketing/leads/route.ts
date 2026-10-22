@@ -215,7 +215,8 @@ export async function PATCH(req:Request){
   if(!row)return fail('Lead tidak ditemukan',404);
   if(!owner(role,email,row))return fail('Lead bukan milik pengguna',403);
   const target=trim(p.status,50) as LeadStatus;
-  if(!['new','assigned','qualified','disqualified'].includes(target))return fail('Status tidak diizinkan');
+  if(target==='disqualified')return fail('Gunakan Lead Intelligence agar reason code dan audit tercatat',422);
+  if(!['new','assigned','qualified'].includes(target))return fail('Status tidak diizinkan');
   const qualify={...JSON.parse(row.qualification_json||'{}'),...((p.qualification&&typeof p.qualification==='object')?p.qualification:{})};
   const v=validateLead({...row,qualification:qualify});
   const missing=leadTransition(row.status,target,v.qualification);
