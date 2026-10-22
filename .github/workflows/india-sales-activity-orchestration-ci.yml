@@ -16,7 +16,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
-      - run: npm ci --no-audit --no-fund
+      - run: npm install --no-audit --no-fund
       - name: Validate scheduled worker syntax
         run: node --check automation/sales-cron/src/index.js
       - name: D1 SLA and escalation integration tests
