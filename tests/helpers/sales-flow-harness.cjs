@@ -9,6 +9,8 @@ class Harness{
   // Isolated fixture only: production never ships this synthetic postal record.
   this.sql.prepare('INSERT INTO india_postal_areas(region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind,source_version) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
    .run('31.71.01.1001','12345','31','DKI Jakarta','31.71','Kota Jakarta Pusat','31.71.01','Gambir','Gambir','Kelurahan','UAT-SYNTHETIC');
+  this.sql.prepare('INSERT INTO india_postal_import_state(singleton,status,source_version,row_count,province_count,postal_count) VALUES(?,?,?,?,?,?)')
+   .run(1,'ready','UAT-SYNTHETIC',83712,38,15000);
   this.cache={};}
  prepare(sql){const d=this.sql;return {sql,args:[],bind(...args){this.args=args;return this;},async first(){return d.prepare(this.sql).get(...this.args)||null;},async all(){return {success:true,results:d.prepare(this.sql).all(...this.args)};},async run(){const r=d.prepare(this.sql).run(...this.args);return {success:true,meta:{changes:r.changes}};}};}
  async batch(stmts){if(this.beforeBatch){const f=this.beforeBatch;this.beforeBatch=null;f();}this.sql.exec('BEGIN IMMEDIATE');try{const x=stmts.map(s=>{const r=this.sql.prepare(s.sql).run(...s.args);return {success:true,meta:{changes:r.changes}};});this.sql.exec('COMMIT');return x;}catch(e){this.sql.exec('ROLLBACK');if(process.env.DEBUG_FLOW)console.error(e);throw e;}}
