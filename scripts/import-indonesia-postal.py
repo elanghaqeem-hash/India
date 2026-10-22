@@ -23,18 +23,30 @@ def sql_value(text):
 
 
 def map_row(r):
-    code = r["kode_wilayah"].strip()
+    original_code = r["kode_wilayah"].strip()
+    code = original_code
     postal = r["kode_pos"].strip()
     province = r["prov_code"].strip()
     regency = province + "." + r["kab_code"].strip()
     district = regency + "." + r["kec_code"].strip()
+    province_name = r["provinsi"].strip()
     if not (len(postal) == 5 and postal.isascii() and postal.isdigit()):
         return None
     if not (len(province) == 2 and len(regency) == 5 and len(district) == 8):
         return None
     if not code or not r["desa"].strip():
         return None
-    return (code, postal, province, r["provinsi"].strip(), regency,
+    # Source data incorrectly reuses province 92 for Papua Barat Daya.
+    # Kemendagri identifies Papua Barat Daya as 96. Preserve the old village
+    # code as a namespaced INTERNAL key, not as an invented official 96 code.
+    if province_name == "Papua Barat Daya":
+        if province != "92":
+            raise ValueError("Unexpected Papua Barat Daya source province code")
+        province = "96"
+        regency = "PBD-" + r["kab_code"].strip()
+        district = regency + "-" + r["kec_code"].strip()
+        code = "PBD:" + original_code
+    return (code, postal, province, province_name, regency,
             r["dt2"].strip() + " " + r["kabupaten"].strip(), district,
             r["kecamatan"].strip(), r["desa"].strip(),
             "Kelurahan" if r["is_kelurahan"].strip() == "1" else "Desa", DATA_SHA)
@@ -51,6 +63,11 @@ def main():
     dedup = {r[0]: r for r in parsed}
     if len(dedup) < 80000:
         raise SystemExit(f"Source coverage too small ({len(dedup)}); refusing partial import.")
+    # 38 canonical provinces are required for national lookup readiness.
+    expected_codes = set("11 12 13 14 15 16 17 18 19 21 31 32 33 34 35 36 51 52 53 61 62 63 64 65 71 72 73 74 75 76 81 82 91 92 93 94 95 96".split())
+    actual_codes = {row[2] for row in dedup.values()}
+    if actual_codes != expected_codes:
+        raise SystemExit(f"Missing/extra province codes: {sorted(expected_codes - actual_codes)} / {sorted(actual_codes - expected_codes)}")
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     cols = ",".join(COLUMNS)
