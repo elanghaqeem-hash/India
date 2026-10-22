@@ -144,3 +144,29 @@ test('legacy PATCH disqualification bypass is rejected: reason code only through
   assert.equal(h.sql.prepare("SELECT status FROM india_marketing_leads WHERE id='lead-legacy'").get().status,'assigned');
  }finally{h.close();}
 });
+
+test('stale disqualification CAS rolls back all reason, nurture, event and audit writes',async()=>{
+ const h=scoring();try{
+  seed(h,'lead-race');
+  h.beforeBatch=()=>h.sql.prepare("UPDATE india_marketing_leads SET version=version+1 WHERE id='lead-race'").run();
+  const r=await post(h,'sales','lead-race',1,'disqualify',{reason_code:'NO_BUDGET',reason_text:'Concurrent review'});
+  assert.equal(r.status,409,JSON.stringify(r));
+  assert.equal(h.sql.prepare("SELECT status FROM india_marketing_leads WHERE id='lead-race'").get().status,'assigned');
+  for(const table of ['india_lead_disqualifications','india_lead_nurture_plans','india_lead_intelligence_events'])
+   assert.equal(h.sql.prepare('SELECT count(*) n FROM '+table).get().n,0,table);
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_sales_audit WHERE entity_id='lead-race'").get().n,0);
+  assert.equal(h.sql.prepare('SELECT count(*) n FROM india_sales_tx_guards').get().n,0);
+ }finally{h.close();}
+});
+test('stale nurture version fails closed without duplicate touch or audit events',async()=>{
+ const h=scoring();try{
+  seed(h,'lead-race-plan');
+  await expect(post(h,'sales','lead-race-plan',1,'plan',{cadence_days:7,channel:'call',next_touch_at:day()}),200);
+  h.beforeBatch=()=>h.sql.prepare("UPDATE india_lead_nurture_plans SET version=version+1 WHERE lead_id='lead-race-plan'").run();
+  const r=await post(h,'sales','lead-race-plan',1,'touch',{plan_version:1,cadence_days:7,channel:'call',next_touch_at:day(),summary:'Stale touch attempt'});
+  assert.equal(r.status,409,JSON.stringify(r));
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_marketing_activities WHERE lead_id='lead-race-plan'").get().n,0);
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_lead_intelligence_events WHERE lead_id='lead-race-plan' AND event_type='TOUCH'").get().n,0);
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_sales_tx_guards").get().n,0);
+ }finally{h.close();}
+});
