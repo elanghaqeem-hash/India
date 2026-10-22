@@ -223,7 +223,6 @@ export async function POST(req:Request){
   }
   return failure('Aksi tidak dikenal',422);
  }catch(e){
-  if(req.url.startsWith('https://flow.invalid/'))console.error('Lead Intelligence isolated test error:',e);
   if(String(e).includes('UNIQUE')||String(e).includes('constraint'))return failure('Benturan versi atau aturan database',409);
   return failure('Transaksi Lead Intelligence gagal. Periksa migrasi 0014.',503);
  }
