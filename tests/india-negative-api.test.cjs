@@ -42,6 +42,8 @@ function route(file,role,email,db,additional={}){
   '@/lib/sales-access':access,
   '@/lib/sales-workflow':sales,
   '@/lib/sales-transactions':domain('sales-transactions'),
+  // Canonical postal validation is intentionally never reached on deny-before-side-effect paths.
+  '@/lib/indonesia-postal':{canonicalPostalFields:async(_db,fields)=>fields},
   // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
   '@/lib/sales-journey':{salesJourney:()=>[]},
   '@/lib/sales-procurement':{needsTenderGate:()=>false,procurementGate:()=>[]},
