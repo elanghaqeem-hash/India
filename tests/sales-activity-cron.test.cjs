@@ -18,7 +18,7 @@ function fixture(){
 }
 function adapter(sql){
  return {prepare(query){const statement=sql.prepare(query);
-  return {bind(...args){statement.bind(...args);return this;},async run(){return statement.run();}};
+  return {bind(...args){statement.bind(...args);return this;},async run(){return statement.run();},async first(){return statement.get()||null;}};
  },async batch(statements){
   sql.exec('BEGIN');
   try{for(const statement of statements)await statement.run();sql.exec('COMMIT');}
@@ -86,5 +86,46 @@ test('activity events immutable and failed audit rolls back a task modification'
    d.exec('COMMIT');
   }catch{d.exec('ROLLBACK');}
   assert.equal(d.prepare("SELECT status FROM india_sales_activity_tasks WHERE id='task-secure'").get().status,'planned');
+ }finally{d.close();}
+});
+
+
+test('nurture due reminders require 0014, use WIB dates and remain idempotent across Cron retries',async()=>{
+ const d=fixture();try{
+  d.exec("CREATE TABLE india_schema_file_manifest(path TEXT PRIMARY KEY,source_branch TEXT,applied_at TEXT DEFAULT CURRENT_TIMESTAMP)");
+  // Apply actual PR #22 migration on top of the PR #21 fixture.
+  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'qa'");
+  d.exec(fs.readFileSync('migrations/0014_lead_intelligence.sql','utf8'));
+  d.prepare("INSERT INTO india_lead_nurture_plans(lead_id,tenant_id,state,cadence_days,channel,next_touch_at,created_by,updated_by) VALUES('lead-old','defendit360','active',14,'follow_up',date('now','+7 hours','-1 day'),'qa','qa')").run();
+  await runCron(d);
+  assert.equal(d.prepare("SELECT count(*) n FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").get().n,1);
+  assert.equal(d.prepare("SELECT recipient_email FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").get().recipient_email,'sales-a@example.test');
+  await runCron(d);
+  assert.equal(d.prepare("SELECT count(*) n FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").get().n,1);
+  // Updating the plan creates a new versioned reminder, preserving the old audit alert.
+  d.prepare("UPDATE india_lead_nurture_plans SET version=version+1,next_touch_at=date('now','+7 hours') WHERE lead_id='lead-old'").run();
+  await runCron(d);
+  assert.equal(d.prepare("SELECT count(*) n FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").get().n,2);
+  assert.deepEqual(d.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{d.close();}
+});
+test('hard disqualified, completed, converted and unmapped recipients do not receive nurturing alerts',async()=>{
+ const d=fixture();try{
+  d.exec("CREATE TABLE india_schema_file_manifest(path TEXT PRIMARY KEY,source_branch TEXT,applied_at TEXT DEFAULT CURRENT_TIMESTAMP)");
+  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
+  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'qa'");
+  d.exec(fs.readFileSync('migrations/0014_lead_intelligence.sql','utf8'));
+  const cases=[['hard','disqualified','NO_FIT','active'],['closed','converted',null,'active'],['paused','assigned',null,'paused'],['invalid-owner','assigned',null,'active'],['soft','disqualified','TIMING_LATER','active']];
+  for(const [id,status,reason,state] of cases){
+   d.prepare("INSERT INTO india_marketing_leads(id,tenant_id,account_name,lead_number,assigned_sales_email,status) VALUES(?,'defendit360',?,? ,?,?)")
+    .run(id,id,'LD-'+id,id==='invalid-owner'?'missing@example.test':'sales-a@example.test',status);
+   d.prepare("INSERT INTO india_lead_nurture_plans(lead_id,tenant_id,state,cadence_days,channel,next_touch_at,created_by,updated_by) VALUES(?,'defendit360',?,14,'email',date('now','+7 hours','-1 day'),'qa','qa')")
+    .run(id,state);
+   if(reason)d.prepare("INSERT INTO india_lead_disqualifications(lead_id,tenant_id,reason_code,reason_text,active,changed_by) VALUES(?,'defendit360',?, 'UAT reason',1,'qa')").run(id,reason);
+  }
+  await runCron(d);
+  const ids=d.prepare("SELECT lead_id FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").all().map(x=>x.lead_id);
+  assert.deepEqual(ids,['soft']);
  }finally{d.close();}
 });
