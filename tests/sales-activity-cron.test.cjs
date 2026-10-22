@@ -74,7 +74,7 @@ test('unassigned manager goes to active Admin inbox; completed tasks do not get 
 test('activity events immutable and failed audit rolls back a task modification',()=>{
  const d=fixture();try{
   d.prepare("INSERT INTO india_sales_opportunities VALUES ('opp-1','defendit360')").run();
-  task(d,'task-secure','sales-a@example.test',-50);
+  task(d,'task-secure','sales-a@example.test',10);
   d.prepare("INSERT INTO india_sales_activity_events(id,tenant_id,task_id,action,actor_email) VALUES('event-1','defendit360','task-secure','scheduled','sales-a@example.test')").run();
   assert.throws(()=>d.prepare("DELETE FROM india_sales_activity_events WHERE id='event-1'").run(),/IMMUTABLE/);
   d.exec("BEGIN");
