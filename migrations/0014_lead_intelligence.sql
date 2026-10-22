@@ -41,6 +41,12 @@ CREATE TRIGGER india_lead_intelligence_events_immutable_update BEFORE UPDATE ON 
 BEGIN SELECT RAISE(ABORT,'Lead lifecycle events are immutable'); END;
 CREATE TRIGGER india_lead_intelligence_events_immutable_delete BEFORE DELETE ON india_lead_intelligence_events
 BEGIN SELECT RAISE(ABORT,'Lead lifecycle events are immutable'); END;
+CREATE TRIGGER india_lead_nurture_finish_on_qualification AFTER UPDATE OF status ON india_marketing_leads
+WHEN NEW.status IN ('qualified','converted') AND OLD.status!=NEW.status
+BEGIN
+ UPDATE india_lead_nurture_plans SET state='completed',version=version+1,updated_by=NEW.updated_by,updated_at=CURRENT_TIMESTAMP
+ WHERE lead_id=NEW.id AND tenant_id=NEW.tenant_id AND state IN ('active','paused');
+END;
 INSERT OR IGNORE INTO india_schema_file_manifest(path,source_branch)
  VALUES('migrations/0014_lead_intelligence.sql','lead-intelligence');
 INSERT OR IGNORE INTO india_schema_migrations(version) VALUES(14);
