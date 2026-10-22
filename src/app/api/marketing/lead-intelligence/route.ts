@@ -94,7 +94,7 @@ export async function GET(req:Request){
    LEFT JOIN india_lead_nurture_plans p ON p.tenant_id=l.tenant_id AND p.lead_id=l.id
    LEFT JOIN india_lead_disqualifications d ON d.tenant_id=l.tenant_id AND d.lead_id=l.id AND d.active=1
    WHERE ${ownerSql} ORDER BY l.updated_at DESC LIMIT 500`).bind(TENANT,visible(role),email).all();
-  const leads=rows.results.map(r=>{const score=computeLeadScore(r as Parameters<typeof computeLeadScore>[0]);
+  const leads=rows.results.map(r=>{const score=computeLeadScore(r as unknown as Parameters<typeof computeLeadScore>[0]);
    const o=r as Record<string,unknown>;const {qualification_json,...rest}=o;
    return {...rest,...score,reason_code:o.reason_code||(o.status==='disqualified'?'LEGACY_UNCLASSIFIED':null)};});
   return response({success:true,leads,limit:500});
