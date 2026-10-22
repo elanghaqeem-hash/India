@@ -47,6 +47,22 @@ CREATE INDEX idx_india_activity_owner_due ON india_sales_activity_tasks(tenant_i
 CREATE INDEX idx_india_activity_lead ON india_sales_activity_tasks(tenant_id,lead_id,created_at DESC);
 CREATE INDEX idx_india_activity_opportunity ON india_sales_activity_tasks(tenant_id,opportunity_id,created_at DESC);
 
+
+-- Prevent double-booking actual customer visits and meetings for the same Sales.
+-- Follow-up deadlines and asynchronous calls intentionally do not block a calendar slot.
+CREATE TRIGGER india_activity_meeting_conflict_insert BEFORE INSERT ON india_sales_activity_tasks
+WHEN NEW.status='planned' AND NEW.kind IN ('visit','meeting')
+ AND EXISTS(SELECT 1 FROM india_sales_activity_tasks t WHERE t.tenant_id=NEW.tenant_id
+  AND t.owner_email=NEW.owner_email AND t.status='planned' AND t.kind IN ('visit','meeting')
+  AND datetime(NEW.start_at)<datetime(t.due_at) AND datetime(NEW.due_at)>datetime(t.start_at))
+BEGIN SELECT RAISE(ABORT,'ACTIVITY_CALENDAR_CONFLICT'); END;
+CREATE TRIGGER india_activity_meeting_conflict_update BEFORE UPDATE OF start_at,due_at,kind,owner_email,status ON india_sales_activity_tasks
+WHEN NEW.status='planned' AND NEW.kind IN ('visit','meeting')
+ AND EXISTS(SELECT 1 FROM india_sales_activity_tasks t WHERE t.tenant_id=NEW.tenant_id AND t.id<>NEW.id
+  AND t.owner_email=NEW.owner_email AND t.status='planned' AND t.kind IN ('visit','meeting')
+  AND datetime(NEW.start_at)<datetime(t.due_at) AND datetime(NEW.due_at)>datetime(t.start_at))
+BEGIN SELECT RAISE(ABORT,'ACTIVITY_CALENDAR_CONFLICT'); END;
+
 CREATE TABLE india_sales_activity_events (
  id TEXT PRIMARY KEY,
  tenant_id TEXT NOT NULL,
