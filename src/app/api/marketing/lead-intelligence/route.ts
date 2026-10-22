@@ -155,8 +155,8 @@ export async function POST(req:Request){
    const result=await write(db,[
     db.prepare("UPDATE india_marketing_leads SET status='assigned',version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=? AND version=? AND status='disqualified'")
      .bind(email,TENANT,id,r.version),
-    db.prepare('UPDATE india_lead_disqualifications SET active=0,changed_by=?,changed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND lead_id=? AND active=1')
-     .bind(email,TENANT,id),
+    db.prepare('UPDATE india_lead_disqualifications SET active=0,changed_by=?,changed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND lead_id=? AND active=1 AND EXISTS(SELECT 1 FROM india_marketing_leads WHERE tenant_id=? AND id=? AND status='assigned' AND version=?)')
+     .bind(email,TENANT,id,TENANT,id,r.version+1),
     // Preserve existing schedule as a legitimate next action, unless already completed.
     event('REACTIVATE',d.reason_code,'Reactivated to assigned; BANT must be revalidated before conversion',r.version+1),
     audit('REACTIVATE',d.reason_code,r.version+1)
@@ -166,6 +166,10 @@ export async function POST(req:Request){
   }
   if(['plan','touch','pause','resume','complete'].includes(action)){
    if(!['new','assigned','disqualified'].includes(r.status))return failure('Lead sudah Qualified; nurturing tidak berlaku',409);
+   if(r.status==='disqualified'){
+    const reason=await db.prepare('SELECT reason_code FROM india_lead_disqualifications WHERE tenant_id=? AND lead_id=? AND active=1').bind(TENANT,id).first<{reason_code:string}>();
+    if(!reason||!canReactivate(reason.reason_code))return failure('Nurturing tidak diizinkan untuk hard-disqualified atau reason legacy',409);
+   }
    const current=await db.prepare('SELECT * FROM india_lead_nurture_plans WHERE tenant_id=? AND lead_id=?').bind(TENANT,id).first<Plan>();
    const cadence=Number(p.cadence_days??current?.cadence_days),channel=text(p.channel??current?.channel,30);
    if(![7,14,30,60,90].includes(cadence)||!['call','email','meeting','follow_up'].includes(channel))
