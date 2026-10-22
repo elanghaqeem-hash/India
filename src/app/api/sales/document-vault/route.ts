@@ -1,4 +1,4 @@
-import {authorizeBoQ,privateHeaders} from '@/lib/boq-auth';
+import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {TENANT,safeID} from '@/lib/sales-workflow';
 import {canReadDeal} from '@/lib/sales-access';
 import {atomicSales,dealGuard,salesAudit,type FlowDeal} from '@/lib/sales-transactions';
@@ -10,7 +10,6 @@ const res=(data:unknown,status=200)=>Response.json(data,{status,headers:privateH
 const deny=(message:string,status=400)=>res({success:false,message},status);
 const goodDate=(s:string)=>/^\d{4}-\d{2}-\d{2}$/.test(s)&&!Number.isNaN(Date.parse(s))&&new Date(s).toISOString().slice(0,10)===s;
 type ExtraDoc=VaultDoc&{version:number;retention_until:string|null;legal_hold:number;hold_reason:string|null};
-type Governance={retention_until:string|null;legal_hold:number;hold_reason:string|null;version:number};
 async function identityDeal(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return {error:a.response};
  const {db,role,email}=a.identity;
@@ -30,9 +29,9 @@ async function boundedBody(req:Request){
  try{while(true){const x=await reader.read();if(x.done)break;n+=x.value.length;if(n>VAULT_MAX_BYTES){await reader.cancel();throw Error('TOO_LARGE');}parts.push(x.value);}}finally{reader.releaseLock();}
  const out=new Uint8Array(n);let o=0;for(const p of parts){out.set(p,o);o+=p.length;}return out;
 }
-const event=(db:NonNullable<Awaited<ReturnType<typeof identityDeal>>['db']>,opp:string,source:'release'|'library',id:string,action:string,email:string,role:string,description:string)=>
+const event=(db:D1DB,opp:string,source:'release'|'library',id:string,action:string,email:string,role:string,description:string)=>
  db.prepare('INSERT INTO india_document_access_events(id,tenant_id,opportunity_id,source,document_id,action,actor_email,actor_role,description) VALUES(?,?,?,?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,opp,source,id,action,email,role,description);
-async function findDoc(db:NonNullable<Awaited<ReturnType<typeof identityDeal>>['db']>,opp:string,id:string,source:string){
+async function findDoc(db:D1DB,opp:string,id:string,source:string){
  if(source==='library')return db.prepare('SELECT * FROM india_document_library WHERE tenant_id=? AND opportunity_id=? AND id=?').bind(TENANT,opp,id).first<ExtraDoc>();
  if(source==='release')return db.prepare('SELECT v.*,g.version,g.retention_until,g.legal_hold,g.hold_reason FROM india_document_vault v JOIN india_document_governance g ON g.document_id=v.id WHERE v.tenant_id=? AND v.opportunity_id=? AND v.id=?').bind(TENANT,opp,id).first<ExtraDoc>();
  return null;
@@ -120,7 +119,7 @@ export async function PATCH(req:Request){
  }else return deny('Aksi tidak tersedia',422);
  try{
   const g=dealGuard(deal);
-  g.condition+=' AND EXISTS (SELECT 1 FROM '+table+' WHERE '+key+'=? AND '+(source==='release'?'tenant_id=? AND opportunity_id=?':'tenant_id=? AND opportunity_id=?')+')';
+  g.condition+=' AND EXISTS (SELECT 1 FROM '+table+' WHERE '+key+'=? AND tenant_id=? AND opportunity_id=?'+')';
   g.args.push(docId,TENANT,opp);
   await atomicSales(db,g.condition,g.args,[
    db.prepare('UPDATE '+table+' SET '+field+'=?,hold_reason=CASE WHEN ?=\'legal_hold\' THEN ? ELSE hold_reason END,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE '+key+'=?').bind(value,field,reason,email,docId),
