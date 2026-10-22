@@ -11,14 +11,14 @@ const milestones=[
  {value:'administrative',label:'Pengumpulan dokumen administrasi'}, {value:'technical',label:'Finalisasi proposal teknis'},
  {value:'commercial',label:'Finalisasi penawaran komersial'}, {value:'submission',label:'Batas akhir submission'}
 ];
-const updateFields=(c:Checklist):FormField[]=>[
+const updateFields=(c:Checklist,clauses:Clause[]):FormField[]=>[
  {key:'item_code',label:'Kode dokumen',value:c.item_code},
  {key:'category',label:'Kategori dokumen',type:'select',value:c.category,options:categories},
  {key:'label',label:'Persyaratan RKS/KAK',value:c.label},
  {key:'mandatory',label:'Mandatory',type:'checkbox',value:c.mandatory?'true':'false'},
  {key:'document_name',label:'Nama file asli',optional:true,value:c.document_name},
  ...evidenceFields.map(f=>({...f,optional:true,value:f.key==='evidence_reference'?c.evidence_reference:c.evidence_sha256})),
- {key:'source_clause_id',label:'ID klausul terkait',optional:true,value:c.source_clause_id||''},
+ {key:'source_clause_id',label:'Klausul RKS/KAK terkait',type:'select',optional:true,value:c.source_clause_id||'',options:clauses.map(x=>({value:x.id,label:x.clause_reference+' · '+x.category+' · '+x.requirement_text.slice(0,80)}))},
  {key:'due_at',label:'Batas dokumen ISO + zona waktu',optional:true,value:c.due_at||''}
 ];
 const notes:FormField[]=[
@@ -67,7 +67,7 @@ export default function BidReadinessPage(){
       {key:'label',label:'Nama persyaratan dokumen RKS/KAK'},
       {key:'mandatory',label:'Wajib / mandatory',type:'checkbox',value:'true'},
       {key:'document_name',label:'Nama dokumen / file',optional:true},...evidenceFields.map(x=>({...x,optional:true})),
-      {key:'source_clause_id',label:'ID klausul Compliance Matrix (opsional)',optional:true},
+      {key:'source_clause_id',label:'Klausul Compliance Matrix (opsional)',type:'select',optional:true,options:d.clauses.map(x=>({value:x.id,label:x.clause_reference+' · '+x.category+' · '+x.requirement_text.slice(0,80)}))},
       {key:'due_at',label:'Deadline khusus dokumen ISO + zona waktu',optional:true}]}
      onSubmit={p=>w.mutate({action:'item',...p})}/>
    </div>
@@ -92,7 +92,7 @@ export default function BidReadinessPage(){
      <p className="break-all text-xs text-slate-500">Evidence: {c.evidence_reference||'Belum ada'} · SHA-256: {c.evidence_sha256||'Belum ada'}</p>
      {c.checked_by&&<p className="text-xs text-slate-600">Reviewer: {c.checked_by} · {c.review_notes||''}</p>}
      {canWrite&&<details><summary className="cursor-pointer text-xs font-bold text-blue-800">Revisi / lengkapi bukti (reset review)</summary>
-      <EntryForm title="Lengkapi dokumen" fields={updateFields(c)} disabled={edit} submit="Simpan revisi" onSubmit={p=>w.mutate({action:'revise_item',id:c.id,version:c.version,...p})}/></details>}
+      <EntryForm title="Lengkapi dokumen" fields={updateFields(c,d.clauses)} disabled={edit} submit="Simpan revisi" onSubmit={p=>w.mutate({action:'revise_item',id:c.id,version:c.version,...p})}/></details>}
      {c.status==='draft'&&c.created_by.toLowerCase()!==d.identityEmail.toLowerCase()&&(
        d.role==='admin'||(c.category==='technical'?d.role==='presales':['finance','approver'].includes(d.role)))&&
       <EntryForm title="Pemeriksaan dokumen independen" disabled={edit} fields={notes} submit="Simpan pemeriksaan" onSubmit={p=>reviewer('review_item',c.id,c.version,p)}/>}
