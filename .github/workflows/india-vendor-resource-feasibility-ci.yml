@@ -1,0 +1,31 @@
+name: INDIA Vendor Resource Solution Feasibility
+on:
+  push:
+    branches: [feat/india-vendor-resource-feasibility-20261022]
+  pull_request:
+    branches: [feat/india-tender-bid-readiness-20261022]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  feasibility:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: D1 feasibility, capacity and expiry regression
+        run: npm run test:feasibility
+      - name: Tender and P1-P2 regression
+        run: npm run test:bid-readiness && npm run test:p1-p2
+      - name: Sales negative regression
+        run: npm run test:sales && npm run test:india-negative
+      - name: TypeScript compile
+        run: npm run typecheck
+      - name: OpenNext Cloudflare build
+        run: npm run build:cf
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

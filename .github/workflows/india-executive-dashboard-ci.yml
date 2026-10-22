@@ -1,0 +1,27 @@
+name: INDIA Executive Sales Dashboard CI
+on:
+  push:
+    branches: [feat/india-executive-sales-dashboard-20261022]
+  pull_request:
+    branches: [feat/india-p1-p2-integration-20261022, main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  executive-dashboard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: D1-backed executive dashboard and role isolation tests
+        run: npm run test:executive
+      - name: Existing P1 P2 commercial and forecast tests
+        run: npm run test:p1-p2 && npm run test:activities && npm run test:lead-intelligence
+      - name: TypeScript and Next.js
+        run: npm run typecheck && npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

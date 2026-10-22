@@ -10,7 +10,7 @@ export function buildSalesForecast(rows:ForecastRow[],period:string,today:string
   const close=r.expected_close_date||(typeof f.expected_closing_date==='string'?f.expected_closing_date:'');
   const probability=forecastProbability[r.stage];
   let category=r.category||(['negotiation','pending_po'].includes(r.stage)?'best_case':'pipeline');
-  if(category==='commit'&&!r.commit_ready){category='best_case';issues.push({id:r.id,title:r.title,reason:'Commit turun ke Best Case: persetujuan paket/negosiasi berubah'});}
+  if(category==='commit'&&!r.commit_ready){category='best_case';issues.push({id:r.id,title:r.title,reason:'Commit turun ke Best Case: persetujuan paket, tender, negosiasi atau feasibility berubah'});}
   const open=!['closed_won','closed_lost'].includes(r.stage),validAmount=amount(r.estimated_value_idr)&&probability!==undefined;
   if(!validAmount)issues.push({id:r.id,title:r.title,reason:'Nilai peluang atau tahap tidak valid; dikeluarkan dari agregasi'});
   if(open&&!validISODate(close))issues.push({id:r.id,title:r.title,reason:'Tanggal estimasi closing belum valid'});
