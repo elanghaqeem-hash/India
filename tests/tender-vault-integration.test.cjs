@@ -85,3 +85,41 @@ test('cross-role document listing denies Sales B and allows original owner and r
   await expect(d.call('sales/document-vault','GET','viewer',null,q),403);
  }finally{d.close();}
 });
+
+test('isolated SQL 0015 + 0022 + 0023 rollback preserves legacy Tender 0021 and existing rows',()=>{
+ const fs=require('node:fs'),path=require('node:path');
+ const d=new Harness(true,false).seed();
+ try{
+  const base=d.sql.prepare("SELECT count(*) AS n FROM india_sales_opportunities").get().n;
+  const m=['0015_secure_document_vault.sql','0022_document_vault_governance.sql','0023_tender_vault_integrity.sql']
+   .map(x=>fs.readFileSync(path.resolve(__dirname,'../migrations',x),'utf8')).join('\n');
+  d.sql.exec('BEGIN IMMEDIATE');
+  assert.throws(()=>d.sql.exec(m+"\nINSERT INTO india_sales_tx_guards(id,ok) VALUES('injected-integrity-failure',0);"),/constraint/i);
+  d.sql.exec('ROLLBACK');
+  assert.equal(d.sql.prepare("SELECT count(*) AS n FROM india_sales_opportunities").get().n,base);
+  assert.equal(d.sql.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name='india_document_library'").get().n,0);
+  assert.equal(d.sql.prepare("SELECT count(*) AS n FROM india_schema_migrations WHERE version IN (15,22,23)").get().n,0);
+  assert.equal(d.sql.prepare("SELECT version FROM india_schema_migrations WHERE version=21").get().version,21);
+  d.sql.exec('BEGIN IMMEDIATE');d.sql.exec(m);d.sql.exec('COMMIT');
+  assert.deepEqual(d.sql.prepare("SELECT version FROM india_schema_migrations WHERE version IN (15,21,22,23) ORDER BY version").all().map(x=>x.version),[15,21,22,23]);
+  assert.equal(d.sql.prepare('PRAGMA quick_check').get().quick_check,'ok');
+  assert.deepEqual(d.sql.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{d.close();}
+});
+
+test('isolated SQLite fixture backup and restore retain Vault/Tender migration ledger and Customer/Deal rows',()=>{
+ const fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+ const {DatabaseSync}=require('node:sqlite'),tmp=fs.mkdtempSync(path.join(os.tmpdir(),'india-ag-'));
+ const fn=path.join(tmp,'restore.sqlite'),d=new Harness(true,true).seed();
+ try{
+  d.sql.exec("VACUUM INTO '"+fn.replace(/'/g,"''")+"'");
+  const restored=new DatabaseSync(fn);
+  try{
+   assert.equal(restored.prepare('SELECT count(*) AS n FROM india_sales_accounts').get().n,1);
+   assert.equal(restored.prepare('SELECT count(*) AS n FROM india_sales_opportunities').get().n,1);
+   assert.deepEqual(restored.prepare('SELECT version FROM india_schema_migrations WHERE version IN (15,21,22,23) ORDER BY version').all().map(x=>x.version),[15,21,22,23]);
+   assert.deepEqual(restored.prepare('PRAGMA foreign_key_check').all(),[]);
+   assert.equal(restored.prepare('PRAGMA quick_check').get().quick_check,'ok');
+  }finally{restored.close();}
+ }finally{d.close();fs.rmSync(tmp,{recursive:true,force:true});}
+});
