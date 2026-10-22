@@ -29,7 +29,9 @@
     "test:activities": "node --test tests/sales-activity-cron.test.cjs tests/sales-activity-handler.test.cjs",
     "test:lead-intelligence": "node --test tests/lead-intelligence.test.cjs",
     "test:p1-p2": "node --test tests/p1-p2-commercial-integration.test.cjs",
-    "test:bid-readiness": "node --test tests/tender-bid-readiness.test.cjs"
+    "test:bid-readiness": "node --test tests/tender-bid-readiness.test.cjs tests/tender-vault-integration.test.cjs",
+    "test:vault-tender": "node --test tests/tender-vault-integration.test.cjs",
+    "test:document-vault": "node --test tests/tender-vault-integration.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
