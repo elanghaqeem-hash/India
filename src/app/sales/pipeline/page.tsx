@@ -26,8 +26,8 @@ const listSelect:Record<string,string[]>={
 };
 const stageLabel=(s:string)=>SALES_STAGES.find(x=>x[0]===s)?.[1]||s;
 const stages:SalesStage[]=SALES_STAGES.map(x=>x[0]);
-function FormFields({fields,values,onUpdate,readOnly}:{
- fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;readOnly?:(k:string)=>boolean;
+function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
+ fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;onPatch?:(patch:SalesFields)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
  {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=><React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
@@ -36,7 +36,7 @@ function FormFields({fields,values,onUpdate,readOnly}:{
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
   <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key==='client_tier'?'Opsional — boleh dikosongkan':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
- </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
+ </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
  </div>;
 }
 const SALES_FIELD_GROUPS: Array<{title:string;description:string;keys:readonly string[]}>= [
@@ -193,7 +193,7 @@ export default function SalesPipelinePage(){
   <h2 className="font-bold">Customer Registration • Master Data</h2>
   <p className="text-xs text-slate-500">Customer ID diterbitkan otomatis. Field kosong harus dilengkapi sebelum tahap Qualified dan sebelum dokumen final.</p>
   <label className="block text-xs font-bold">Nama badan usaha resmi *<input className={inputClass} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-  <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+  <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
   <button disabled={busy||!isMaker} onClick={saveAccount} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Simpan Customer Account</button>
  </section>}
  {tab==='newdeal'&&<section className="space-y-4 rounded-xl border bg-white p-4">
@@ -250,7 +250,7 @@ export default function SalesPipelinePage(){
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
     <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!mayEditAccount} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
     <button disabled={busy||!mayEditAccount} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
    </details>
   </section>
