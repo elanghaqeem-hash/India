@@ -39,3 +39,24 @@ test('shell print mode hides navigation while retaining a mobile-reachable expor
   assert.match(css, /\.no-print\s*\{\s*display: none !important/);
   assert.match(page, /Unduh Quotation \(\.docx\)/);
 });
+
+
+test('AI assistant dialog stays above fixed mobile navigation and fits the dynamic viewport', () => {
+  const mobileNav = readFileSync(join(root, 'src/components/layout/MobileNav.tsx'), 'utf8');
+  const navigationLayer = mobileNav.match(/<nav[^>]*className="[^"]*\\bz-(\\d+)\\b/);
+  const assistantLayer = navbar.match(/Global AI Assistant Drawer \\/ Modal[\\s\\S]*?className="[^"]*z-\\[(\\d+)\\]/);
+  assert.ok(navigationLayer && assistantLayer, 'both stacked layers must be explicit');
+  assert.ok(Number(assistantLayer[1]) > Number(navigationLayer[1]), 'AI dialog must be above mobile navigation');
+  assert.match(navbar, /role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"/);
+  assert.match(navbar, /h-\\[100dvh\\] max-h-\\[100dvh\\] min-h-0/);
+  assert.match(navbar, /sm:h-\\[85dvh\\]/);
+});
+
+test('AI chat has independently scrolling messages and a visible safe-area composer', () => {
+  assert.match(navbar, /min-h-0 flex-1 space-y-3\\.5 overflow-y-auto overscroll-contain/);
+  assert.match(navbar, /flex shrink-0 items-center gap-2 border-t/);
+  assert.match(navbar, /pb-\\[max\\(12px,env\\(safe-area-inset-bottom\\)\\)\\]/);
+  assert.match(navbar, /min-h-11 min-w-0 flex-1 rounded-xl/);
+  assert.match(navbar, /aria-label="Kirim pesan ke AI"/);
+  assert.match(navbar, /if \\(event.key === 'Escape'\\) setAiAssistantOpen\\(false\\)/);
+});
