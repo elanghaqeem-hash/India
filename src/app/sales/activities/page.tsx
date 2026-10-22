@@ -23,7 +23,7 @@ export default function SalesActivities(){
  const [owner,setOwner]=useState(''),[tab,setTab]=useState<'next'|'calendar'|'overdue'|'timeline'|'alerts'|'manager'>('next');
  const [week,setWeek]=useState(0),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
  const [target,setTarget]=useState(''),[kind,setKind]=useState('call'),[subject,setSubject]=useState(''),[detail,setDetail]=useState('');
- const [start,setStart]=useState(()=>localInput(new Date(Date.now()+3600000))),[due,setDue]=useState(()=>localInput(new Date(Date.now()+5400000)));
+ const [start,setStart]=useState(''),[due,setDue]=useState('');
  const [outcomes,setOutcomes]=useState<Record<string,string>>({}),[managerSales,setManagerSales]=useState(''),[managerEmail,setManagerEmail]=useState('');
  const refresh=useCallback(async()=>{
   try{
@@ -37,6 +37,7 @@ export default function SalesActivities(){
    ]);
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
  },[owner]);
+ useEffect(()=>{setStart(localInput(new Date(Date.now()+3600000)));setDue(localInput(new Date(Date.now()+5400000)));},[]);
  useEffect(()=>{void refresh();},[refresh]);
  const run=async(f:()=>Promise<unknown>,ok:string)=>{
   setBusy(true);setMessage('');
