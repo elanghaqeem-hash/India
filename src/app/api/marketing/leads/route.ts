@@ -224,11 +224,14 @@ export async function PATCH(req:Request){
   if(role==='marketing'&&target==='qualified'&&!v.contact_email&&!v.contact_name)
    return fail('Isi minimal satu identitas kontak sebelum kualifikasi',422);
   if(!Number.isSafeInteger(p.version)||Number(p.version)!==row.version)return fail('Versi Lead berubah; muat ulang data',409);
-  const update=await db.prepare("UPDATE india_marketing_leads SET status=?,qualification_json=?,version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status=? AND version=? AND qualification_json=?")
-   .bind(target,JSON.stringify(v.qualification),email,row.id,TENANT,row.status,row.version,row.qualification_json).run();
-  if((update as unknown as {meta?:{changes:number}}).meta?.changes===0)return fail('Lead berubah pada sesi lain, muat ulang',409);
-  await db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage) VALUES (?,?,?,?,?,?,?,?)')
-   .bind(crypto.randomUUID(),TENANT,'lead',row.id,'STAGE',email,row.status,target).run();
+  const updates=await db.batch([
+   db.prepare("UPDATE india_marketing_leads SET status=?,qualification_json=?,version=version+1,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND tenant_id=? AND status=? AND version=? AND qualification_json=?")
+    .bind(target,JSON.stringify(v.qualification),email,row.id,TENANT,row.status,row.version,row.qualification_json),
+   db.prepare("INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,from_stage,to_stage) SELECT ?,tenant_id,'lead',id,'STAGE',?,?,? FROM india_marketing_leads WHERE id=? AND tenant_id=? AND version=? AND status=?")
+    .bind(crypto.randomUUID(),email,row.status,target,row.id,TENANT,row.version+1,target)
+  ]) as Array<{success?:boolean;meta?:{changes?:number}}>;
+  if(updates.length!==2||updates.some(x=>x.success===false||x.meta?.changes!==1))
+   return fail('Lead berubah pada sesi lain, muat ulang',409);
   return respond({success:true,status:target});
  }catch{return fail('Perubahan Lead gagal. Pastikan parameter dan migrasi telah lengkap.',503);}
 }
