@@ -66,6 +66,13 @@ BEGIN
  SELECT CASE WHEN NOT EXISTS(
  SELECT 1 FROM india_tender_deadlines t WHERE t.tenant_id=NEW.tenant_id AND t.opportunity_id=NEW.id
  AND t.milestone='submission' AND t.status='approved' AND datetime(t.due_at)>datetime('now')
+
+ AND EXISTS(SELECT 1 FROM india_sales_bids b WHERE b.tenant_id=NEW.tenant_id AND b.opportunity_id=NEW.id AND b.bid_decision='go' AND b.decided_by IS NOT NULL)
+ AND EXISTS(SELECT 1 FROM india_sales_requirements r WHERE r.tenant_id=NEW.tenant_id AND r.opportunity_id=NEW.id AND r.kind IN ('rks','kak','rfp','rfq'))
+ AND NOT EXISTS(SELECT 1 FROM india_sales_requirements r WHERE r.tenant_id=NEW.tenant_id AND r.opportunity_id=NEW.id AND r.kind IN ('rks','kak','rfp','rfq')
+ AND (r.status!='reviewed' OR r.compliance_status!='compliant' OR r.reviewed_by IS NULL OR length(r.file_reference)=0 OR length(r.source_content_hash)!=64
+ OR NOT EXISTS(SELECT 1 FROM india_tender_compliance_items c WHERE c.requirement_id=r.id AND c.mandatory=1)
+ OR EXISTS(SELECT 1 FROM india_tender_compliance_gaps c WHERE c.requirement_id=r.id AND c.mandatory=1 AND c.is_gap=1)))
  AND (SELECT count(DISTINCT category) FROM india_tender_checklist c WHERE c.tenant_id=NEW.tenant_id
  AND c.opportunity_id=NEW.id AND c.mandatory=1)=3
  AND NOT EXISTS(SELECT 1 FROM india_tender_checklist c WHERE c.tenant_id=NEW.tenant_id
