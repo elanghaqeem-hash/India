@@ -68,3 +68,15 @@ test('actual API: injected audit failure reverts activity reschedule and events'
   assert.equal(h.sql.prepare('SELECT count(*) n FROM india_sales_activity_events WHERE task_id=?').get(id).n,1);
  }finally{h.close();}
 });
+
+test('actual API: concurrent meeting/visit slots must not overlap for one Sales',async()=>{
+ const h=fixture();try{
+  const original={...schedule(),kind:'meeting'};
+  const first=await h.call('sales/activities','POST','sales',original);
+  assert.equal(first.status,201,JSON.stringify(first));
+  const collision=await h.call('sales/activities','POST','sales',{...original,kind:'visit',subject:'Kunjungan bersamaan yang harus ditolak'});
+  assert.equal(collision.status,409,JSON.stringify(collision));
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_sales_activity_tasks WHERE owner_email=?").get(users.sales).n,1);
+  assert.equal(h.sql.prepare("SELECT count(*) n FROM india_sales_activity_events").get().n,1);
+ }finally{h.close();}
+});
