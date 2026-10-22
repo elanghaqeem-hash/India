@@ -110,3 +110,19 @@ test('migration 0021 is additive, backfills numbered originals and rolls back at
   assert.deepEqual(d.sql.prepare('PRAGMA foreign_key_check').all(),[]);
  }finally{d.close();}
 });
+
+test('retention expiry is enforced across both legacy and new download endpoints',async()=>{
+ const d=new Harness().seed();try{
+  await expect(d.flow('scope','presales'),201);
+  const a=await expect(d.upload('proposal'),201),b=await expect(upload(d,'nda'),201);
+  d.sql.prepare('UPDATE india_document_governance SET retention_until=? WHERE document_id=?').run('2020-01-01',a.body.id);
+  d.sql.prepare('UPDATE india_document_library SET retention_until=? WHERE id=?').run('2020-01-01',b.body.id);
+  const q=new URLSearchParams({id:a.body.id});
+  const legacy=await d.load('src/app/api/sales/vault/route.ts').GET(new Request('https://flow.invalid/api/sales/vault?'+q,{headers:{'x-test-role':'sales'}}));
+  assert.equal(legacy.status,403);
+  assert.equal((await download(d,a.body.id,'release','sales')).status,403);
+  assert.equal((await download(d,b.body.id,'library','sales')).status,403);
+  assert.equal((await download(d,a.body.id,'release','legal')).status,200);
+  assert.equal((await download(d,b.body.id,'library','admin')).status,200);
+ }finally{d.close();}
+});
