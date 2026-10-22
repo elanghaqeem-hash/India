@@ -2,8 +2,21 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { SALES_STAGES } = require('../src/lib/sales-workflow.ts');
-const { buildStageFilterOptions } = require('../src/lib/sales-stage-filter.ts');
+const ts = require('typescript');
+const workflow = require('../src/lib/sales-workflow.ts');
+const { SALES_STAGES } = workflow;
+// Node's ESM loader requires explicit extensions; transpile just this pure helper
+// so the same tests work on Node 22 and Node 24 in hosted CI.
+const source = fs.readFileSync(path.join(__dirname, '../src/lib/sales-stage-filter.ts'), 'utf8');
+const compiled = ts.transpileModule(source, {
+  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+}).outputText;
+const mod = { exports: {} };
+new Function('require', 'module', 'exports', compiled)((name) => {
+  if (name === './sales-workflow') return workflow;
+  throw Error('Unexpected dependency: ' + name);
+}, mod, mod.exports);
+const { buildStageFilterOptions } = mod.exports;
 
 test('filter exposes full canonical names and IDs, not individual characters', () => {
   const options = buildStageFilterOptions([]);
