@@ -1,0 +1,31 @@
+name: INDIA Sales Activity Orchestration CI
+on:
+  push:
+    branches: [feat/india-sales-activity-sla-20261022]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  activity-regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - name: Validate scheduled worker syntax
+        run: node --check automation/sales-cron/src/index.js
+      - name: D1 SLA and escalation integration tests
+        run: npm run test:activities
+      - name: Existing Marketing Sales and Presales PO regression
+        run: npm run test:marketing && npm run test:sales && npm run test:sales-transactions && npm run test:india-negative
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Next.js Cloudflare compatibility
+        run: npm run build && npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
