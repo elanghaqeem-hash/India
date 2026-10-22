@@ -16,7 +16,7 @@ export function formatAIChatMessage(message: string): AIChatSegment[] {
   let cursor = 0;
 
   for (const match of normalized.matchAll(emphasis)) {
-    const start = match.index;
+    const start = match.index ?? cursor;
     if (start > cursor) {
       segments.push({ text: normalized.slice(cursor, start), format: 'plain' });
     }
