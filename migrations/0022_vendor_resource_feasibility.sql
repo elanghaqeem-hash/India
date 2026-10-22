@@ -39,10 +39,11 @@ CREATE TABLE india_resource_allocations(
  daily_cost_snapshot REAL NOT NULL CHECK(daily_cost_snapshot>=0 AND daily_cost_snapshot<1e12),
  status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','cancelled')),
  created_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
- UNIQUE(tenant_id,opportunity_id,person_id,allocation_month), UNIQUE(tenant_id,id),
+ UNIQUE(tenant_id,id),
  FOREIGN KEY(tenant_id,opportunity_id) REFERENCES india_sales_opportunities(tenant_id,id),
  FOREIGN KEY(tenant_id,person_id) REFERENCES india_resource_people(tenant_id,id)
 );
+CREATE UNIQUE INDEX india_alloc_active_unique ON india_resource_allocations(tenant_id,opportunity_id,person_id,allocation_month) WHERE status='active';
 CREATE INDEX india_alloc_calendar ON india_resource_allocations(tenant_id,person_id,allocation_month,status);
 CREATE TABLE india_feasibility_costs(
  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, opportunity_id TEXT NOT NULL,
