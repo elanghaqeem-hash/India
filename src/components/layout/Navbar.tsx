@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   Shield,
@@ -42,6 +42,21 @@ export const Navbar: React.FC<NavbarProps> = ({
   ]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+
+  // The assistant is a modal on mobile: prevent page scroll and support Escape.
+  useEffect(() => {
+    if (!aiAssistantOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAiAssistantOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [aiAssistantOpen]);
 
   const roles: Array<{ role: SystemRole; label: string; badge: string }> = [
     { role: 'sales', label: 'M. Nadhil (Sales / AM)', badge: 'Maker' },
@@ -211,11 +226,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Global AI Assistant Drawer / Modal */}
       {aiAssistantOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center sm:justify-end bg-slate-900/40 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in">
-          <div className="w-full sm:w-[440px] h-[90vh] sm:h-[85vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-stretch justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:items-center sm:justify-end sm:p-4 animate-in fade-in">
+          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant" className="flex h-[100dvh] max-h-[100dvh] min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
-            <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
+            <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
+              <div className="flex min-w-0 items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-cyan-300">
                   <Bot className="h-5 w-5" />
                 </div>
@@ -229,14 +244,16 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <button
                 onClick={() => setAiAssistantOpen(false)}
-                className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                type="button"
+                aria-label="Tutup AI Business Assistant"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
 
             {/* Quick Context Chips */}
-            <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex gap-1.5 overflow-x-auto text-[11px]">
+            <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px]">
               {[
                 'Analisis Margin BoQ VAPT',
                 'Syarat Tender LPSE Bank',
@@ -254,7 +271,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+            <div className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -285,18 +302,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSendChat} className="p-3 bg-white border-t border-slate-200 flex gap-2">
+            <form onSubmit={handleSendChat} className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:p-3">
               <input
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 placeholder="Tanyakan analisis harga, scoping, tender..."
-                className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                aria-label="Pesan untuk AI Business Assistant"
+                className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-xs"
               />
               <button
                 type="submit"
                 disabled={isAiLoading || !chatInput.trim()}
-                className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3.5 py-2 transition-colors flex items-center justify-center"
+                aria-label="Kirim pesan ke AI"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>
