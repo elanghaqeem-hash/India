@@ -2,6 +2,7 @@
 import React,{useEffect,useState,useCallback} from 'react';
 import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
+import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -13,6 +14,7 @@ type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_numbe
  activities:{kind:string;subject:string;detail:string;created_at:string}[];journey:JourneyGate[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500';
+const headquartersKeys=new Set(['hq_province','hq_postal','hq_province_code','hq_regency','hq_regency_code','hq_district','hq_district_code','hq_village','hq_village_code','hq_village_kind']);
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
 const listSelect:Record<string,string[]>={
  service_family:[...SERVICE_FAMILIES],contract_model:['One-Time','Recurring','Subscription','Project-based'],
@@ -28,13 +30,13 @@ function FormFields({fields,values,onUpdate,readOnly}:{
  fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.map(([key,label])=><label key={key} className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
+ {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=><React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
   {label}
   {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
   <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>}
- </label>)}
+ </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
  </div>;
 }
 const SALES_FIELD_GROUPS: Array<{title:string;description:string;keys:readonly string[]}>= [
