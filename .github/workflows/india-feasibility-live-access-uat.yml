@@ -1,0 +1,81 @@
+name: INDIA Real Access Feasibility UAT
+on:
+  push:
+    branches:
+      - feat/india-modules-13-15-completion-20261022
+    paths:
+      - scripts/india-feasibility-live-access-uat.mjs
+      - .github/workflows/india-feasibility-live-access-uat.yml
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Use READ_ONLY for safe real-Access preflight; TRANSACTIONS writes only synthetic UAT records'
+        required: true
+        type: choice
+        options: [READ_ONLY, TRANSACTIONS]
+      write_confirmation:
+        description: 'For TRANSACTIONS only, type YES_ISOLATED_UAT'
+        type: string
+        required: false
+permissions:
+  contents: read
+concurrency:
+  group: india-feasibility-live-uat
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    environment: india-uat
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Dependencies
+        run: npm ci --no-audit --no-fund
+      - name: UAT script syntax
+        run: node --check scripts/india-feasibility-live-access-uat.mjs
+      - name: Signed Cloudflare Access and D1 preflight (never touches production)
+        env:
+          INDIA_UAT_WORKER_NAME: uat-india
+          INDIA_UAT_BASE_URL: https://uat-india.elang-haqeem.workers.dev
+          INDIA_UAT_D1_ID: eaed652e-7322-4950-a304-dd50baa5de02
+          INDIA_UAT_EXPECT_SHA: ${{ github.sha }}
+          INDIA_UAT_CF_READ_TOKEN: ${{ secrets.INDIA_UAT_CF_READ_TOKEN }}
+        run: node scripts/india-feasibility-live-access-uat.mjs --preflight
+  transactions:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'TRANSACTIONS' && inputs.write_confirmation == 'YES_ISOLATED_UAT' }}
+    needs: preflight
+    runs-on: ubuntu-latest
+    environment: india-uat
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --no-audit --no-fund
+      - name: Six human Access roles, isolated live transactions and immutable release gates
+        env:
+          INDIA_UAT_WORKER_NAME: uat-india
+          INDIA_UAT_BASE_URL: https://uat-india.elang-haqeem.workers.dev
+          INDIA_UAT_D1_ID: eaed652e-7322-4950-a304-dd50baa5de02
+          INDIA_UAT_EXPECT_SHA: ${{ github.sha }}
+          INDIA_UAT_CF_READ_TOKEN: ${{ secrets.INDIA_UAT_CF_READ_TOKEN }}
+          INDIA_UAT_ACCESS_TEAM_DOMAIN: ${{ vars.INDIA_UAT_ACCESS_TEAM_DOMAIN }}
+          INDIA_UAT_ACCESS_AUD: ${{ secrets.INDIA_UAT_ACCESS_AUD }}
+          INDIA_UAT_ALLOW_WRITE: YES_ISOLATED_UAT
+          INDIA_UAT_EMAIL_SALES_A: ${{ vars.INDIA_UAT_EMAIL_SALES_A }}
+          INDIA_UAT_EMAIL_SALES_B: ${{ vars.INDIA_UAT_EMAIL_SALES_B }}
+          INDIA_UAT_EMAIL_PRESALES: ${{ vars.INDIA_UAT_EMAIL_PRESALES }}
+          INDIA_UAT_EMAIL_FINANCE: ${{ vars.INDIA_UAT_EMAIL_FINANCE }}
+          INDIA_UAT_EMAIL_APPROVER: ${{ vars.INDIA_UAT_EMAIL_APPROVER }}
+          INDIA_UAT_EMAIL_ADMIN: ${{ vars.INDIA_UAT_EMAIL_ADMIN }}
+          INDIA_UAT_JWT_SALES_A: ${{ secrets.INDIA_UAT_JWT_SALES_A }}
+          INDIA_UAT_JWT_SALES_B: ${{ secrets.INDIA_UAT_JWT_SALES_B }}
+          INDIA_UAT_JWT_PRESALES: ${{ secrets.INDIA_UAT_JWT_PRESALES }}
+          INDIA_UAT_JWT_FINANCE: ${{ secrets.INDIA_UAT_JWT_FINANCE }}
+          INDIA_UAT_JWT_APPROVER: ${{ secrets.INDIA_UAT_JWT_APPROVER }}
+          INDIA_UAT_JWT_ADMIN: ${{ secrets.INDIA_UAT_JWT_ADMIN }}
+        run: node scripts/india-feasibility-live-access-uat.mjs --transactions
