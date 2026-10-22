@@ -4,6 +4,7 @@ import {atomicSales,transactionError} from '@/lib/sales-transactions';
 export const dynamic='force-dynamic';
 const reply=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders});
 const error=(message:string,status=400)=>reply({success:false,message},status);
+const activityError=(e:unknown)=>/ACTIVITY_CALENDAR_CONFLICT/.test(String(e))?{status:409,message:'Jadwal kunjungan/meeting bertabrakan dengan aktivitas lain milik Sales tersebut.'}:transactionError(e);
 const sameOrigin=(req:Request)=>!req.headers.get('origin')||req.headers.get('origin')===new URL(req.url).origin;
 const str=(v:unknown,max=200)=>typeof v==='string'?v.trim().slice(0,max+1):'';
 const emailPattern=/^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -86,7 +87,9 @@ export async function POST(req:Request){
   const policy=await db.prepare('SELECT reminder_minutes FROM india_sales_activity_policy WHERE tenant_id=?').bind(TENANT).first<{reminder_minutes:number}>();
   const reminder=new Date(start.getTime()-(policy?.reminder_minutes??30)*60000).toISOString();
   const id=crypto.randomUUID(),ev=crypto.randomUUID(),audit=crypto.randomUUID();
-  await db.batch([
+  await atomicSales(db,
+   scope==='lead'?"EXISTS(SELECT 1 FROM india_marketing_leads WHERE tenant_id=? AND id=? AND assigned_sales_email=? AND status NOT IN ('converted','disqualified'))":"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE tenant_id=? AND id=? AND created_by=? AND stage NOT IN ('closed_won','closed_lost'))",
+   [TENANT,targetId,t.owner_email],[
    db.prepare('INSERT INTO india_sales_activity_tasks(id,tenant_id,lead_id,opportunity_id,owner_email,kind,subject,detail,start_at,due_at,reminder_at,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
     .bind(id,TENANT,scope==='lead'?targetId:null,scope==='opportunity'?targetId:null,t.owner_email,kind,subject,detail,start.toISOString(),due.toISOString(),reminder,email),
    db.prepare('INSERT INTO india_sales_activity_events(id,tenant_id,task_id,action,actor_email,detail) VALUES (?,?,?,?,?,?)').bind(ev,TENANT,id,'scheduled',email,subject),
@@ -94,7 +97,7 @@ export async function POST(req:Request){
     .bind(audit,TENANT,scope==='lead'?'lead':'deal',targetId,'ACTIVITY_SCHEDULED',email,kind+' '+subject)
   ]);
   return reply({success:true,id},201);
- }catch(e){const x=transactionError(e);return error(x.message,x.status);}
+ }catch(e){const x=activityError(e);return error(x.message,x.status);}
 }
 export async function PATCH(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return a.response;
@@ -142,5 +145,5 @@ export async function PATCH(req:Request){
    .bind(crypto.randomUUID(),TENANT,task.lead_id?'lead':'deal',task.lead_id||task.opportunity_id,'ACTIVITY_'+action.toUpperCase(),email,details.slice(0,300)));
   await atomicSales(db,'EXISTS(SELECT 1 FROM india_sales_activity_tasks WHERE id=? AND tenant_id=? AND revision=? AND status=?)',[id,TENANT,task.revision,'planned'],writes);
   return reply({success:true,id,revision:task.revision+1});
- }catch(e){const x=transactionError(e);return error(x.message,x.status);}
+ }catch(e){const x=activityError(e);return error(x.message,x.status);}
 }
