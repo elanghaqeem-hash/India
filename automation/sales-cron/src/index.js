@@ -4,7 +4,7 @@ export default {
  async scheduled(_event,env,ctx){
   const db=env.INDIA_DB;
   if(!db)throw Error('INDIA_DB binding required');
-  ctx.waitUntil(db.batch([
+  ctx.waitUntil((async()=>{\n   const statements=[
    db.prepare(`INSERT OR IGNORE INTO india_sales_activity_alerts(alert_key,tenant_id,task_id,recipient_email,alert_type,message)
     SELECT 'task:reminder:'||t.id||':'||t.revision,t.tenant_id,t.id,t.owner_email,'reminder','Pengingat: '||t.subject
     FROM india_sales_activity_tasks t WHERE t.status='planned'
@@ -45,6 +45,22 @@ export default {
     WHERE s.first_response_at IS NULL AND l.status NOT IN ('converted','disqualified')
     AND datetime(s.response_due_at,printf('+%d minutes',coalesce(p.escalation_minutes,60)))<=datetime('now')
     AND NOT EXISTS(SELECT 1 FROM india_sales_team_managers m JOIN india_members x ON x.email=m.manager_email AND x.active=1 AND x.role='admin' WHERE m.tenant_id=s.tenant_id AND m.sales_email=s.owner_email)`)
-  ]));
+  ];
+   // PR #21 remains operable at schema 0013. Enable nurture reminders only
+   // after PR #22 migration 0014 exists in this same D1 database.
+   const nurtureInstalled=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='india_lead_nurture_plans'").first();
+   if(nurtureInstalled)statements.push(db.prepare(`INSERT OR IGNORE INTO india_sales_activity_alerts(alert_key,tenant_id,lead_id,recipient_email,alert_type,message)
+    SELECT 'lead:nurture:'||p.lead_id||':'||p.version||':'||p.next_touch_at,p.tenant_id,p.lead_id,l.assigned_sales_email,
+      'reminder','Nurture Lead perlu tindak lanjut: '||l.account_name||' (jadwal '||p.next_touch_at||')'
+    FROM india_lead_nurture_plans p
+    JOIN india_marketing_leads l ON l.id=p.lead_id AND l.tenant_id=p.tenant_id
+    JOIN india_members m ON m.email=l.assigned_sales_email AND m.active=1 AND m.role IN ('sales','admin')
+    WHERE p.state='active' AND date(p.next_touch_at)<=date('now','+7 hours')
+    AND (l.status IN ('new','assigned') OR (l.status='disqualified' AND EXISTS(
+      SELECT 1 FROM india_lead_disqualifications d
+      WHERE d.lead_id=l.id AND d.tenant_id=l.tenant_id AND d.active=1
+      AND d.reason_code IN ('NO_BUDGET','TIMING_LATER','NO_RESPONSE'))))`));
+   await db.batch(statements);
+  })());
  }
 };
