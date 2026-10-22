@@ -17,8 +17,16 @@ async function lead(db:D1DB,id:string){return db.prepare('SELECT * FROM india_ma
 const visible=(role:string)=>privileged(role)?1:0;
 function changes(result:unknown){const r=result as {success?:boolean;meta?:{changes?:number}};return r?.success!==false&&r?.meta?.changes===1;}
 async function write(db:D1DB,statements:ReturnType<D1DB['prepare']>[]) {
- const result=await db.batch(statements) as unknown[];
- return result.length===statements.length&&result.every(changes);
+ // CAS guard MUST be the very next statement after the first conditional mutation.
+ // A stale update affecting zero rows aborts the entire D1 transaction, including
+ // all later audit/events. Checking meta.changes only after batch is too late.
+ const guardId=crypto.randomUUID();
+ const guarded=[statements[0],
+  db.prepare('INSERT INTO india_sales_tx_guards(id,ok) VALUES (?,CASE WHEN changes()=1 THEN 1 ELSE 0 END)').bind(guardId),
+  ...statements.slice(1),
+  db.prepare('DELETE FROM india_sales_tx_guards WHERE id=?').bind(guardId)];
+ const result=await db.batch(guarded) as unknown[];
+ return result.length===guarded.length&&result.every(changes);
 }
 function authorizeWrite(req:Request){return req.headers.get('origin')===new URL(req.url).origin;}
 async function body(req:Request){
