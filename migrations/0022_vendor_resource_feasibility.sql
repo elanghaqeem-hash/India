@@ -109,7 +109,7 @@ BEGIN
  json_object('person_id',NEW.person_id,'month',NEW.allocation_month,'days',NEW.person_days,'unit_cost',NEW.daily_cost_snapshot),
  'CREATE',NEW.created_by);
  UPDATE india_feasibility_plans SET status='draft',reviewed_by=NULL,review_notes=NULL,reviewed_at=NULL,version=version+1
- WHERE tenant_id=NEW.tenant_id AND opportunity_id=NEW.opportunity_id AND status='approved';
+ WHERE tenant_id=NEW.tenant_id AND opportunity_id=NEW.opportunity_id;
 END;
 CREATE TRIGGER india_feasibility_alloc_cancel AFTER UPDATE OF status ON india_resource_allocations
 WHEN OLD.status!=NEW.status BEGIN
@@ -134,7 +134,7 @@ BEGIN
  json_object('cost_type',OLD.cost_type,'description',OLD.description,'qty',OLD.quantity,'periods',OLD.periods,'unit_price',OLD.unit_price_idr,'supplier_offer_id',OLD.supplier_offer_id),
  'DELETE',OLD.created_by);
  UPDATE india_feasibility_plans SET status='draft',reviewed_by=NULL,review_notes=NULL,reviewed_at=NULL,version=version+1
- WHERE tenant_id=OLD.tenant_id AND opportunity_id=OLD.opportunity_id AND status='approved';
+ WHERE tenant_id=OLD.tenant_id AND opportunity_id=OLD.opportunity_id;
 END;
 -- Resource availability and quote expiry are rechecked by SQL at every forward Sales stage.
 CREATE VIEW india_solution_feasibility_gaps AS
