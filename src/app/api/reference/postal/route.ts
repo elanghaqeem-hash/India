@@ -14,9 +14,13 @@ export async function GET(request:Request){
    'SELECT region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind FROM india_postal_areas WHERE postal_code=? ORDER BY province_name,regency_name,district_name,village_name LIMIT 501'
   ).bind(postal).all<PostalArea>();
   if(rows.results.length>500)return reply({success:false,message:'Terlalu banyak wilayah pada kode pos ini; hubungi Administrator master data.'},409);
-  if(rows.results.length===0)return reply({success:true,areas:[],message:'Kode pos tidak ditemukan dalam referensi wilayah. Jangan menyimpan alamat yang belum diverifikasi.'});
+  if(rows.results.length===0){
+   const populated=await auth.identity.db.prepare('SELECT 1 AS ready FROM india_postal_areas LIMIT 1').first<{ready:number}>();
+   if(!populated)return reply({success:false,message:'Master wilayah nasional belum diimpor ke D1. Hubungi Administrator.'},503);
+   return reply({success:true,areas:[],message:'Kode pos tidak ditemukan dalam referensi wilayah. Jangan menyimpan alamat yang belum diverifikasi.'});
+  }
   return reply({success:true,areas:rows.results});
  }catch{
-  return reply({success:false,message:'Master kode pos D1 belum tersedia. Administrator perlu menerapkan migrasi 0013 dan impor referensi wilayah.'},503);
+  return reply({success:false,message:'Master kode pos D1 belum tersedia. Administrator perlu menerapkan migrasi 0022 dan impor referensi wilayah.'},503);
  }
 }
