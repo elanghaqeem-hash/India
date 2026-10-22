@@ -54,7 +54,7 @@ export function StageFilter({
       </span>
     </button>
     {open && <div id={panelId} role="group" aria-label="Pilihan tahap opportunity"
-      className="absolute right-0 z-30 mt-2 w-full max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:w-[24rem]">
+      className="fixed inset-x-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-[60] flex w-auto max-h-[calc(100dvh-8rem)] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:bottom-auto sm:right-0 sm:top-full sm:mt-2 sm:w-[24rem] sm:max-h-none">
       <div className="border-b border-slate-100 bg-slate-50 px-4 py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="text-sm font-bold text-slate-900">Filter Tahap Penjualan</div>
@@ -63,7 +63,7 @@ export function StageFilter({
         </div>
         <p className="mt-1 text-xs text-slate-500">Pilih satu tahap untuk menyaring daftar Opportunity.</p>
       </div>
-      <div className="max-h-[min(55vh,27rem)] space-y-1 overflow-y-auto overscroll-contain p-2">
+      <div className="min-h-0 flex-1 max-h-[min(55vh,27rem)] space-y-1 overflow-y-auto overscroll-contain p-2">
         {options.map(option => <button key={option.id} type="button" aria-pressed={value === option.id}
           onClick={() => choose(option.id)}
           className={'flex min-h-12 w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-600 ' +
