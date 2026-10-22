@@ -20,6 +20,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
     { label: 'Lead Score', href: '/sales/lead-intelligence', icon: Megaphone },
     { label: 'Tender', href: '/sales/compliance', icon: FileSearch },
     { label: 'Email', href: '/sales/communications', icon: FileSpreadsheet },
+    { label: 'Executive', href: '/sales/executive', icon: LayoutDashboard },
     { label: 'Forecast', href: '/sales/forecast', icon: KanbanSquare },
     { label: 'Revenue', href: '/sales/revenue', icon: ClipboardCheck },
     { label: 'Demo 360', href: '/', icon: LayoutDashboard },
