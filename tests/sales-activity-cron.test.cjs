@@ -92,11 +92,14 @@ test('activity events immutable and failed audit rolls back a task modification'
 
 test('nurture due reminders require 0014, use WIB dates and remain idempotent across Cron retries',async()=>{
  const d=fixture();try{
-  d.exec("CREATE TABLE india_schema_file_manifest(path TEXT PRIMARY KEY,source_branch TEXT,applied_at TEXT DEFAULT CURRENT_TIMESTAMP)");
-  // Apply actual PR #22 migration on top of the PR #21 fixture.
-  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
-  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'qa'");
-  d.exec(fs.readFileSync('migrations/0014_lead_intelligence.sql','utf8'));
+  // Mirror PR #22's required columns without making PR #21 depend on 0014's file.
+  d.exec(`CREATE TABLE india_lead_nurture_plans(
+   lead_id TEXT PRIMARY KEY REFERENCES india_marketing_leads(id),tenant_id TEXT NOT NULL,
+   state TEXT NOT NULL CHECK(state IN ('active','paused','completed','cancelled')),
+   cadence_days INTEGER NOT NULL,channel TEXT NOT NULL,next_touch_at TEXT NOT NULL,
+   version INTEGER NOT NULL DEFAULT 1,created_by TEXT NOT NULL,updated_by TEXT NOT NULL);
+   CREATE TABLE india_lead_disqualifications(lead_id TEXT PRIMARY KEY REFERENCES india_marketing_leads(id),
+   tenant_id TEXT NOT NULL,reason_code TEXT NOT NULL,reason_text TEXT NOT NULL,active INTEGER NOT NULL,changed_by TEXT NOT NULL)`);
   d.prepare("INSERT INTO india_lead_nurture_plans(lead_id,tenant_id,state,cadence_days,channel,next_touch_at,created_by,updated_by) VALUES('lead-old','defendit360','active',14,'follow_up',date('now','+7 hours','-1 day'),'qa','qa')").run();
   await runCron(d);
   assert.equal(d.prepare("SELECT count(*) n FROM india_sales_activity_alerts WHERE alert_key LIKE 'lead:nurture:%'").get().n,1);
@@ -112,10 +115,14 @@ test('nurture due reminders require 0014, use WIB dates and remain idempotent ac
 });
 test('hard disqualified, completed, converted and unmapped recipients do not receive nurturing alerts',async()=>{
  const d=fixture();try{
-  d.exec("CREATE TABLE india_schema_file_manifest(path TEXT PRIMARY KEY,source_branch TEXT,applied_at TEXT DEFAULT CURRENT_TIMESTAMP)");
-  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN version INTEGER NOT NULL DEFAULT 1");
-  d.exec("ALTER TABLE india_marketing_leads ADD COLUMN updated_by TEXT NOT NULL DEFAULT 'qa'");
-  d.exec(fs.readFileSync('migrations/0014_lead_intelligence.sql','utf8'));
+  // Mirror PR #22's required columns without making PR #21 depend on 0014's file.
+  d.exec(`CREATE TABLE india_lead_nurture_plans(
+   lead_id TEXT PRIMARY KEY REFERENCES india_marketing_leads(id),tenant_id TEXT NOT NULL,
+   state TEXT NOT NULL CHECK(state IN ('active','paused','completed','cancelled')),
+   cadence_days INTEGER NOT NULL,channel TEXT NOT NULL,next_touch_at TEXT NOT NULL,
+   version INTEGER NOT NULL DEFAULT 1,created_by TEXT NOT NULL,updated_by TEXT NOT NULL);
+   CREATE TABLE india_lead_disqualifications(lead_id TEXT PRIMARY KEY REFERENCES india_marketing_leads(id),
+   tenant_id TEXT NOT NULL,reason_code TEXT NOT NULL,reason_text TEXT NOT NULL,active INTEGER NOT NULL,changed_by TEXT NOT NULL)`);
   const cases=[['hard','disqualified','NO_FIT','active'],['closed','converted',null,'active'],['paused','assigned',null,'paused'],['invalid-owner','assigned',null,'active'],['soft','disqualified','TIMING_LATER','active']];
   for(const [id,status,reason,state] of cases){
    d.prepare("INSERT INTO india_marketing_leads(id,tenant_id,account_name,lead_number,assigned_sales_email,status) VALUES(?,'defendit360',?,? ,?,?)")
