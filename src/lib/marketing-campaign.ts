@@ -3,6 +3,15 @@ export type CampaignStatus='planned'|'active'|'paused'|'completed'|'cancelled';
 export type CampaignChannel='webinar'|'event'|'partnership'|'outbound'|'referral'|'digital'|'other';
 export const campaignChannels:CampaignChannel[]=['webinar','event','partnership','outbound','referral','digital','other'];
 export const campaignStatuses:CampaignStatus[]=['planned','active','paused','completed','cancelled'];
+/** Non-sequential campaign reference. D1 UNIQUE(tenant_id, code) is the final collision guard. */
+export function generateCampaignCode():string{
+ const date=new Date().toISOString().slice(0,10).replace(/-/g,'');
+ const entropy=crypto.randomUUID().replace(/-/g,'').slice(0,12).toUpperCase();
+ return `CMP-${date}-${entropy}`;
+}
+export function isAutoCampaignCode(code:string):boolean{
+ return /^CMP-[0-9]{8}-[A-F0-9]{12}$/.test(code);
+}
 export type CampaignInput={
  code:string;name:string;channel:CampaignChannel;status:CampaignStatus;
  owner_email:string;budget_idr:number;start_date:string;end_date:string;notes:string;

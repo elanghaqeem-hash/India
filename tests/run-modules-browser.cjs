@@ -7,7 +7,7 @@ async function main(){
  try{
   let ready=false;for(let i=0;i<60;i++){try{const r=await fetch(base+'/sales/forecast',{signal:AbortSignal.timeout(1000)});if(r.ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,250));}
   if(!ready)throw Error('Local production server not ready: '+logs);
-  const test=spawn(process.execPath,['--test','tests/modules-13-15-browser.cjs'],{stdio:'inherit',env:{...process.env,INDIA_UAT_URL:base}});
+  const test=spawn(process.execPath,['--test','tests/modules-13-15-browser.cjs','tests/sales-stage-filter-browser.test.cjs'],{stdio:'inherit',env:{...process.env,INDIA_UAT_URL:base}});
   process.exitCode=await new Promise(resolve=>test.on('exit',code=>resolve(code??1)));
  }finally{server.kill('SIGTERM');}
 }
