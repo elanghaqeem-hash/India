@@ -57,6 +57,10 @@ export async function GET(req:Request){
   if(!d)return deny('Opportunity tidak ditemukan',404);
   if(!canReadDeal(role,email,d.created_by))return deny('Opportunity bukan milik Sales ini',403);
   if(!doc){const rows=await db.prepare('SELECT v.id,v.release_id,v.kind,v.file_name,v.media_type,v.byte_length,v.sha256,v.created_by,v.created_at,g.version,g.retention_until,g.legal_hold FROM india_document_vault v LEFT JOIN india_document_governance g ON g.document_id=v.id WHERE v.tenant_id=? AND v.opportunity_id=? ORDER BY v.created_at DESC,v.id DESC LIMIT 100').bind(TENANT,opportunity).all();return res({success:true,documents:rows.results});}
+  const policy=await db.prepare('SELECT retention_until,legal_hold FROM india_document_governance WHERE document_id=? AND tenant_id=? AND opportunity_id=?').bind(doc.id,TENANT,opportunity).first<{retention_until:string|null;legal_hold:number}>();
+  if(!policy)return deny('Kebijakan dokumen belum tersedia',503);
+  if(policy.retention_until&&policy.retention_until<new Date().toISOString().slice(0,10)&&!policy.legal_hold&&!['admin','legal'].includes(role))
+   return deny('Masa retensi terlampaui. Minta tinjauan Admin/Legal.',403);
   const bytes=await openDocument(db,doc);
   // Audit must commit before plaintext leaves the authenticated endpoint.
   await db.batch([
