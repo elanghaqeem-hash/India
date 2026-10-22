@@ -11,7 +11,7 @@ type Target={id:string;name:string;kind:'lead'|'opportunity';owner:string};
 const kinds:Record<string,string>={visit:'Kunjungan',call:'Telepon',meeting:'Meeting',follow_up:'Follow-up'};
 const statusName:Record<string,string>={scheduled:'Dijadwalkan',rescheduled:'Dijadwalkan ulang',completed:'Selesai',cancelled:'Dibatalkan'};
 const input='min-w-0 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm focus:border-blue-500 outline-none';
-const asInstant=(v:string)=>new Date(/^\\d{4}-\\d{2}-\\d{2} /.test(v)?v.replace(' ','T')+'Z':v);
+const asInstant=(v:string)=>new Date(/^\d{4}-\d{2}-\d{2} /.test(v)?v.replace(' ','T')+'Z':v);
 const fmt=(v:string)=>new Intl.DateTimeFormat('id-ID',{timeZone:'Asia/Jakarta',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',hour12:false}).format(asInstant(v));
 const localInput=(d:Date)=>[d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')+'T'+String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');
 async function call(method:'GET'|'POST'|'PATCH',path:string,body?:Record<string,unknown>){
