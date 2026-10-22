@@ -9,7 +9,7 @@ type Row={id:string;lead_number:string;account_name:string;status:string;source:
  cadence_days?:number|null;nurture_channel?:string|null};
 type Metric={label:string;total:number;converted?:number;won?:number};
 type Overview={total:number;qualified:number;converted:number;won:number;disqualified:number};
-type Analysis={overall:Overview;by_source:Metric[];by_owner:Metric[];by_reason:Metric[];definition:string};
+type Analysis={overall:Overview;by_source:Metric[];by_campaign:Metric[];by_owner:Metric[];by_reason:Metric[];definition:string};
 type Detail={plan?:{version:number;cadence_days:number;channel:string;state:string;next_touch_at:string;touch_count:number}|null;
  events:{event_type:string;detail:string;actor_email:string;created_at:string}[]};
 const reasons:Record<string,string>={
@@ -21,7 +21,7 @@ const soft=new Set(['NO_BUDGET','TIMING_LATER','NO_RESPONSE']);
 const field='w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-800 focus:border-blue-500 focus:outline-none';
 const pill=(t:string)=>t==='Hot'?'bg-red-50 text-red-700':t==='Warm'?'bg-amber-50 text-amber-800':'bg-blue-50 text-blue-700';
 const rate=(n:number,d:number)=>d?((n/d)*100).toFixed(1)+'%':'0%';
-const today=()=>new Date().toISOString().slice(0,10);
+const today=()=>new Date(Date.now()+7*60*60*1000).toISOString().slice(0,10); // WIB
 async function request(method:'GET'|'POST',url:string,data?:Record<string,unknown>){
  const res=await fetch(url,{method,credentials:'same-origin',cache:'no-store',
   headers:{'Content-Type':'application/json'},...(data?{body:JSON.stringify(data)}:{})});
@@ -82,7 +82,7 @@ export default function LeadIntelligence(){
     <h1 className="mt-2 flex items-center gap-2 text-xl font-extrabold sm:text-2xl"><Target size={22}/> Lead Intelligence</h1>
     <p className="mt-1 max-w-3xl text-xs text-slate-600">Skor terukur, nurturing tanpa pengiriman otomatis, alasan diskualifikasi dan reaktivasi. Status Qualified tetap tunduk pada BANT.</p>
    </div>
-   <Link href="/sales/activities" className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold">Sales Activity Timeline →</Link>
+   <span className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold text-slate-500">Activity Timeline: integrasi PR #21 setelah UAT</span>
   </header>
   {message&&<div role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <section className="grid grid-cols-2 gap-2 lg:grid-cols-5">
@@ -180,8 +180,8 @@ export default function LeadIntelligence(){
      ['Disqualification',rate(overview.overall.disqualified,overview.overall.total)]
     ].map(([title,value])=><div key={title} className="rounded-lg bg-slate-50 p-3"><p className="text-[11px] text-slate-500">{title}</p><p className="text-xl font-black">{value}</p></div>)}
    </div>
-   <div className="grid gap-4 lg:grid-cols-3">
-    {([['Sumber Lead',overview.by_source],['Sales Owner',overview.by_owner],['Reason Code',overview.by_reason]] as const).map(([title,items])=>
+   <div className="grid gap-4 lg:grid-cols-2 xl:grid-cols-4">
+    {([['Sumber Lead',overview.by_source],['Campaign',overview.by_campaign],['Sales Owner',overview.by_owner],['Reason Code',overview.by_reason]] as const).map(([title,items])=>
      <div key={title} className="min-w-0"><h3 className="mb-2 text-xs font-bold">{title}</h3>
       <div className="overflow-x-auto rounded-lg border"><table className="w-full text-left text-xs">
        <thead className="bg-slate-50"><tr><th className="p-2">Kategori</th><th className="p-2">Lead</th><th className="p-2">{title==='Reason Code'?'% Total':'Conv.'}</th></tr></thead>
