@@ -1,5 +1,6 @@
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {TENANT,ACCOUNT_KEYS,cleanFields,safeID} from '@/lib/sales-workflow';
+import {canonicalPostalFields} from '@/lib/indonesia-postal';
 import {validateLead,leadTransition,toOpportunityFields,normalizeName,type LeadStatus,type LeadInput} from '@/lib/marketing-lead';
 export const dynamic='force-dynamic';
 const respond=(data:unknown,status=200)=>Response.json(data,{status,headers:privateHeaders});
@@ -141,7 +142,9 @@ export async function POST(req:Request){
    const inputCustomer=p.customer_fields;
    if(inputCustomer!==undefined&&(!inputCustomer||typeof inputCustomer!=='object'||Array.isArray(inputCustomer)))
     return fail('Profil Customer tidak valid',422);
-   const profile=cleanFields(inputCustomer||{},ACCOUNT_KEYS);
+   let profile;
+   try{profile=await canonicalPostalFields(db,cleanFields(inputCustomer||{},ACCOUNT_KEYS));}
+   catch(e){return fail(e instanceof Error?e.message:'Wilayah kantor pusat tidak valid',422);}
    // Identity from the qualified Lead overrides any browser-submitted values.
    const customerData={...profile,...contact};
    const nextVersion=row.version+1;
