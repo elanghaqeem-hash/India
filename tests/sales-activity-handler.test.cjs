@@ -19,12 +19,15 @@ test('actual API: Sales A schedule, Sales B isolated, Admin sees timeline and ma
   const created=await h.call('sales/activities','POST','sales',payload);
   assert.equal(created.status,201,JSON.stringify(created));
   const id=created.body.id;
+  h.sql.prepare("INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,created_by) VALUES('legacy-a','defendit360','opp-qa','note','Existing sales note','Retained prior to Activity Center',?)").run(users.sales);
   const [sales,other,admin]=await Promise.all([
    h.call('sales/activities','GET','sales'),h.call('sales/activities','GET','other'),h.call('sales/activities','GET','admin')
   ]);
   assert.equal(sales.status,200);assert.equal(other.status,200);assert.equal(admin.status,200);
   assert.ok(sales.body.tasks.some(t=>t.id===id));
   assert.ok(admin.body.tasks.some(t=>t.id===id));
+  assert.ok(sales.body.events.some(e=>e.id==='opportunity:legacy-a'),'existing D1 notes must appear in unified timeline');
+  assert.equal(other.body.events.some(e=>e.id==='opportunity:legacy-a'),false,'Legacy notes must retain Sales ownership boundary');
   assert.equal(other.body.tasks.some(t=>t.id===id),false,'Sales B must never see Sales A');
   assert.equal(other.body.events.some(e=>e.task_id===id),false,'Timeline must be owner isolated');
   const forbidden=await h.call('sales/activities','GET','other',null,'?owner='+encodeURIComponent(users.sales));
