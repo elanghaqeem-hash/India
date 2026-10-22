@@ -62,7 +62,7 @@ export default function FeasibilityPage(){
    </section>
    {locked&&!w.busy&&<p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">Paket yang sudah mencapai Commercial Review terkunci. Gunakan workflow revisi resmi untuk mengganti scope atau sumber daya.</p>}
    <section className="grid items-start gap-4 xl:grid-cols-2">
-    <EntryForm key={'plan'+w.id+(p?.version||0)} title={p?'Revisi Feasibility Plan v'+p.version:'Buat Feasibility Plan'} fields={planFields(p)}
+    <EntryForm key={'plan'+w.id+(p?.version||0)} title={p?'Revisi Feasibility Plan v'+p.version:'Buat Feasibility Plan'} fields={planFields(p??null)}
      disabled={locked||!canPlan} submit={p?'Simpan revisi plan (approval direset)':'Hitung PD & simpan plan'}
      onSubmit={x=>w.mutate({action:'plan',version:p?.version,...x})}/>
     <div className="space-y-4">
