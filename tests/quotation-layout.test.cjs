@@ -48,7 +48,10 @@ test('AI assistant dialog stays above fixed mobile navigation and fits the dynam
   assert.ok(navigationLayer && assistantLayer, 'both stacked layers must be explicit');
   assert.ok(Number(assistantLayer[1]) > Number(navigationLayer[1]), 'AI dialog must be above mobile navigation');
   assert.match(navbar, /role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"/);
-  assert.match(navbar, /h-\[100dvh\] max-h-\[100dvh\] min-h-0/);
+  assert.match(navbar, /z-\[100\] flex h-\[100dvh\]/);
+  assert.match(navbar, /h-full max-h-full min-h-0/);
+  assert.match(navbar, /window\.visualViewport/);
+  assert.match(navbar, /viewport\.addEventListener\('resize', syncViewport\)/);
   assert.match(navbar, /sm:h-\[85dvh\]/);
 });
 
