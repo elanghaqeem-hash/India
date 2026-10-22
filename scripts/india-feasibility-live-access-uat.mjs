@@ -45,7 +45,8 @@ async function preflight(c){
  const r=await fetch(new URL('/api/sales/feasibility?opportunity_id=uat-preflight-only',c.base),{
    redirect:'manual',headers:{Accept:'application/json'},signal:AbortSignal.timeout(16000)});
  const loc=r.headers.get('location')||'';
- const accessRedirect=r.status>=300&&r.status<400&&/cloudflareaccess\\.com|\\/cdn-cgi\\/access\\//.test(loc);
+ const accessRedirect=r.status>=300&&r.status<400&&
+   (loc.includes('cloudflareaccess.com')||loc.includes('/cdn-cgi/access/'));
  check([401,403].includes(r.status)||accessRedirect,'Cloudflare Access rejects anonymous request (HTTP '+r.status+')');
  const s=await cf('/workers/scripts/'+c.worker+'/settings');
  const bind=(s.bindings||[]).filter(x=>x.name==='INDIA_DB');
