@@ -69,13 +69,14 @@ CREATE TABLE india_sales_lead_sla (
  assigned_at TEXT NOT NULL,
  response_due_at TEXT NOT NULL,
  first_response_at TEXT,
+ baseline TEXT NOT NULL DEFAULT 'new' CHECK(baseline IN ('new','legacy_unverified')),
  PRIMARY KEY(tenant_id,lead_id)
 );
 CREATE INDEX idx_india_sla_open ON india_sales_lead_sla(tenant_id,first_response_at,response_due_at);
 -- Seed SLA from genuine existing leads; do not infer a past response from note-only logs.
-INSERT OR IGNORE INTO india_sales_lead_sla(tenant_id,lead_id,owner_email,assigned_at,response_due_at)
-SELECT l.tenant_id,l.id,l.assigned_sales_email,l.created_at,
- strftime('%Y-%m-%dT%H:%M:%SZ',l.created_at,printf('+%d minutes',coalesce(p.lead_response_minutes,120)))
+INSERT OR IGNORE INTO india_sales_lead_sla(tenant_id,lead_id,owner_email,assigned_at,response_due_at,baseline)
+SELECT l.tenant_id,l.id,l.assigned_sales_email,strftime('%Y-%m-%dT%H:%M:%SZ','now'),
+ strftime('%Y-%m-%dT%H:%M:%SZ','now',printf('+%d minutes',coalesce(p.lead_response_minutes,120))),'legacy_unverified'
 FROM india_marketing_leads l LEFT JOIN india_sales_activity_policy p ON p.tenant_id=l.tenant_id
 WHERE l.status NOT IN ('converted','disqualified');
 CREATE TRIGGER india_lead_sla_new AFTER INSERT ON india_marketing_leads
@@ -107,3 +108,34 @@ CREATE TABLE india_sales_activity_alerts (
 );
 CREATE INDEX idx_india_alert_recipient ON india_sales_activity_alerts(tenant_id,recipient_email,read_at,created_at DESC);
 INSERT OR IGNORE INTO india_schema_migrations(version) VALUES(13);
+
+-- Existing Lead records do not prove initial contact timestamps. Legacy backfill starts
+-- a fresh grace window, marked unverified, rather than producing fabricated historic breaches.
+CREATE TRIGGER india_activity_lead_closed AFTER UPDATE OF status ON india_marketing_leads
+WHEN NEW.status IN ('converted','disqualified') AND OLD.status<>NEW.status
+BEGIN
+ INSERT INTO india_sales_activity_events(id,tenant_id,task_id,action,actor_email,detail)
+ SELECT lower(hex(randomblob(16))),t.tenant_id,t.id,'cancelled','india-system','Lead closed: '||NEW.status
+ FROM india_sales_activity_tasks t WHERE t.tenant_id=NEW.tenant_id AND t.lead_id=NEW.id AND t.status='planned';
+ UPDATE india_sales_activity_tasks SET status='cancelled',outcome='Lead closed: '||NEW.status,revision=revision+1,updated_at=CURRENT_TIMESTAMP
+ WHERE tenant_id=NEW.tenant_id AND lead_id=NEW.id AND status='planned';
+END;
+CREATE TRIGGER india_activity_deal_closed AFTER UPDATE OF stage ON india_sales_opportunities
+WHEN NEW.stage IN ('closed_won','closed_lost') AND OLD.stage<>NEW.stage
+BEGIN
+ INSERT INTO india_sales_activity_events(id,tenant_id,task_id,action,actor_email,detail)
+ SELECT lower(hex(randomblob(16))),t.tenant_id,t.id,'cancelled','india-system','Opportunity closed: '||NEW.stage
+ FROM india_sales_activity_tasks t WHERE t.tenant_id=NEW.tenant_id AND t.opportunity_id=NEW.id AND t.status='planned';
+ UPDATE india_sales_activity_tasks SET status='cancelled',outcome='Opportunity closed: '||NEW.stage,revision=revision+1,updated_at=CURRENT_TIMESTAMP
+ WHERE tenant_id=NEW.tenant_id AND opportunity_id=NEW.id AND status='planned';
+END;
+CREATE TRIGGER india_activity_lead_transfer AFTER UPDATE OF assigned_sales_email ON india_marketing_leads
+WHEN NEW.assigned_sales_email<>OLD.assigned_sales_email
+BEGIN
+ INSERT INTO india_sales_activity_events(id,tenant_id,task_id,action,actor_email,detail)
+ SELECT lower(hex(randomblob(16))),t.tenant_id,t.id,'rescheduled','india-system',
+ 'Owner transferred from '||OLD.assigned_sales_email||' to '||NEW.assigned_sales_email
+ FROM india_sales_activity_tasks t WHERE t.tenant_id=NEW.tenant_id AND t.lead_id=NEW.id AND t.status='planned';
+ UPDATE india_sales_activity_tasks SET owner_email=NEW.assigned_sales_email,revision=revision+1,updated_at=CURRENT_TIMESTAMP
+ WHERE tenant_id=NEW.tenant_id AND lead_id=NEW.id AND status='planned';
+END;
