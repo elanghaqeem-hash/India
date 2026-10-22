@@ -31,3 +31,12 @@ Tanggal: 22 Oktober 2026 (Asia/Jakarta). Basis sumber: PR #21 head `f36695c395eb
 
 ### Privacy / security
 No Access JWTs, secrets, encrypted AI keys, customer data, or pre-signed export URL are committed in this report. Logical restore equality was computed inside the connected Cloudflare account and only aggregate evidence retained. The previous production Worker and D1 were not modified.
+
+## PR #22 Lead nurturing handoff — 22 October 2026, UAT only
+
+- New UAT D1 full SQL export succeeded: bookmark `00000022-00000000-0000510c-18b487aa3247d1f368ca0945773b423f`; the signed export URL is intentionally not stored here.
+- New D1 database creation was refused due to the existing 10-database Cloudflare account limit (7406). The previously validated isolated PR #21 logical restore database `india-pr21-restore-uat-20261022` was reused. All 126 schema objects matched; application rows matched on readable tables except migration timestamp metadata. Cloudflare internal `_cf_KV` cannot be queried through standard SQL API.
+- PR #22 additive migration `0014_lead_intelligence.sql` applied successfully to the restored rehearsal D1 first (11 API statements, no failure), then separately to `india-uat-users-db` after 0013, FK and quick_check preflight. Post-migration UAT: max ledger 14, 2 Leads, 8 members, 14 audit rows and 2 links preserved, 0 foreign key violations, `quick_check=ok`. No production D1 change.
+- Cron patch on PR #21 branch conditionally detects the presence of the 0014 nurture table, then writes idempotent in-app alerts keyed by Lead, plan version and due date. Disabled/deleted plans, converted/qualified Leads, hard disqualifications, inactive owners and cross-tenant joins are excluded by SQL. `*/15 * * * *` UAT schedule and production binding remain unchanged.
+- **Do not claim full UAT clearance:** real Cloudflare Access app `uat-india.elang-haqeem.workers.dev` still has a single approved-admin-only allow policy; UAT Sales A/B remain non-deliverable `.invalid` fixtures. Genuine signed-human JWTs for Sales A, Sales B, Marketing, Admin and Viewer and the reviewed PR #22 frontend on UAT are not available. No policy widening or fabricated login tests.
+- Cron source update and real scheduled alert proof after 0014 must be inspected separately from D1 migration success. Previous PR #21 Cron scheduled proof remains valid for the original seven alert statements, but cannot prove the new nurture statement until the revised Worker is running.
