@@ -41,10 +41,10 @@ export async function GET(req:Request){
     WHERE s.tenant_id=? ${selected?'AND s.owner_email=?':''} AND l.status NOT IN ('converted','disqualified')
     ORDER BY s.response_due_at ASC LIMIT 250`).bind(...bind).all(),
    db.prepare("SELECT email,role FROM india_members WHERE active=1 AND role IN ('sales','admin') ORDER BY email").all(),
-   db.prepare('SELECT sales_email,manager_email FROM india_sales_team_managers WHERE tenant_id=?').bind(TENANT).all()
+   db.prepare('SELECT sales_email,manager_email FROM india_sales_team_managers WHERE tenant_id=?').bind(TENANT).all<{sales_email:string;manager_email:string}>()
   ]);
   return reply({success:true,role,identityEmail:email,tasks:tasks.results,events:events.results,alerts:alerts.results,
-   slas:slas.results,owners:role==='admin'?owners.results:[{email,role}],managers:role==='admin'?managers.results:managers.results.filter((m:{sales_email:string})=>m.sales_email===email),
+   slas:slas.results,owners:role==='admin'?owners.results:[{email,role}],managers:role==='admin'?managers.results:managers.results.filter(m=>m.sales_email===email),
    serverNow:new Date().toISOString()});
  }catch{return error('Modul belum siap; verifikasi migrasi D1 0013',503);}
 }
