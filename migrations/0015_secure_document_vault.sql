@@ -78,4 +78,5 @@ UPDATE india_sales_opportunities SET stage='solution_design' WHERE stage NOT IN 
 DELETE FROM india_sales_po_checks WHERE opportunity_id IN(SELECT id FROM india_sales_opportunities WHERE stage NOT IN ('closed_won','closed_lost'));
 UPDATE india_sales_submissions SET status='superseded' WHERE status IN ('reported','verified') AND opportunity_id IN(SELECT id FROM india_sales_opportunities WHERE stage NOT IN ('closed_won','closed_lost'));
 UPDATE india_sales_releases SET status='superseded' WHERE status!='superseded' AND opportunity_id IN(SELECT id FROM india_sales_opportunities WHERE stage NOT IN ('closed_won','closed_lost'));
+INSERT OR IGNORE INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0015_secure_document_vault.sql','india-ag-vault-tender-integration');
 INSERT INTO india_schema_migrations(version) VALUES(15);
