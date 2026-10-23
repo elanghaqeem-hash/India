@@ -7,7 +7,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
@@ -19,7 +19,7 @@
     "test:boq-domain": "node --test tests/boq-domain.test.cjs",
     "test:ai": "node --test tests/ai-config-security.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
-    "test:sales": "node --experimental-strip-types --test tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
+    "test:sales": "node --experimental-strip-types --test tests/sales-stage-filter.test.cjs tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
     "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
     "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs tests/marketing-campaigns.test.cjs && npm run test:lead-intelligence",
     "test:india-negative": "node --experimental-strip-types --test tests/india-negative-uat.test.cjs tests/india-negative-api.test.cjs",
@@ -29,7 +29,8 @@
     "test:activities": "node --test tests/sales-activity-cron.test.cjs tests/sales-activity-handler.test.cjs",
     "test:lead-intelligence": "node --test tests/lead-intelligence.test.cjs",
     "test:p1-p2": "node --test tests/p1-p2-commercial-integration.test.cjs",
-    "test:bid-readiness": "node --test tests/tender-bid-readiness.test.cjs"
+    "test:bid-readiness": "node --test tests/tender-bid-readiness.test.cjs",
+    "test:feasibility": "node --test tests/vendor-resource-feasibility.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
