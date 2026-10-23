@@ -1,0 +1,54 @@
+name: INDIA AI isolated candidate UAT deploy
+
+on:
+  push:
+    branches:
+      - fix/india-ai-chat-composer-mobile-20261022
+    paths:
+      - .github/workflows/india-ai-uat-deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-isolated-uat:
+    runs-on: ubuntu-latest
+    environment: india-uat
+    timeout-minutes: 25
+    concurrency:
+      group: india-ai-uat-deploy
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install pinned dependencies
+        run: npm install --no-audit --no-fund
+      - name: Verify UI regression and types
+        run: npm run test:layout && npm run typecheck
+      - name: Fail-closed isolated Worker and D1 binding check
+        env:
+          INDIA_AI_UAT_DEPLOY_APPROVED: YES_ISOLATED_UAT_ONLY
+          INDIA_AI_UAT_WORKER: uat-india
+          INDIA_AI_UAT_DB: eaed652e-7322-4950-a304-dd50baa5de02
+          CLOUDFLARE_API_TOKEN: ${{ secrets.INDIA_UAT_CF_DEPLOY_TOKEN }}
+        run: node scripts/india-ai-uat-deploy-preflight.mjs
+      - name: Build Cloudflare Worker
+        run: npx opennextjs-cloudflare build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Deploy UAT only (never production)
+        run: npx wrangler deploy --config wrangler.uat.ci.jsonc
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.INDIA_UAT_CF_DEPLOY_TOKEN }}
+      - name: Verify candidate deployment and retained isolated binding
+        env:
+          INDIA_AI_UAT_DEPLOY_APPROVED: YES_ISOLATED_UAT_ONLY
+          INDIA_AI_UAT_WORKER: uat-india
+          INDIA_AI_UAT_DB: eaed652e-7322-4950-a304-dd50baa5de02
+          CLOUDFLARE_API_TOKEN: ${{ secrets.INDIA_UAT_CF_DEPLOY_TOKEN }}
+        run: |
+          node scripts/india-ai-uat-deploy-preflight.mjs
+          echo 'Worker UAT isolation verified; actual Admin Access and OpenRouter UAT remain a separate mandatory gate.'
