@@ -20,6 +20,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Marketing Sales consolidation and isolation
         run: npm run test:consolidation
+      - name: Live UAT target and human-session guard regression (offline)
+        run: node --test tests/india-feasibility-live-access-guard.test.cjs
       - name: Full regression and OpenNext Cloudflare package (never deploy)
         run: npm run build:cf
         env:

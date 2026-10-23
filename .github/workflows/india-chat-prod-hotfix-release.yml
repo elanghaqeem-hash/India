@@ -1,0 +1,82 @@
+name: INDIA production ICOP AI composer hotfix release (one-time)
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/india-chat-prod-hotfix-release.yml
+
+permissions:
+  contents: read
+
+concurrency:
+  group: india-production-hotfix-release
+  cancel-in-progress: false
+
+jobs:
+  guarded-production-ui-hotfix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 208155f241d4da84e1a6a9b44b7a8d28
+      NEXT_TELEMETRY_DISABLED: '1'
+      CI: 'true'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Require merged reviewed mobile chat hotfix
+        run: |
+          git merge-base --is-ancestor ae4336a48514cefe4df768936a6e1946673603f0 HEAD
+          grep -q "createPortal(" src/components/layout/Navbar.tsx
+          grep -q "icop-ai-chat-open" src/app/globals.css
+      - name: Verify Cloudflare token configured, do not disclose its value
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "BLOCKED: Cloudflare deploy API token is not configured in Actions secrets."
+            exit 2
+          fi
+      - name: Snapshot production version and enforce immutable D1/Access/AI secret gates
+        id: checkpoint
+        run: node scripts/india-chat-hotfix-release-gate.mjs before
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Layout and security regression tests
+        run: npm run test:layout && npm run test:ai
+      - name: TypeScript check
+        run: npm run typecheck
+      - name: Production Next.js build
+        run: npm run build
+      - name: OpenNext Cloudflare packaging
+        run: npx opennextjs-cloudflare build
+      - name: Deploy approved UI hotfix to existing INDIA worker
+        id: deploy
+        run: npx opennextjs-cloudflare deploy
+      - name: Verify new Worker version and unchanged production bindings
+        env:
+          INDIA_PREVIOUS_VERSION: ${{ steps.checkpoint.outputs.previous_version }}
+        run: node scripts/india-chat-hotfix-release-gate.mjs after
+      - name: Roll back to checkpoint if deployed Worker binding verification fails
+        if: failure() && steps.deploy.outcome == 'success' && steps.checkpoint.outputs.previous_version != ''
+        env:
+          INDIA_PREVIOUS_VERSION: ${{ steps.checkpoint.outputs.previous_version }}
+        run: |
+          node --input-type=module <<'NODE'
+          const version = process.env.INDIA_PREVIOUS_VERSION;
+          const token = process.env.CLOUDFLARE_API_TOKEN;
+          if (!/^[0-9a-f-]{36}$/.test(version) || !token) process.exit(2);
+          const url = 'https://api.cloudflare.com/client/v4/accounts/208155f241d4da84e1a6a9b44b7a8d28/workers/scripts/india/deployments';
+          const res = await fetch(url, { method: 'POST', headers: { Authorization: 'Bearer '+token, 'Content-Type':'application/json' },
+            body: JSON.stringify({ strategy:'percentage', versions:[{version_id:version,percentage:100}],
+              annotations:{'workers/message':'Rollback after INDIA composer hotfix post-deploy gate failure'} }) });
+          const j = await res.json().catch(()=>({}));
+          if(!res.ok || j.success!==true) {
+            console.error('ROLLBACK FAILED; requires manual restore using previous Worker version '+version);
+            process.exit(2);
+          }
+          console.log('ROLLBACK SUCCEEDED to previous Worker version '+version);
+          NODE

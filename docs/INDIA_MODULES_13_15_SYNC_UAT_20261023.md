@@ -2,6 +2,8 @@
 
 23 Oktober 2026 WIB. **DRAFT / NO PRODUCTION DEPLOY**.
 
+Status operasional terbaru ada pada [eksekusi lanjutan 24 Oktober](INDIA_MODULES_13_15_FOLLOWUP_20261024.md). Daftar blocker di bawah adalah bukti historis saat pemeriksaan awal, bukan inventaris terkini.
+
 ## Selesai
 
 - Kandidat `0a30cde` disinkronkan dengan main `f2dd4b6` tanpa konflik, mempertahankan filter 10 tahap PR #29 dan immutable generated campaign codes. History kedua parent dipertahankan; tidak melakukan rebase/force-push.

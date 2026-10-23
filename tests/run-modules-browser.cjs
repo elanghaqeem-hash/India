@@ -9,6 +9,11 @@ async function main(){
   if(!ready)throw Error('Local production server not ready: '+logs);
   const test=spawn(process.execPath,['--test','tests/modules-13-15-browser.cjs','tests/sales-stage-filter-browser.test.cjs'],{stdio:'inherit',env:{...process.env,INDIA_UAT_URL:base}});
   process.exitCode=await new Promise(resolve=>test.on('exit',code=>resolve(code??1)));
+  for(const script of ['tests/ai-chat-composer-browser-uat.cjs','tests/ai-chat-browser-uat.cjs']){
+   if(process.exitCode!==0)break;
+   const chat=spawn(process.execPath,[script],{stdio:'inherit',env:{...process.env,INDIA_UAT_BASE:base,INDIA_CHAT_UAT_BASE:base}});
+   process.exitCode=await new Promise(resolve=>chat.on('exit',code=>resolve(code??1)));
+  }
  }finally{server.kill('SIGTERM');}
 }
 main().catch(e=>{console.error(e);process.exitCode=1;});

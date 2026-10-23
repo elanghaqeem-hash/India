@@ -8,8 +8,8 @@
  */
 import {randomUUID} from 'node:crypto';
 import {createRemoteJWKSet,jwtVerify} from 'jose';
+import {validateTarget,isAccessChallenge,accessCookieHeaders,validateMemberRoles,ACCESS_TEAM} from './india-feasibility-uat-guards.mjs';
 const env=process.env,ACCOUNT='208155f241d4da84e1a6a9b44b7a8d28';
-const PROD_DB='8395dd84-1b7d-4eaf-9990-1d8e75a42cb5';
 const keys=[['Sales A','SALES_A','sales'],['Sales B','SALES_B','sales'],
  ['Presales','PRESALES','presales'],['Finance','FINANCE','finance'],
  ['Approver','APPROVER','approver'],['Admin','ADMIN','admin']];
@@ -18,14 +18,11 @@ function check(ok,message){if(!ok)throw Error('BLOCKED_OR_FAIL: '+message);check
 function setup(){
  const mode=process.argv[2]||'--preflight';
  check(['--preflight','--transactions'].includes(mode),'supported mode');
- const worker=env.INDIA_UAT_WORKER_NAME||'',base=new URL(env.INDIA_UAT_BASE_URL||'https://uat-india.elang-haqeem.workers.dev');
- check(/^(uat|staging)[a-z0-9-]*$/.test(worker),'Worker named UAT only');
- check(base.protocol==='https:'&&!base.port&&base.pathname==='/'&&!base.username&&!base.password&&
-  !base.search&&!base.hash&&base.hostname===worker+'.elang-haqeem.workers.dev'&&base.hostname!=='india.elang-haqeem.workers.dev',
- 'HTTPS origin pinned to isolated UAT Worker');
- check(env.INDIA_UAT_D1_ID==='eaed652e-7322-4950-a304-dd50baa5de02'&&env.INDIA_UAT_D1_ID!==PROD_DB,'UAT DB ID pinned');
- check(env.INDIA_UAT_EXPECT_SHA&&/^[0-9a-f]{40}$/.test(env.INDIA_UAT_EXPECT_SHA),'exact intended release SHA pinned');
- return {mode,worker,base,db:env.INDIA_UAT_D1_ID};
+ const target=validateTarget(mode,env.INDIA_UAT_WORKER_NAME||'',
+  env.INDIA_UAT_BASE_URL||'https://uat-india.elang-haqeem.workers.dev',
+  env.INDIA_UAT_D1_ID,env.INDIA_UAT_EXPECT_SHA);
+ check(true,'isolated UAT target and exact release SHA pinned');
+ return target;
 }
 async function cf(path,method='GET',body){
  check(!!env.INDIA_UAT_CF_READ_TOKEN,'read-only Cloudflare API token configured');
@@ -36,8 +33,8 @@ async function cf(path,method='GET',body){
  check(r.ok&&j.success===true,'Cloudflare read-only API '+path.split('/').slice(0,4).join('/'));
  return j.result;
 }
-async function sql(db,query){
- const x=await cf('/d1/database/'+db+'/query','POST',{sql:query});
+async function sql(db,query,params=[]){
+ const x=await cf('/d1/database/'+db+'/query','POST',{sql:query,params});
  check(Array.isArray(x)&&x.every(r=>r.success),'D1 read-only SQL');
  return x[0]?.results||[];
 }
@@ -45,16 +42,15 @@ async function preflight(c){
  const r=await fetch(new URL('/api/sales/feasibility?opportunity_id=uat-preflight-only',c.base),{
    redirect:'manual',headers:{Accept:'application/json'},signal:AbortSignal.timeout(16000)});
  const loc=r.headers.get('location')||'';
- const accessRedirect=r.status>=300&&r.status<400&&
-   (loc.includes('cloudflareaccess.com')||loc.includes('/cdn-cgi/access/'));
- check([401,403].includes(r.status)||accessRedirect,'Cloudflare Access rejects anonymous request (HTTP '+r.status+')');
+ check(isAccessChallenge(r.status,loc,c.base.origin),
+  'genuine Cloudflare Access login redirect (HTTP '+r.status+'); generic edge 403 is not acceptance');
  const s=await cf('/workers/scripts/'+c.worker+'/settings');
  const bind=(s.bindings||[]).filter(x=>x.name==='INDIA_DB');
  check(bind.length===1&&(bind[0].id||bind[0].database_id)===c.db,'actual UAT Worker bound to UAT D1');
  const release=(s.bindings||[]).find(x=>x.name==='INDIA_RELEASE_SHA');
  check((release?.text||release?.value)===env.INDIA_UAT_EXPECT_SHA,'UAT Worker deploy exactly equals intended release');
  const versions=await sql(c.db,'SELECT MAX(version) AS version FROM india_schema_migrations');
- check(versions[0]?.version>=25,'D1 feasibility canonical migration 0025 applied');
+ check(versions[0]?.version===26,'D1 consolidated candidate migration 0026 applied exactly');
  const names=await sql(c.db,"SELECT name FROM sqlite_master WHERE type='table' AND name IN ('india_feasibility_plans','india_resource_people','india_resource_allocations','india_feasibility_costs','india_vendor_offers','india_vendors')");
  check(names.length===6,'all D1 feasibility and supplier tables present');
  check((await sql(c.db,'PRAGMA quick_check'))[0]?.quick_check==='ok','D1 quick_check');
@@ -62,7 +58,11 @@ async function preflight(c){
 }
 async function people(c){
  const team=env.INDIA_UAT_ACCESS_TEAM_DOMAIN||'',aud=env.INDIA_UAT_ACCESS_AUD||'';
- check(/^[a-z0-9-]+\.cloudflareaccess\.com$/.test(team)&&aud.length>30,'actual Cloudflare Access tenant/AUD provided');
+ check(team===ACCESS_TEAM&&aud.length>30,'actual Cloudflare Access tenant/AUD provided');
+ const settings=await cf('/workers/scripts/'+c.worker+'/settings');
+ const audience=(settings.bindings||[]).find(b=>b.name==='INDIA_ACCESS_AUD');
+ const issuer=(settings.bindings||[]).find(b=>b.name==='INDIA_ACCESS_TEAM_DOMAIN');
+ check(audience?.text===aud&&issuer?.text===team,'signed sessions pinned to actual Worker Access issuer and audience');
  const jwks=createRemoteJWKSet(new URL('https://'+team+'/cdn-cgi/access/certs'));
  const list=[];
  for(const [label,key,role] of keys){
@@ -80,7 +80,7 @@ async function people(c){
 async function http(c,p,path,method='GET',payload){
  const target=new URL(path,c.base);
  check(target.origin===c.base.origin,'request destination remains isolated UAT');
- const headers={'cf-access-jwt-assertion':p.token,Accept:'application/json'};
+ const headers=accessCookieHeaders(p.token);
  if(method!=='GET'){headers['Content-Type']='application/json';headers.Origin=c.base.origin;}
  if(payload?.entity==='convert')headers['x-india-lead-action']='convert';
  const r=await fetch(target,{method,headers,redirect:'manual',cache:'no-store',
@@ -94,6 +94,11 @@ function expect(x,status,label){
  return x.body;
 }
 async function verifyPeopleCanRead(c,p){
+ const emails=Object.values(p).map(person=>person.email);
+ const members=await sql(c.db,'SELECT email,role,active FROM india_members WHERE email IN ('+
+  emails.map(()=>'?').join(',')+')',emails);
+ validateMemberRoles(p,members);
+ check(true,'all six signed human identities match exact active D1 roles');
  // Must prove ALL role sessions work on candidate route before any test records are created.
  for(const [label,key] of keys){
   const r=await http(c,p[key],'/api/sales/feasibility?opportunity_id=uat-preflight-only');

@@ -1,0 +1,34 @@
+name: INDIA AI REAL Admin Access + OpenRouter UAT
+
+on:
+  push:
+    branches:
+      - fix/india-ai-chat-composer-mobile-20261022
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  genuine-admin-openrouter-uat:
+    runs-on: ubuntu-latest
+    environment: india-uat
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies for JWT validation
+        run: npm install --no-audit --no-fund
+      - name: Run real five-turn continuity UAT only against pinned isolated Worker
+        run: node scripts/india-ai-chat-live-uat.mjs
+        env:
+          INDIA_AI_CHAT_UAT_URL: https://uat-india.elang-haqeem.workers.dev
+          INDIA_AI_CHAT_UAT_WORKER: uat-india
+          INDIA_AI_CHAT_UAT_D1_ID: eaed652e-7322-4950-a304-dd50baa5de02
+          INDIA_AI_CHAT_EXPECTED_SHA: ${{ github.sha }}
+          INDIA_AI_CHAT_UAT_CF_READ_TOKEN: ${{ secrets.INDIA_UAT_CF_WORKER_READ_TOKEN }}
+          INDIA_AI_CHAT_UAT_ADMIN_JWT: ${{ secrets.INDIA_UAT_JWT_ADMIN }}
+          INDIA_AI_CHAT_UAT_ACCESS_DOMAIN: green-heart-e2b0.cloudflareaccess.com
+          INDIA_AI_CHAT_UAT_ACCESS_AUD: 0ff25afa9e770fd7bff66b1395681cebcea32b309e5060a4ea8be858d658feb5
