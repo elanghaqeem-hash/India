@@ -1,0 +1,46 @@
+name: INDIA ICOP chat composer hotfix UAT
+
+on:
+  push:
+    branches:
+      - hotfix/india-ai-input-visible-android-20261023
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  composer-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Next production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run mobile and desktop chat composer UI regression (mocked AI)
+        run: |
+          npm run start -- -p 3125 > /tmp/india-composer.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3125/ > /dev/null; then break; fi
+            sleep 2
+          done
+          if ! curl -fsS http://127.0.0.1:3125/ > /dev/null; then
+            cat /tmp/india-composer.log
+            exit 1
+          fi
+          node tests/ai-chat-composer-browser-uat.cjs
+        env:
+          INDIA_UAT_BASE: http://127.0.0.1:3125
