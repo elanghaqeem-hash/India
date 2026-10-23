@@ -48,10 +48,10 @@ test('AI assistant dialog stays above fixed mobile navigation and fits the dynam
   assert.ok(navigationLayer && assistantLayer, 'both stacked layers must be explicit');
   assert.ok(Number(assistantLayer[1]) > Number(navigationLayer[1]), 'AI dialog must be above mobile navigation');
   assert.match(navbar, /role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"/);
-  assert.match(navbar, /z-\[100\] flex h-\[100dvh\]/);
+  assert.match(navbar, /icop-ai-chat-overlay fixed inset-0 z-\[200\] flex h-\[100dvh\]/);
   assert.match(navbar, /h-full max-h-full min-h-0/);
   assert.match(navbar, /window\.visualViewport/);
-  assert.match(navbar, /viewport\.addEventListener\('resize', syncViewport\)/);
+  assert.match(navbar, /viewport\?\.addEventListener\('resize', syncViewport\)/);
   assert.match(navbar, /sm:h-\[85dvh\]/);
 });
 
@@ -62,4 +62,7 @@ test('AI chat has independently scrolling messages and a visible safe-area compo
   assert.match(navbar, /min-h-11 min-w-0 flex-1 rounded-xl/);
   assert.match(navbar, /aria-label="Kirim pesan ke AI"/);
   assert.match(navbar, /if \(event.key === 'Escape'\) setAiAssistantOpen\(false\)/);
+  assert.match(navbar, /createPortal\(/);
+  assert.match(navbar, /document\.body/);
+  assert.match(css, /icop-ai-chat-open nav\[aria-label=/);
 });
