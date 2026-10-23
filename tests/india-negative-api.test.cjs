@@ -42,6 +42,7 @@ function route(file,role,email,db,additional={}){
   '@/lib/sales-access':access,
   '@/lib/sales-workflow':sales,
   '@/lib/sales-transactions':domain('sales-transactions'),
+  '@/lib/document-vault':{requireVaultDocument:()=>{throw Error('Unexpected vault access during deny-before-side-effect test');},vaultError:()=>({status:503,message:'Vault unavailable'})},
   // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
   '@/lib/sales-journey':{salesJourney:()=>[]},
   '@/lib/sales-procurement':{needsTenderGate:()=>false,procurementGate:()=>[]},

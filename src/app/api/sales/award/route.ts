@@ -1,3 +1,4 @@
+import {requireVaultDocument,vaultError} from '@/lib/document-vault';
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {TENANT,safeID} from '@/lib/sales-workflow';
 import {validDigest,awardReviewAllowed,validAwardForWon,type AwardDoc} from '@/lib/sales-award';
@@ -53,6 +54,7 @@ export async function POST(req:Request){
    return deny('Nomor PO/SPK harus sama dengan po_number pada Sales Form',409);
   const release=await currentRelease(db,opportunityId);
   if(!release||release.status!=='approved')return deny('Proposal approved versi aktif wajib untuk registrasi PO',409);
+  await requireVaultDocument(db,archive,digest,opportunityId,release.id,kind);
   const docId=crypto.randomUUID(),guard=dealGuard(deal);
   await atomicSales(db,guard.condition,guard.args,[
    db.prepare('INSERT INTO india_sales_award_documents(id,tenant_id,opportunity_id,document_kind,document_number,file_name,archive_reference,original_sha256,created_by,release_id,po_data_json) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
@@ -61,7 +63,7 @@ export async function POST(req:Request){
     .bind(crypto.randomUUID(),TENANT,'deal',opportunityId,'AWARD_EVIDENCE_REGISTER',email,kind+' '+number)
   ]);
   return res({success:true,id:docId,verified:false,requiresFinanceAndLegal:true},201);
- }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return deny(v.message,v.status);}const t=transactionError(e);return deny(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -76,6 +78,7 @@ export async function PATCH(req:Request){
   if(!doc)return deny('Dokumen award tidak ditemukan',404);
   const issue=awardReviewAllowed(doc,role,email,kind as 'finance'|'legal');
   if(issue)return deny(issue,403);
+  await requireVaultDocument(db,doc.archive_reference,doc.original_sha256,doc.opportunity_id,(doc as AwardDoc & {release_id:string}).release_id,doc.document_kind);
   const notes=text(p.review_notes,1500);if(notes.length<15)return deny('Catatan review bukti asli minimal 15 karakter',422);
   const field=kind==='finance'?'finance':'legal';
   const sql=field==='finance'
@@ -86,5 +89,5 @@ export async function PATCH(req:Request){
   guard.condition+=' AND EXISTS(SELECT 1 FROM india_sales_award_documents WHERE id=? AND '+field+'_reviewed_by IS NULL)';guard.args.push(id);
   await atomicSales(db,guard.condition,guard.args,[db.prepare(sql).bind(email,notes,id,TENANT),salesAudit(db,doc.opportunity_id,'AWARD_'+field.toUpperCase()+'_REVIEW',email,doc.document_number)]);
   return res({success:true,review_kind:field,reviewed_by:email});
- }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return deny(v.message,v.status);}const t=transactionError(e);return deny(t.message,t.status);}
 }

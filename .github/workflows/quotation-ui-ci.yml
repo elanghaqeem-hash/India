@@ -27,6 +27,8 @@ jobs:
         run: npm run test:consolidation
       - name: Presales Proposal Submission Negotiation PO transaction gates
         run: npm run test:sales-transactions
+      - name: Encrypted originals, access isolation and transactional rollback
+        run: npm run test:document-vault
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build

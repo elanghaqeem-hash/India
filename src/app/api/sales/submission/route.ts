@@ -1,3 +1,4 @@
+import {requireVaultDocument,vaultError} from '@/lib/document-vault';
 import {authorizeBoQ,privateHeaders,type D1DB} from '@/lib/boq-auth';
 import {safeID,TENANT,emailValid,dateValid} from '@/lib/sales-workflow';
 import {sha256Valid,verifySubmissionRights,type Submission} from '@/lib/sales-submission';
@@ -58,6 +59,7 @@ export async function POST(req:Request){
   if(!release||release.status!=='approved'||release.boq_id!==boq.id)return err('Proposal versi aktif harus approved sebelum submission',409);
   const approvedAt=release.approved_at?Date.parse(release.approved_at.replace(' ','T')+'Z'):NaN;
   if(!Number.isFinite(approvedAt)||Date.parse(sentAt)<approvedAt)return err('Waktu pengiriman harus setelah persetujuan proposal versi aktif',422);
+  await requireVaultDocument(db,evidence,digest,id,release.id,'submission');
   const ref=crypto.randomUUID(),guard=dealGuard(d);
   await atomicSales(db,guard.condition,guard.args,[
    db.prepare('INSERT INTO india_sales_submissions(id,tenant_id,opportunity_id,boq_id,quotation_number,boq_version,recipient_email,channel,sent_at,evidence_reference,evidence_sha256,created_by,release_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
@@ -66,7 +68,7 @@ export async function POST(req:Request){
     .bind(crypto.randomUUID(),TENANT,'deal',id,'QUOTATION_SUBMITTED',email,boq.quotation_number+' v'+boq.version+' via '+channel)
   ]);
   return resp({success:true,id:ref,status:'reported',requiresReview:true},201);
- }catch(e){const t=transactionError(e);return err(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return err(v.message,v.status);}const t=transactionError(e);return err(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return a.response;
@@ -81,6 +83,7 @@ export async function PATCH(req:Request){
   const deny=verifySubmissionRights(row,role,email);if(deny)return err(deny,403);
   const notes=String(p.review_notes||'').trim(),action=String(p.action||'');
   if(!['verified','rejected'].includes(action)||notes.length<15||notes.length>1500)return err('Status dan catatan pemeriksaan minimal 15 karakter wajib',422);
+  if(action==='verified')await requireVaultDocument(db,row.evidence_reference,row.evidence_sha256,row.opportunity_id,(row as Submission & {release_id:string}).release_id,'submission');
   const parent=await deal(db,row.opportunity_id);if(!parent||['closed_won','closed_lost'].includes(parent.stage))return err('Opportunity tertutup',409);
   const guard=dealGuard(parent);
   guard.condition+=" AND EXISTS(SELECT 1 FROM india_sales_submissions WHERE id=? AND tenant_id=? AND status='reported')";guard.args.push(id,TENANT);
@@ -89,5 +92,5 @@ export async function PATCH(req:Request){
    salesAudit(db,row.opportunity_id,'QUOTATION_EVIDENCE_'+action.toUpperCase(),email,row.quotation_number+' '+notes.slice(0,80))
   ]);
   return resp({success:true,status:action,reviewer:email});
- }catch(e){const t=transactionError(e);return err(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return err(v.message,v.status);}const t=transactionError(e);return err(t.message,t.status);}
 }

@@ -1,6 +1,8 @@
 'use client';
 import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
+import VaultPicker from '@/components/sales/VaultPicker';
+import {vaultDownload} from '@/lib/document-vault-links';
 import {ArrowLeft,CheckCircle2,Send,ShieldCheck} from 'lucide-react';
 type Submission={id:string;quotation_number:string;boq_version:number;recipient_email:string;channel:string;
  status:string;created_by:string;verified_by:string|null;sent_at:string;evidence_reference:string;review_notes:string};
@@ -31,21 +33,13 @@ export default function SubmissionPage(){
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
  },[]);
  useEffect(()=>{const id=new URLSearchParams(window.location.search).get('opportunity_id')||'';setOpp(id);
-  setDate(new Date().toISOString().slice(0,16));
+  const local=new Date();local.setMinutes(local.getMinutes()-local.getTimezoneOffset());setDate(local.toISOString().slice(0,19));
   if(id)void refresh(id);else setMessage('Halaman ini harus dibuka dari Opportunity INDIA.');},[refresh]);
  const run=async(job:()=>Promise<unknown>,done:string)=>{
   setBusy(true);setMessage('');
   try{await job();await refresh(opp);setMessage(done);}
   catch(e){setMessage(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
- };
- const computeHash=async(file:File|null)=>{
-  if(!file)return;
-  if(file.size>8*1024*1024){setMessage('File bukti maksimum 8 MB untuk menghitung checksum lokal.');return;}
-  try{const bytes=await file.arrayBuffer(),sha=await crypto.subtle.digest('SHA-256',bytes);
-   setDigest(Array.from(new Uint8Array(sha)).map(x=>x.toString(16).padStart(2,'0')).join(''));
-   setMessage('SHA-256 bukti telah dihitung lokal. File asli tidak dikirim dan tidak disimpan oleh register ini.');
-  }catch{setMessage('Tidak dapat menghitung checksum file');}
  };
  const submit=()=>{if(!window.confirm('Anda menyatakan telah mengirim quotation final kepada penerima. Rekam sebagai Reported, bukan Verified?'))return;
   void run(()=>api('POST','/api/sales/submission',{
@@ -64,7 +58,7 @@ export default function SubmissionPage(){
    <h1 className="mt-3 flex items-center gap-2 text-xl font-extrabold"><Send size={20}/> Quotation Submission & Evidence</h1>
    <p className="mt-2 text-xs text-slate-500">Opportunity {opp} · Quotation {quote||'belum dicantumkan'}</p>
    <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
-    Catatan ini mendokumentasikan pengiriman dan review manual. Tidak mengirim email otomatis dan tidak menyimpan file bukti asli. Referensi harus menunjuk ke arsip perusahaan yang diverifikasi secara independen.</p>
+    Simpan bukti pengiriman asli di Document Vault, lalu ajukan pemeriksaan Finance/Approver. Setiap dokumen terhubung ke versi penawaran yang dikirim.</p>
   </header>
   {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs">{message}</div>}
   <div className="grid gap-4 lg:grid-cols-2">
@@ -73,12 +67,11 @@ export default function SubmissionPage(){
     <label className="block text-xs font-semibold">Channel<select className={'mt-1 '+cls} value={channel} onChange={e=>setChannel(e.target.value)}>
      <option value="email">Email</option><option value="procurement_portal">Procurement Portal</option><option value="physical">Penyerahan Fisik</option></select></label>
     <label className="block text-xs font-semibold">Email penerima resmi<input className={'mt-1 '+cls} value={recipient} onChange={e=>setRecipient(e.target.value)} type="email"/></label>
-    <label className="block text-xs font-semibold">Waktu pengiriman<input className={'mt-1 '+cls} type="datetime-local" value={date} onChange={e=>setDate(e.target.value)}/></label>
+    <label className="block text-xs font-semibold">Waktu pengiriman<input className={'mt-1 '+cls} type="datetime-local" step="1" value={date} onChange={e=>setDate(e.target.value)}/></label>
     <label className="block text-xs font-semibold">Referensi arsip bukti (email / portal receipt)
-     <input className={'mt-1 '+cls} value={reference} onChange={e=>setReference(e.target.value)} placeholder="ID dokumen tersimpan, bukan sampel"/></label>
-    <label className="block text-xs font-semibold">File bukti untuk checksum lokal (tidak diupload)
-     <input type="file" disabled={busy} className="mt-1 block w-full rounded-lg border p-2 text-xs" onChange={e=>void computeHash(e.target.files?.[0]||null)}/></label>
-    <label className="block text-xs font-semibold">SHA-256<input className={'mt-1 '+cls} value={digest} onChange={e=>setDigest(e.target.value)}/></label>
+     <input className={'mt-1 '+cls} value={reference} readOnly placeholder="ID dokumen tersimpan, bukan sampel"/></label>
+    <VaultPicker opportunityId={opp} kind="submission" disabled={busy} onSelect={(ref,sha)=>{setReference(ref);setDigest(sha);}}/>
+    <label className="block text-xs font-semibold">SHA-256<input className={'mt-1 '+cls} value={digest} readOnly/></label>
     <button disabled={busy||!['sales','admin'].includes(role)||!recipient||!reference||!date||digest.length!==64} onClick={submit}
      className="rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">Catat Submission (Reported)</button>
    </section>
@@ -88,7 +81,7 @@ export default function SubmissionPage(){
      <div className="flex items-center justify-between gap-2"><b className="text-xs">{x.quotation_number} v{x.boq_version}</b>
       <span className={'rounded-full px-2 py-1 text-[10px] font-bold '+(x.status==='verified'?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-900')}>{x.status.toUpperCase()}</span></div>
      <p className="break-words text-xs text-slate-600">Penerima: {x.recipient_email} · {x.channel}</p>
-     <p className="text-xs text-slate-600">Arsip: {x.evidence_reference}</p>
+     <p className="break-all text-xs text-slate-600">{vaultDownload(x.evidence_reference)?<a href={vaultDownload(x.evidence_reference)!} className="font-semibold text-blue-700 underline">Unduh bukti asli</a>:x.evidence_reference}</p>
      <p className="text-[11px] text-slate-500">Dibuat: {x.created_by}{x.verified_by?' · Direview: '+x.verified_by:''}</p>
      {x.status==='verified'&&<p className="flex items-center gap-1 text-xs font-bold text-emerald-700"><CheckCircle2 size={14}/> Review independen tercatat</p>}
      {x.status==='reported'&&['admin','finance','approver'].includes(role)&&<div className="space-y-2 border-t pt-2">
