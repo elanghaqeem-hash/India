@@ -30,3 +30,14 @@ CREATE TABLE IF NOT EXISTS india_postal_import_state (
  postal_count INTEGER NOT NULL CHECK(postal_count > 0),
  verified_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Cloudflare Free-compatible format for production. One row stores all authentic
+-- matching desa/kelurahan for a single 5-digit postal code. This avoids the
+-- per-village secondary-index write amplification on the D1 Free daily quota.
+-- The legacy village table above remains supported for UAT and existing data.
+CREATE TABLE IF NOT EXISTS india_postal_lookup (
+ postal_code TEXT PRIMARY KEY NOT NULL CHECK(length(postal_code)=5),
+ areas_json TEXT NOT NULL CHECK(json_valid(areas_json)),
+ village_count INTEGER NOT NULL CHECK(village_count>0),
+ source_version TEXT NOT NULL
+);
