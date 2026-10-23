@@ -12,7 +12,7 @@
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
     "test:layout": "node --test tests/quotation-layout.test.cjs",
-    "test:pricing": "node --test tests/pricing-technical-writer.test.cjs",
+    "test:pricing": "node --test tests/pricing-technical-writer.test.cjs tests/pricing-ai-advisor.test.cjs",
     "test:boq": "node --test tests/boq-export.test.cjs",
     "test:quotation-docx": "node --experimental-strip-types --test tests/quotation-docx.test.cjs",
     "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs",
