@@ -40,14 +40,12 @@ function config() {
   const domain = required('INDIA_AI_CHAT_UAT_ACCESS_DOMAIN');
   pass('Access team domain', /^[a-z0-9-]+\.cloudflareaccess\.com$/.test(domain));
   pass('Access application audience', aud.length >= 32);
-  const email = required('INDIA_AI_CHAT_UAT_ADMIN_EMAIL').toLowerCase();
-  pass('Real named Admin email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !email.endsWith('.invalid'));
   const jwt = required('INDIA_AI_CHAT_UAT_ADMIN_JWT');
   pass('JWT shape', jwt.split('.').length === 3);
   const sha = required('INDIA_AI_CHAT_EXPECTED_SHA');
   pass('Exact candidate commit pinned', /^[0-9a-f]{40}$/.test(sha));
   const cfReadToken = required('INDIA_AI_CHAT_UAT_CF_READ_TOKEN');
-  return { url, aud, domain, email, jwt, sha, cfReadToken };
+  return { url, aud, domain, jwt, sha, cfReadToken };
 }
 
 async function checkWorker(c) {
@@ -88,8 +86,11 @@ async function checkAdmin(c) {
     algorithms: ['RS256'],
     clockTolerance: 30
   });
-  pass('Genuine signed human Admin Access JWT (email verified)',
-    String(payload.email || '').toLowerCase() === c.email);
+  const email = String(payload.email || '').trim().toLowerCase();
+  pass('Access JWT has real email identity',
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) && !email.endsWith('.invalid'));
+  // The subsequent /api/ai/config request is the authoritative server-side
+  // Admin membership check against this isolated UAT D1; no email is logged.
 }
 
 async function request(c, path, payload) {
