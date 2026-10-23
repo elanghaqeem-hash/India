@@ -3,7 +3,8 @@
 ## Status / branch lineage
 - Branch: `feat/india-vendor-resource-feasibility-20261022`
 - Parent: PR #25 (Tender Readiness), which itself builds on PR #24 (vendor and independent clause compliance).
-- D1 migration: `0022_vendor_resource_feasibility.sql`; additive, with no fabricated resources or offers, and without auto-approval of existing deals.
+- D1 migration: `0024_vendor_resource_feasibility.sql`; additive, with no fabricated resources or offers, and without auto-approval of existing deals.
+- Release integration: migration 0022 is already allocated to Vault governance (PR #28) and 0023 to Tender–Vault integrity; feasibility is reserved at 0024 to prevent number collision.
 - Production: **NOT DEPLOYED**. Do not merge this branch straight to main while PR #24/#25 are unmerged.
 
 ## New workflow
@@ -38,7 +39,7 @@ Opportunity → scoping → Feasibility Plan → resource roster → monthly all
 ## Release / UAT checklist (operator-executed; no production writes before approval)
 - [ ] Review/merge dependent PR #24, then #25 according to their own green release gates.
 - [ ] Take a **production-independent D1 UAT** backup/export; prove restoration into isolated database.
-- [ ] Apply migration 0022 only after 0016 through 0021 on the isolated D1. Check schema manifest, migration version, `PRAGMA foreign_key_check` and `PRAGMA quick_check`; verify no existing data altered or deleted.
+- [ ] Apply migration 0024 only after 0016 through 0023 on the isolated D1, including Vault governance 0022 and Tender–Vault integrity 0023 from PR #28. Check schema manifest, migration version, `PRAGMA foreign_key_check` and `PRAGMA quick_check`; verify no existing data altered or deleted.
 - [ ] Execute engineer VAPT 2-app sizing, SOC 24x7 staffing, FortiSIEM license SKU and GRC consulting plan; independently verify expense, expiry and gross margin against BoQ.
 - [ ] Test simultaneous Sales A/Sales B, Presales, Finance, Approver and Admin through **real signed Cloudflare Access JWT**, including inability for Sales B to view Sales A Opportunities and confidential HPP redaction.
 - [ ] Reject overlapping reservations, negative/NaN amounts, stale prices, expired vendor quotes, same-maker approval and changed scope after approval.

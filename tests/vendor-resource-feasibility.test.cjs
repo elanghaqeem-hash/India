@@ -13,10 +13,10 @@ async function setup(h){
   work_role:'Lead Pentester',person_days:8.2}),201);
  return {personId:person.body.id,allocationId:allocation.body.id};
 }
-test('0022 SQLite migration is additive and has FK/history protections',()=>{
+test('0024 SQLite migration is additive and has FK/history protections',()=>{
  const h=new Harness().seed();
  try{
-  assert.equal(h.sql.prepare('SELECT version FROM india_schema_migrations WHERE version=22').get().version,22);
+  assert.equal(h.sql.prepare('SELECT version FROM india_schema_migrations WHERE version=24').get().version,24);
   assert.deepEqual(h.sql.prepare('PRAGMA foreign_key_check').all(),[]);
   assert.equal(h.sql.prepare('PRAGMA quick_check').get().quick_check,'ok');
   const mod=h.load('src/lib/solution-feasibility.ts');

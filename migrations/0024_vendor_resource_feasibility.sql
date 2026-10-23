@@ -1,4 +1,4 @@
--- INDIA 0022: additive resource/cost feasibility. Depends on 0016 and 0021.
+-- INDIA 0024: additive resource/cost feasibility. (0022 Vault; 0023 Tender Vault integrity) Depends on 0016 and 0021.
 -- No seed, no backfill, no retroactive approval. All financial amounts are IDR.
 CREATE TABLE india_feasibility_plans(
  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, opportunity_id TEXT NOT NULL,
@@ -171,5 +171,5 @@ BEGIN
  SELECT CASE WHEN EXISTS(SELECT 1 FROM india_solution_feasibility_gaps f WHERE f.tenant_id=NEW.tenant_id AND f.opportunity_id=NEW.id AND f.is_gap=1)
  THEN RAISE(ABORT,'FEASIBILITY_CONFLICT: resources, supplier quotation or cost review invalid') END;
 END;
-INSERT OR IGNORE INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0022_vendor_resource_feasibility.sql','vendor-resource-feasibility');
-INSERT INTO india_schema_migrations(version) VALUES(22);
+INSERT OR IGNORE INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0024_vendor_resource_feasibility.sql','vendor-resource-feasibility');
+INSERT INTO india_schema_migrations(version) VALUES(24);
