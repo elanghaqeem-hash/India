@@ -255,3 +255,13 @@ body {
   .quote-table { font-size: 9.4px !important; }
   .quote-table td.quote-price { font-size: 9px !important; }
 }
+
+
+/* Keep the global mobile navigation out of view while the AI chat composer is
+   active. The chat modal itself is portaled to <body> and has a higher z-index. */
+body.icop-ai-chat-open nav[aria-label="Navigasi utama mobile"] {
+  display: none !important;
+}
+body.icop-ai-chat-open {
+  overflow: hidden;
+}
