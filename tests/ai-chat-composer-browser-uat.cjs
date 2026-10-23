@@ -15,8 +15,8 @@ async function check(browser, name, viewport, mobile) {
     const input = dialog.getByRole('textbox', { name: 'Pesan untuk AI Business Assistant' });
     const send = dialog.getByRole('button', { name: 'Kirim pesan ke AI' });
 
-    assert.equal(await dialog.evaluate(n => n.parentElement === document.body), true, name + ': dialog portaled directly to body');
-    assert.equal(await dialog.evaluate(n => getComputedStyle(n).zIndex), 'auto', name + ': dialog in overlay');
+    assert.equal(await dialog.evaluate(n => n.parentElement?.parentElement === document.body), true, name + ': dialog portaled directly to body');
+    assert.equal(await dialog.evaluate(n => getComputedStyle(n.parentElement).zIndex), '200', name + ': overlay has correct top layer');
 
     if (mobile) {
       assert.equal(await nav.isVisible(), false, name + ': underlying navigation hidden');
