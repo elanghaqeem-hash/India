@@ -1,0 +1,11 @@
+# UAT-only scheduled Worker. The production D1 is NOT the default target.
+# Promoting production requires reviewed binding change, D1 backup, and operator approval.
+name = "india-sales-activity-uat"
+main = "src/index.js"
+compatibility_date = "2026-10-20"
+[triggers]
+crons = ["*/15 * * * *"]
+[[d1_databases]]
+binding = "INDIA_DB"
+database_name = "india-uat-db"
+database_id = "eaed652e-7322-4950-a304-dd50baa5de02"
