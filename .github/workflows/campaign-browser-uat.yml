@@ -1,0 +1,46 @@
+name: Campaign Android and Desktop Fixture UAT
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/app/sales/campaigns/page.tsx'
+      - 'src/lib/marketing-campaign.ts'
+      - 'tests/campaign-responsive-browser-uat.cjs'
+      - '.github/workflows/campaign-browser-uat.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  browser-fixture-only:
+    name: Android / desktop browser fixtures (NOT real Cloudflare Access)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install browser dependencies
+        run: npx playwright install --with-deps chromium
+      - name: Build Next.js
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Start local server and test fixture roles in real Chromium
+        shell: bash
+        run: |
+          npm run start -- --port 3100 > /tmp/india-campaign-uat.log 2>&1 &
+          node -e "const u='http://127.0.0.1:3100/sales/campaigns';(async()=>{for(let i=0;i<90;i++){try{const r=await fetch(u);if(r.ok)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,1000))}process.exit(1)})()"
+          node --test tests/campaign-responsive-browser-uat.cjs
+      - name: Upload browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: campaign-android-desktop-fixture-screenshots
+          path: artifacts/campaign-browser-uat/
+          if-no-files-found: ignore
