@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import {
   Calculator,
@@ -23,6 +23,7 @@ import {
   calculate3Ranges,
   CLIENT_TIER_MULTIPLIERS,
 } from '@/lib/pricing-engine';
+import { anonymousPricingPrompt, localPricingInsights } from '@/lib/pricing-advisor';
 import { evaluateQuotationDoA } from '@/lib/doa-engine';
 import { formatIDR, formatPercent, generateQuotationNumber } from '@/lib/formatters';
 import { appStore } from '@/lib/store';
@@ -87,9 +88,48 @@ function PricingEngineContent() {
   const [customPriceOverride, setCustomPriceOverride] = useState<number | null>(null);
   const [discountPct, setDiscountPct] = useState<number>(0);
 
-  // AI Pricing Advisor State
+  // Numeric pricing stays local; sending anonymous qualitative context to external AI is opt-in.
+  const [advisorOpen, setAdvisorOpen] = useState(false);
+  const [aiApproved, setAiApproved] = useState(false);
   const [aiAdvice, setAiAdvice] = useState<string | null>(null);
-  const [aiAdvising, setAiAdvising] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [aiAdvising, setAiAdvising] = useState(false);
+  const [aiAvailability, setAiAvailability] = useState<'loading' | 'available' | 'unavailable'>('loading');
+  const [aiAvailabilityMessage, setAiAvailabilityMessage] = useState('');
+  const aiAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    if (!advisorOpen) return;
+    let mounted = true;
+    setAiAvailability('loading');
+    fetch('/api/ai/assist', { cache: 'no-store', credentials: 'same-origin' })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) throw new Error(data.message || 'Koneksi AI belum tersedia.');
+        if (!Array.isArray(data.providers) || data.providers.length === 0) {
+          throw new Error('Belum ada provider AI aktif dan lulus uji. Hubungi Admin melalui menu AI Connections.');
+        }
+        if (mounted) {
+          setAiAvailability('available');
+          setAiAvailabilityMessage('');
+        }
+      })
+      .catch(error => {
+        if (mounted) {
+          setAiAvailability('unavailable');
+          setAiAvailabilityMessage(error instanceof Error ? error.message : 'Provider AI belum tersedia.');
+        }
+      });
+    return () => { mounted = false; };
+  }, [advisorOpen]);
+
+  useEffect(() => {
+    // Recommendations from previous parameters must never be presented as current.
+    aiAbortRef.current?.abort();
+    setAiAdvice(null);
+    setAiError(null);
+    setAiAdvising(false);
+  }, [clientTier, locationType, selectedRange, discountPct]);
 
   // Sync staffing total if query MD changed
   useEffect(() => {
@@ -166,39 +206,56 @@ function PricingEngineContent() {
     grossMarginPct: boq.gross_margin_pct,
   });
 
-  // AI Pricing Advice Handler
+  const localAdvice = localPricingInsights({
+    clientTier,
+    locationType,
+    selectedRange,
+    discountPct,
+    totalCost,
+    quotedPrice: finalQuotedPrice,
+    grossMarginPct: boq.gross_margin_pct,
+    floorPrice: ranges.floor_price,
+    standardPrice: ranges.standard_price,
+    premiumPrice: ranges.premium_price,
+    requiredLevel: doa.requiredLevel,
+  });
+
+  // The authorized, multirole endpoint requires explicit consent and a data-minimized prompt.
   const handleGetAiPricingAdvice = async () => {
+    if (!aiApproved || aiAdvising || aiAvailability !== 'available') return;
+    const controller = new AbortController();
+    aiAbortRef.current = controller;
     setAiAdvising(true);
+    setAiError(null);
     setAiAdvice(null);
     try {
-      const res = await fetch('/api/ai/generate', {
+      const res = await fetch('/api/ai/assist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        cache: 'no-store',
+        signal: controller.signal,
         body: JSON.stringify({
-          task_type: 'pricing_analysis',
-          prompt: `Berikan tinjauan komersial dan strategi win rate untuk penawaran harga ini:
-- Klien Tier: ${clientTier} (Multiplier: ${tierMultiplier}x)
-- Lokasi Pekerjaan: ${locationType}
-- Internal Cost (BoQ): ${formatIDR(totalCost)}
-- Quoted Price: ${formatIDR(finalQuotedPrice)} (Range: ${selectedRange}, Diskon: ${discountPct}%)
-- Gross Profit: ${formatIDR(boq.gross_profit)}
-- Gross Margin: ${formatPercent(boq.gross_margin_pct)} (Target minimal 25%)
-- DoA Level Diperlukan: ${doa.requiredLevel.toUpperCase()}
-- Rekomendasi 3 Ranges: Floor (${formatIDR(ranges.floor_price)}), Standard (${formatIDR(ranges.standard_price)}), Premium (${formatIDR(ranges.premium_price)})
-
-Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi mitigasi margin, dan taktik negosiasi.`
-        })
+          provider: 'auto',
+          purpose: 'pricing',
+          confirmed: true,
+          prompt: anonymousPricingPrompt({ clientTier, locationType, selectedRange, discountPct }),
+        }),
       });
-      const data = await res.json();
-      if (data.success) {
-        setAiAdvice(data.content);
-      } else {
-        setAiAdvice('Gagal meminta saran AI: ' + (data.message || 'Error'));
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success || typeof data.content !== 'string' || !data.content.trim()) {
+        throw new Error(data.message || 'Provider AI belum dapat memberikan rekomendasi.');
       }
-    } catch (e: any) {
-      setAiAdvice('Koneksi AI gagal: ' + e.message);
+      if (!controller.signal.aborted) setAiAdvice(data.content);
+    } catch (error) {
+      if (!controller.signal.aborted) {
+        setAiError(error instanceof Error ? error.message : 'Gagal terhubung ke layanan AI.');
+      }
     } finally {
-      setAiAdvising(false);
+      if (aiAbortRef.current === controller) {
+        setAiAdvising(false);
+        aiAbortRef.current = null;
+      }
     }
   };
 
@@ -792,31 +849,87 @@ Berikan saran komersial singkat (3-4 butir) mengenai kewajaran harga, strategi m
               </p>
             </div>
 
-            {/* AI Commercial Advisor Button */}
+            {/* Local pricing guidance is always available; connected AI is optional. */}
             <button
               type="button"
-              onClick={handleGetAiPricingAdvice}
-              disabled={aiAdvising}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/80 hover:bg-indigo-100/80 py-2.5 text-xs font-bold text-indigo-900 transition-all"
+              aria-expanded={advisorOpen}
+              aria-controls="pricing-advisor-panel"
+              onClick={() => {
+                if (advisorOpen) {
+                  aiAbortRef.current?.abort();
+                  setAiAdvising(false);
+                }
+                setAdvisorOpen(previous => !previous);
+              }}
+              className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50/80 px-3 py-2.5 text-xs font-bold text-indigo-900 transition-all hover:bg-indigo-100/80"
             >
               <Sparkles className="h-4 w-4 text-indigo-600" />
-              <span>{aiAdvising ? 'Mengkaji AI Commercial Intelligence...' : 'AI Pricing & Margin Advisor'}</span>
+              <span>AI Pricing &amp; Margin Advisor</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${advisorOpen ? 'rotate-180' : ''}`} />
             </button>
 
-            {/* AI Advisor Modal / Drawer */}
-            {aiAdvice && (
-              <div className="rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 text-xs space-y-2 animate-in fade-in">
-                <div className="flex items-center justify-between text-indigo-950 font-bold border-b border-indigo-100 pb-1.5">
-                  <span className="flex items-center gap-1.5">
-                    <Sparkles className="h-3.5 w-3.5 text-indigo-600" />
-                    <span>Rekomendasi Strategi Komersial AI</span>
-                  </span>
-                  <button onClick={() => setAiAdvice(null)} className="text-slate-400 hover:text-slate-600 text-sm font-bold">&times;</button>
+            {advisorOpen && (
+              <section id="pricing-advisor-panel" aria-label="Rekomendasi Pricing dan Margin"
+                className="min-w-0 space-y-3 break-words rounded-xl border border-indigo-200 bg-indigo-50/70 p-3.5 text-xs">
+                <div className="flex items-start justify-between gap-2 border-b border-indigo-100 pb-2">
+                  <div className="min-w-0">
+                    <h3 className="flex items-center gap-1.5 font-bold text-indigo-950">
+                      <Sparkles className="h-4 w-4 shrink-0 text-indigo-600" /> Rekomendasi Strategi Komersial
+                    </h3>
+                    <p className="mt-1 text-[11px] leading-relaxed text-slate-600">
+                      Analisis margin berbasis perhitungan internal — tidak dikirim ke AI eksternal.
+                    </p>
+                  </div>
+                  <button type="button" onClick={() => {
+                    aiAbortRef.current?.abort();
+                    setAiAdvising(false);
+                    setAdvisorOpen(false);
+                  }} className="shrink-0 rounded-lg p-1 text-slate-500 hover:bg-white"
+                    aria-label="Tutup rekomendasi">✕</button>
                 </div>
-                <div className="text-[11px] text-slate-800 leading-relaxed whitespace-pre-wrap bg-white p-2.5 rounded-lg border border-indigo-100 max-h-48 overflow-y-auto">
-                  {aiAdvice}
+
+                <ol className="list-decimal space-y-2 rounded-lg border border-indigo-100 bg-white p-3 pl-7 text-[11px] leading-relaxed text-slate-800">
+                  {localAdvice.map((note, index) => <li key={index}>{note}</li>)}
+                </ol>
+
+                <div className="space-y-2 border-t border-indigo-100 pt-3">
+                  <h4 className="font-bold text-indigo-950">Analisis tambahan dari AI terhubung (opsional)</h4>
+                  <p className="text-[11px] leading-relaxed text-slate-600">
+                    Hanya tier, lokasi umum, rentang harga dan status diskon dikirim ke provider.
+                    Nilai harga, biaya, margin, identitas pelanggan, dan BoQ tidak disertakan.
+                  </p>
+                  {aiAvailability === 'loading' && (
+                    <p className="text-[11px] text-slate-600" role="status">Memeriksa kesiapan provider AI...</p>
+                  )}
+                  {aiAvailability === 'unavailable' && (
+                    <p className="rounded-lg border border-amber-200 bg-amber-50 p-2.5 text-[11px] leading-relaxed text-amber-900" role="status">
+                      {aiAvailabilityMessage} Analisis margin internal di atas tetap dapat digunakan.
+                    </p>
+                  )}
+                  <label className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-700">
+                    <input type="checkbox" checked={aiApproved} onChange={event => setAiApproved(event.target.checked)}
+                      className="mt-0.5 shrink-0" />
+                    <span>Saya menyetujui pengiriman konteks anonim tersebut ke provider AI eksternal untuk menghasilkan draft yang perlu direview.</span>
+                  </label>
+                  <button type="button" onClick={() => void handleGetAiPricingAdvice()}
+                    disabled={!aiApproved || aiAdvising || aiAvailability !== 'available'}
+                    className="flex min-h-10 w-full items-center justify-center gap-2 rounded-lg bg-indigo-700 px-3 py-2 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50">
+                    <Sparkles className="h-4 w-4" />
+                    {aiAdvising ? 'Meminta rekomendasi AI...' : 'Jalankan Analisis AI'}
+                  </button>
+                  {aiError && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-2.5 text-[11px] leading-relaxed text-rose-800">
+                    {aiError} Analisis internal tetap tersedia; coba lagi setelah koneksi AI siap.
+                  </p>}
+                  {aiAdvice && (
+                    <div className="space-y-1 rounded-lg border border-indigo-100 bg-white p-3">
+                      <p className="font-bold text-indigo-900">Draft strategi AI — wajib review</p>
+                      <div className="max-h-60 min-w-0 overflow-y-auto whitespace-pre-wrap break-words text-[11px] leading-relaxed text-slate-800">
+                        {aiAdvice}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              </div>
+              </section>
             )}
 
             {/* Submit to Quotation & Approval Button */}
