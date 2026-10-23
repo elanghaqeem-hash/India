@@ -39,3 +39,17 @@ Database target **`india-uat-users-db`** (D1 `eaed652e-7322-4950-a304-dd50baa5de
 
 ## Rollback
 Rollback aplikasi menggunakan versi terakhir yang lolos CI. Migrasi master bersifat aditif dan tidak menghapus Customer; untuk UAT yang terganggu, gunakan bookmark/export yang tersedia dengan prosedur restore terotorisasi dan tanpa kehilangan perubahan UAT lain.
+
+## Production migration evidence — 23 October 2026
+- Production Worker `india` is bound to D1 `8395dd84-1b7d-4eaf-9990-1d8e75a42cb5` (database name `india-staging-db`, despite actual production Worker binding). **Do not replace it with the UAT D1**.
+- Before changes: production Time Travel bookmark and independent SQL export completed successfully. Customer tables remain untouched.
+- Additive schema: `india_postal_areas`, `india_postal_import_state`, and `india_postal_lookup`. The original village table is retained for UAT compatibility; **production authoritative region data are stored in `india_postal_lookup`**.
+- Source was the same verified UAT reference. Only non-customer region fields crossed between isolated databases.
+- Migration complete: 10,668 postcode JSON rows representing 83,712 original authentic desa/kelurahan; 38 province codes. Verified `SUM(village_count)=83712`, `COUNT(*)=10668`, zero mismatch between `json_array_length(areas_json)` and `village_count`, single pinned `source_version`, and `COUNT(DISTINCT province_code)=38` across the expanded JSON. `india_postal_import_state` set `ready` only after all checks passed.
+- Known live production lookup: `40111` contains Braga, Sumur Bandung, Kota Bandung, Jawa Barat. Illustration `12345` is absent; must return no candidate.
+- Backend `findPostalAreasByCode` reads the compact table when populated; returns the same response shape as the original normalized UAT table. Server still validates selected `postal_code` + `region_code` on every write. Neither path may fabricate a missing village.
+- Why compact format: the original indexed village table incurred **4 D1 rows written per village**, exceeding Free daily write quota; the compact primary-key table incurs approximately **2 D1 rows written per postcode**, while preserving all villages. The first 10 diagnostic village rows in `india_postal_areas` are not authoritative and are ignored whenever the compact table is populated.
+- **Application production gate is separate from database migration:** GitHub CI + UAT Access live-identity assertions, reviewed merge, Cloudflare Worker deployment, Android/desktop smoke. Do not claim the live UI is deployed based only on D1 import completion.
+
+### Compact import reproducibility
+For future refreshes or an isolated restore, use the pinned source and generate postcode groups with all ten source attributes. Serialize `[{region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind},...]` into the `areas_json` for each code; `village_count` is the exact JSON array length. Check the complete `83,712 / 38 / 10,668` counters and pinned source version before setting `ready`; never mark partial imports as ready. Keep the previous state/backup for approved rollback and do not touch Customer records.
