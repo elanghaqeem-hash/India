@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   Shield,
@@ -41,54 +42,52 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
-  // Chatbot State
+  // Chat content is ephemeral: only completed responses are passed as context.
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; provider?: string }>>([WELCOME_MESSAGE]);
-  // Only completed, successful turns are sent as provider context; failures are
-  // visible to the user but never impersonate a previous AI answer.
   const [conversationTurns, setConversationTurns] = useState<AIConversationTurn[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
-  const [visibleViewport, setVisibleViewport] = useState<{ height: number; top: number } | null>(null);
+  const [visualViewport, setVisualViewport] = useState<{ height: number; top: number } | null>(null);
   const chatScrollRef = useRef<HTMLDivElement>(null);
 
-  // Keep new replies and follow-up questions in view without moving the input.
   useEffect(() => {
     if (aiAssistantOpen && chatScrollRef.current) {
       chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
     }
   }, [chatMessages, isAiLoading, aiAssistantOpen]);
 
-  // The assistant is a modal on mobile: prevent page scroll and support Escape.
+  // Modal content uses a body portal to escape application stacking contexts.
+  // Hide the mobile nav, lock the page and resize to the visible keyboard area.
   useEffect(() => {
     if (!aiAssistantOpen) return;
-    const previousOverflow = document.body.style.overflow;
+    const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const onKeyDown = (event: KeyboardEvent) => {
+    document.body.classList.add('icop-ai-chat-open');
+
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      if (viewport && window.innerWidth < 640) {
+        setVisualViewport({ height: viewport.height, top: viewport.offsetTop });
+      } else {
+        setVisualViewport(null);
+      }
+    };
+    syncViewport();
+    viewport?.addEventListener('resize', syncViewport);
+    viewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
+    const onEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setAiAssistantOpen(false);
     };
-    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keydown', onEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
-      window.removeEventListener('keydown', onKeyDown);
-    };
-  }, [aiAssistantOpen]);
-
-  // Android's virtual keyboard can resize the *visual* viewport without
-  // resizing 100dvh. Keep the composer inside the actually visible area.
-  useEffect(() => {
-    if (!aiAssistantOpen || !window.visualViewport) return;
-    const viewport = window.visualViewport;
-    const syncViewport = () => setVisibleViewport({
-      height: viewport.height,
-      top: viewport.offsetTop,
-    });
-    syncViewport();
-    viewport.addEventListener('resize', syncViewport);
-    viewport.addEventListener('scroll', syncViewport);
-    return () => {
-      viewport.removeEventListener('resize', syncViewport);
-      viewport.removeEventListener('scroll', syncViewport);
-      setVisibleViewport(null);
+      viewport?.removeEventListener('resize', syncViewport);
+      viewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('keydown', onEscape);
+      document.body.style.overflow = oldOverflow;
+      document.body.classList.remove('icop-ai-chat-open');
+      setVisualViewport(null);
     };
   }, [aiAssistantOpen]);
 
@@ -261,15 +260,16 @@ export const Navbar: React.FC<NavbarProps> = ({
       </header>
 
       {/* Global AI Assistant Drawer / Modal */}
-      {aiAssistantOpen && (
+      {aiAssistantOpen && typeof document !== 'undefined' && createPortal(
         <div
-          className="fixed inset-0 z-[100] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 backdrop-blur-xs p-0 sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
-          style={visibleViewport ? { height: visibleViewport.height + 'px', top: visibleViewport.top + 'px', bottom: 'auto' } : undefined}
+          className="icop-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
+          style={visualViewport ? { top: visualViewport.top + 'px', height: visualViewport.height + 'px', bottom: 'auto' } : undefined}
         >
-          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant" className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
+          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"
+            className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
             <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
-              <div className="flex min-w-0 items-center gap-2.5">
+              <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-cyan-300">
                   <Bot className="h-5 w-5" />
                 </div>
@@ -296,14 +296,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                 >
                   <RotateCcw className="h-4 w-4" />
                 </button>
-              <button
-                onClick={() => setAiAssistantOpen(false)}
-                type="button"
-                aria-label="Tutup AI Business Assistant"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white"
-              >
-                <X className="h-5 w-5" />
-              </button>
+                <button
+                  type="button"
+                  aria-label="Tutup AI Business Assistant"
+                  onClick={() => setAiAssistantOpen(false)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
               </div>
             </div>
 
@@ -392,7 +392,8 @@ export const Navbar: React.FC<NavbarProps> = ({
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
