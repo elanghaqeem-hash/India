@@ -2,89 +2,73 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const ts=require('typescript');
-
 const middleware=fs.readFileSync('src/middleware.ts','utf8');
 const source=fs.readFileSync('src/app/api/reference/postal/route.ts','utf8');
-const code=ts.transpileModule(source,{
- compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}
-}).outputText;
-
+const js=ts.transpileModule(source,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
 const area={
  region_code:'32.73.19.1001',postal_code:'40111',province_code:'32',province_name:'Jawa Barat',
  regency_code:'32.73',regency_name:'Kota Bandung',district_code:'32.73.19',
  district_name:'Sumur Bandung',village_name:'Braga',village_kind:'Kelurahan'
 };
-
-function route(role='sales', options={}){
- const called=[];
- const db={prepare(sql){
-  called.push(sql);
-  if(sql.includes('india_postal_areas')){
-   return {bind(postal){
-    return {all:async()=>{
-     assert.equal(postal,options.postal||'40111');
-     return {results:options.match===false?[]:[area]};
-    }};
-   }};
-  }
-  throw Error('unexpected D1 query');
- }};
+function route(role='sales',options={}){
+ const calls=[];
  const auth={
   authorizeBoQ:async()=>options.unauthenticated?
-   {ok:false,response:Response.json({success:false,message:'Login diperlukan'},{status:401})}:
-   {ok:true,identity:{role,email:'test@uat.invalid',db}},
+   {ok:false,response:Response.json({success:false},{status:401})}:
+   {ok:true,identity:{role,email:'test@uat.invalid',db:{}}},
   privateHeaders:{'Cache-Control':'private, no-store'}
  };
+ const postal={
+  postalRegex:/^[0-9]{5}$/,
+  findPostalAreasByCode:async (_db,code)=>{
+   if(options.ready===false)throw Error('Not ready');
+   calls.push(code);
+   if(options.match===false)return [];
+   if(options.overLimit)return Array.from({length:501},(_,i)=>({...area,region_code:'X'+i}));
+   return [area];
+  }
+ };
  const mod={exports:{}};
- new Function('require','module','exports',code)(key=>{
-  if(key==='@/lib/boq-auth')return auth;
-  if(key==='@/lib/indonesia-postal')return {
-   postalRegex:/^[0-9]{5}$/,
-   assertPostalReferenceReady:async()=>{if(options.ready===false)throw Error('Master belum siap');return 'UAT';}
-  };
-  throw Error('Unexpected import '+key);
+ new Function('require','module','exports',js)(name=>{
+  if(name==='@/lib/boq-auth')return auth;
+  if(name==='@/lib/indonesia-postal')return postal;
+  throw Error('Unexpected route import '+name);
  },mod,mod.exports);
- return {GET:mod.exports.GET,called};
+ return {GET:mod.exports.GET,calls};
 }
-
-test('middleware routes reference endpoint to authenticated handler',()=>{
+const request=postal=>new Request('https://india-uat.invalid/api/reference/postal?postal='+postal);
+test('middleware allows only the authenticated reference endpoint',()=>{
  assert.ok(middleware.includes("path==='/api/reference/postal'"));
 });
-test('postcode lookup requires Cloudflare Access before D1',async()=>{
+test('must authenticate before reading any postal record',async()=>{
  const r=route('sales',{unauthenticated:true});
- const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal=40111'));
- assert.equal(out.status,401);assert.equal(r.called.length,0);
+ assert.equal((await r.GET(request('40111'))).status,401);
+ assert.deepEqual(r.calls,[]);
 });
-test('viewer cannot enumerate postal reference',async()=>{
+test('viewer denied',async()=>{
  const r=route('viewer');
- const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal=40111'));
- assert.equal(out.status,403);assert.equal(r.called.length,0);
+ assert.equal((await r.GET(request('40111'))).status,403);
+ assert.deepEqual(r.calls,[]);
 });
-test('non-five-digit postal rejected before D1',async()=>{
- for(const postal of ['123','abcde','123456']){
-  const r=route('sales');
-  const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal='+postal));
-  assert.equal(out.status,422);assert.equal(r.called.length,0);
+test('invalid 5-digit postal rejected before D1',async()=>{
+ for(const p of ['123','abcde','123456']){
+  const r=route('sales');assert.equal((await r.GET(request(p))).status,422);assert.deepEqual(r.calls,[]);
  }
 });
-test('unverified reference fails closed with actionable 503',async()=>{
- const r=route('admin',{ready:false});
- const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal=40111'));
- assert.equal(out.status,503);assert.match((await out.json()).message,/belum selesai/);assert.equal(r.called.length,0);
+test('unverified reference returns 503',async()=>{
+ const r=route('admin',{ready:false});const out=await r.GET(request('40111'));
+ assert.equal(out.status,503);assert.match((await out.json()).message,/belum tersedia/);
+ assert.deepEqual(r.calls,[]);
 });
-test('ready reference returns real matches, bound by postal code',async()=>{
- const r=route('sales');
- const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal=40111'));
- assert.equal(out.status,200);
- const body=await out.json();
- assert.equal(body.success,true);assert.equal(body.areas.length,1);
- assert.equal(body.areas[0].village_name,'Braga');
- assert.ok(r.called[0].includes('WHERE postal_code=?'));
+test('verified result served through authorized postal helper',async()=>{
+ const r=route('sales'),out=await r.GET(request('40111'));const data=await out.json();
+ assert.equal(out.status,200);assert.equal(data.success,true);assert.deepEqual(r.calls,['40111']);
+ assert.equal(data.areas[0].village_name,'Braga');
 });
-test('not found postal remains empty, never fabricated',async()=>{
- const r=route('sales',{postal:'12345',match:false});
- const out=await r.GET(new Request('https://india-uat.invalid/api/reference/postal?postal=12345'));
- assert.equal(out.status,200);
- const body=await out.json();
- assert.deepEqual(body.areas,[]);
+test('unknown postcode returns empty array',async()=>{
+ const r=route('sales',{match:false}),out=await r.GET(request('12345'));assert.equal(out.status,200);
+ assert.deepEqual((await out.json()).areas,[]);
+});
+test('over-limit postcode is not returned',async()=>{
+ const r=route('sales',{overLimit:true}),out=await r.GET(request('40111'));assert.equal(out.status,409);
 });
