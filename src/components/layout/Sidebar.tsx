@@ -31,6 +31,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   const pathname = usePathname();
 
   const navigation = [
+    { name: 'Customer 360 Terpadu', href: '/customers', icon: Building2, badge: 'D1' },
+    { name: 'Delivery & Service Workflow', href: '/sales/delivery', icon: ClipboardCheck, badge: 'D1' },
+    { name: 'Contract-to-Cash', href: '/sales/billing', icon: FileCheck2, badge: 'D1' },
+    { name: 'Renewal & Recurring', href: '/sales/renewals', icon: TrendingUp, badge: 'D1' },
     { name: 'Vendor, OEM & Partners', href: '/partners', icon: Building2, badge: 'D1' },
     { name: 'Reports, Analytics & AI', href: '/reports', icon: TrendingUp, badge: 'D1' },
     { name: 'Administration & Settings', href: '/settings/system', icon: ClipboardList, badge: 'Admin' },
@@ -52,12 +56,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
       name: 'Legacy 360 (Demo)',
       href: '/',
       icon: LayoutDashboard,
-      badge: null,
-    },
-    {
-      name: 'Customer Master (Demo)',
-      href: '/customers',
-      icon: Building2,
       badge: null,
     },
     {
