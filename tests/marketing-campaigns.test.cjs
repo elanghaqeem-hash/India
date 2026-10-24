@@ -202,6 +202,34 @@ test('Campaign registration API persists valid active Owner, rejects unknown Own
   const activeSales=await call('GET','uat.sales@example.test');
   assert.equal(activeSales.body.campaigns.length,1);
   assert.equal(activeSales.body.campaigns[0].id,created.body.id);
+  const deniedSalesDelete=await call('DELETE','uat.sales@example.test',{id:created.body.id,revision:2,code:created.body.code});
+  assert.equal(deniedSalesDelete.status,403);
+  const deniedMarketingDelete=await call('DELETE','uat.marketing@example.test',{id:created.body.id,revision:2,code:created.body.code});
+  assert.equal(deniedMarketingDelete.status,403);
+  assert.equal((await call('DELETE',admin,{id:created.body.id,revision:1,code:created.body.code})).status,409);
+  assert.equal((await call('DELETE',admin,{id:created.body.id,revision:2,code:'WRONG'})).status,409);
+  // Referential safety: existing Lead must never be orphaned by a Campaign delete.
+  db.prepare("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,campaign_id,service_family,assigned_sales_email,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+   .run('lead-with-campaign','defendit360','LD-DELETE-1','PT UAT','Webinar','Cyber FSI Webinar',created.body.id,'VAPT','uat.sales@example.test',admin,admin);
+  const linkedDelete=await call('DELETE',admin,{id:created.body.id,revision:2,code:created.body.code});
+  assert.equal(linkedDelete.status,409);
+  assert.match(linkedDelete.body.message,/Lead terkait/);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM india_marketing_campaigns').get().n,1);
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM india_sales_audit WHERE entity_type='campaign' AND action='DELETE'").get().n,0);
+  // Completed but unlinked Campaign may be cleaned up by Admin only.
+  const cleanup=await call('POST',admin,{...valid,code:'',owner_email:'uat.marketing@example.test'});
+  assert.equal(cleanup.status,201);
+  const completed=await call('PATCH',admin,{id:cleanup.body.id,revision:1,status:'completed'});
+  assert.equal(completed.status,200);
+  const deleteCompleted=await call('DELETE',admin,{id:cleanup.body.id,revision:2,code:cleanup.body.code});
+  assert.equal(deleteCompleted.status,200,JSON.stringify(deleteCompleted.body));
+  assert.equal(deleteCompleted.body.deleted,true);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM india_marketing_campaigns WHERE id=?').get(cleanup.body.id).n,0);
+  const tombstone=db.prepare("SELECT actor_email,summary FROM india_sales_audit WHERE entity_type='campaign' AND entity_id=? AND action='DELETE'").get(cleanup.body.id);
+  assert.equal(tombstone.actor_email,admin);
+  assert.match(tombstone.summary,/Deleted Campaign/);
+  assert.equal((await call('DELETE',admin,{id:cleanup.body.id,revision:2,code:cleanup.body.code})).status,404);
+  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  }finally{db.close();}
 });
 
@@ -215,4 +243,19 @@ test('Lead form displays inactive campaigns but only enables active options, and
  assert.match(s,/setCampaignError\(e instanceof Error\?e\.message:String\(e\)\)/);
  const campaign=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
  assert.match(campaign,/Campaign baru tersedia untuk Lead setelah status diubah menjadi Active/);
+});
+
+test('Campaign Master delete control is Admin-only, individually confirmed and blocked for linked Leads',()=>{
+ const ui=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
+ const api=fs.readFileSync(path.join(root,'src/app/api/marketing/campaigns/route.ts'),'utf8');
+ assert.match(ui,/role==='admin'&&<div/);
+ assert.match(ui,/window\.confirm/);
+ assert.match(ui,/await request\('DELETE',\{id:c\.id,revision:c\.revision,code:c\.code\}\)/);
+ assert.match(ui,/disabled=\{busy\|\|c\.total>0\}/);
+ assert.match(ui,/<Trash2 size=\{15\}\/> Hapus/);
+ assert.match(api,/export async function DELETE\(req:Request\)/);
+ assert.match(api,/role!=='admin'/);
+ assert.match(api,/NOT EXISTS \(SELECT 1 FROM india_marketing_leads/);
+ assert.match(api,/await db\.batch\(\[/);
+ assert.match(api,/'DELETE',\?,\?/);
 });
