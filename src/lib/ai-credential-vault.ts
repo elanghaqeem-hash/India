@@ -77,6 +77,7 @@ export async function probeProvider(id:ProviderId,model:string,apiKey:string):Pr
    groq:'https://api.groq.com/openai/v1/chat/completions',
    openrouter:'https://openrouter.ai/api/v1/chat/completions',
    deepseek:'https://api.deepseek.com/chat/completions',
+   mistral:'https://api.mistral.ai/v1/chat/completions',
   };
   url=endpoints[id];headers.Authorization='Bearer '+apiKey;
   body={model,messages:[{role:'user',content:'Respond PONG'}],max_tokens:12};
@@ -113,6 +114,7 @@ export async function invokeAI(id:ProviderId,model:string,apiKey:string,prompt:s
    groq:'https://api.groq.com/openai/v1/chat/completions',
    openrouter:'https://openrouter.ai/api/v1/chat/completions',
    deepseek:'https://api.deepseek.com/chat/completions',
+   mistral:'https://api.mistral.ai/v1/chat/completions',
   };
   url=endpoints[id];headers.Authorization='Bearer '+apiKey;
   body={model,messages:[...(system?[{role:'system',content:system}]:[]),...messages],max_tokens:750};
