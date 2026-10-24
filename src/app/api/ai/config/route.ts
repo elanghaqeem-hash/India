@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { AI_PROVIDERS, isProviderId, safeModel } from '@/lib/ai-provider-registry';
-import { encryptProviderKey, decryptProviderKey, readProvider, listProviders, auditConfig,
+import { encryptionKey, encryptProviderKey, decryptProviderKey, readProvider, listProviders, auditConfig,
   probeProvider } from '@/lib/ai-credential-vault';
 
 const json=(body:unknown,status=200)=>NextResponse.json(body,{status,headers:privateHeaders});
@@ -13,7 +13,12 @@ export async function GET(req:Request){
  const auth=await authorizeBoQ(req);
  if(!auth.ok)return auth.response;
  if(auth.identity.role!=='admin')return json({success:false,message:'Hanya Admin dapat mengelola AI API Keys.'},403);
- try {return json({success:true,configs:await listProviders(auth.identity.db)});}
+ try {
+  const configs=await listProviders(auth.identity.db);
+  // Report readiness only to an authenticated INDIA Admin; never return secret material.
+  const encryptionReady=await encryptionKey().then(()=>true,()=>false);
+  return json({success:true,configs,encryptionReady});
+ }
  catch{return json({success:false,message:'Skema AI D1 belum tersedia. Jalankan migrasi AI Connections.'},503);}
 }
 export async function POST(req:Request){
@@ -86,7 +91,13 @@ export async function POST(req:Request){
   await db.prepare(query).bind(id,model,priority,enabled?1:0,encrypted?.iv||null,encrypted?.ciphertext||null,email).run();
   await auditConfig(db,email,id,key?'rotate_key':'update_settings');
   return json({success:true,message:'Pengaturan tersimpan terenkripsi dalam D1.',configs:await listProviders(db)});
- }catch{
-  return json({success:false,message:'Konfigurasi gagal. Periksa tabel D1, enkripsi Worker secret, dan izin Admin.'},503);
+ }catch(error){
+  // Categorise safe configuration errors without exposing secrets or provider responses.
+  const detail=error instanceof Error?error.message:'';
+  if(/INDIA_AI_ENCRYPTION_KEY|Secret enkripsi|Konfigurasi enkripsi/i.test(detail))
+   return json({success:false,code:'AI_ENCRYPTION_NOT_READY',
+    message:'Secret enkripsi AI belum siap pada Worker. Administrator Cloudflare perlu memasang INDIA_AI_ENCRYPTION_KEY (32 byte base64).'},503);
+  return json({success:false,code:'AI_CONFIG_WRITE_FAILED',
+   message:'Gagal menyimpan konfigurasi AI. Periksa skema/migrasi D1 dan kesehatan Worker UAT.'},503);
  }
 }
