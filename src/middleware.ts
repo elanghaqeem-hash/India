@@ -10,6 +10,7 @@ const D1_ROUTES = new Set([
   '/api/ai/generate',
   '/api/ai/assist',
   '/api/scoping/upload',
+  '/api/reference/postal',
   '/api/marketing/leads',
   '/api/marketing/campaigns',
   '/api/marketing/lead-intelligence',
