@@ -8,6 +8,7 @@ type Campaign={
  budget_idr?:number;start_date:string;end_date:string;notes?:string;revision:number;
  total:number;qualified:number;converted:number;conversionRate:number;
 };
+type CampaignOwner={email:string;role:string};
 const empty=()=>({code:generateCampaignCode(),name:'',channel:'webinar',status:'planned',owner_email:'',
  budget_idr:'0',start_date:'',end_date:'',notes:''});
 const input='mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100';
@@ -15,34 +16,57 @@ const money=(n:number)=>'Rp'+Number(n||0).toLocaleString('id-ID');
 async function request(method:'GET'|'POST'|'PATCH',body?:Record<string,unknown>){
  const res=await fetch('/api/marketing/campaigns',{method,credentials:'same-origin',cache:'no-store',
   headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
- const json=await res.json();
- if(!res.ok||!json.success)throw Error(json.message||'Proses Campaign gagal');
+ const json=await res.json().catch(()=>null);
+ if(!res.ok||!json?.success){
+  const fallback=res.status===401?'Sesi Cloudflare Access berakhir. Masuk kembali dan ulangi penyimpanan.'
+   :res.status===403?'Akses ditolak. Pastikan akun memiliki role Marketing/Admin dan Access Policy mengizinkan Campaign.'
+   :res.status===503?'Layanan Campaign belum siap. Periksa koneksi D1 atau migrasi.'
+   :`Proses Campaign gagal (HTTP ${res.status}).`;
+  throw Error(typeof json?.message==='string'?json.message:fallback);
+ }
  return json;
 }
 export default function MarketingCampaigns(){
  const [campaigns,setCampaigns]=useState<Campaign[]>([]);
  const [role,setRole]=useState('');
+ const [identityEmail,setIdentityEmail]=useState('');
+ const [owners,setOwners]=useState<CampaignOwner[]>([]);
+ const [error,setError]=useState('');
  const [editing,setEditing]=useState<Campaign|null>(null);
  const [form,setForm]=useState(empty());
  const [newMode,setNewMode]=useState(false);
  const [busy,setBusy]=useState(false);
  const [message,setMessage]=useState('');
  const reload=useCallback(async()=>{
-  try{const d=await request('GET');setCampaigns(d.campaigns||[]);setRole(d.role||'');}
-  catch(e){setMessage(e instanceof Error?e.message:String(e));}
+  try{
+   const d=await request('GET');
+   setCampaigns(d.campaigns||[]);setRole(d.role||'');
+   setIdentityEmail(d.email||'');setOwners(Array.isArray(d.owners)?d.owners:[]);
+   setError('');
+  }catch(e){
+   setRole('');setOwners([]);
+   setError(e instanceof Error?e.message:String(e));
+  }
  },[]);
  useEffect(()=>{void reload();},[reload]);
  const editable=role==='admin'||role==='marketing';
  const select=(c:Campaign)=>{
-  setEditing(c);setNewMode(false);setMessage('');
+  setEditing(c);setNewMode(false);setMessage('');setError('');
   setForm({code:c.code,name:c.name,channel:c.channel,status:c.status,owner_email:c.owner_email,
    budget_idr:String(c.budget_idr??0),start_date:c.start_date,end_date:c.end_date,notes:c.notes||''});
  };
  const create=()=>{
-  setEditing(null);setNewMode(true);setForm(empty());setMessage('');
+  const selectedOwner=owners.find(x=>x.email===identityEmail)?.email
+   ||owners.find(x=>x.role==='marketing')?.email||owners[0]?.email||'';
+  setEditing(null);setNewMode(true);
+  setForm({...empty(),owner_email:selectedOwner});
+  setMessage('');setError('');
  };
  const submit=async()=>{
-  setBusy(true);setMessage('');
+  if(!owners.some(x=>x.email===form.owner_email)){
+   setError('Pilih Owner dari anggota aktif yang tersedia sebelum menyimpan Campaign.');return;
+  }
+  setBusy(true);setMessage('');setError('');
   try{
    const payload={...form,budget_idr:Number(form.budget_idr)};
    const result=editing
@@ -51,12 +75,13 @@ export default function MarketingCampaigns(){
    await reload();
    setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit.':`Campaign baru berhasil diregistrasi di D1. Kode: ${result.code}`);
    setEditing(null);setNewMode(false);setForm(empty());
-  }catch(e){setMessage(e instanceof Error?e.message:String(e));}
+  }catch(e){setError(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
  };
  const active=campaigns.filter(x=>x.status==='active').length;
  const leads=campaigns.reduce((s,x)=>s+x.total,0);
  const converted=campaigns.reduce((s,x)=>s+x.converted,0);
+ const ownerValid=owners.some(x=>x.email===form.owner_email);
  return <main className="min-w-0 space-y-5 pb-24">
   <header className="flex flex-wrap items-start justify-between gap-3">
    <div>
@@ -67,6 +92,7 @@ export default function MarketingCampaigns(){
    {editable&&<button type="button" disabled={busy} onClick={create} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-semibold text-white"><Plus size={15}/> Campaign Baru</button>}
   </header>
   {message&&<p role="status" className="rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</p>}
+  {error&&<p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-medium text-red-800">{error}</p>}
   <section className="grid grid-cols-3 gap-2">
    {([['Campaign Aktif',active],['Lead Teratribusi',leads],['Converted',converted]] as const).map(([label,count])=>
     <div key={label} className="rounded-xl border bg-white p-3">
@@ -98,7 +124,7 @@ export default function MarketingCampaigns(){
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
      {([
       ['code','Kode unik (otomatis)','text'],['name','Nama campaign *','text'],
-      ['owner_email','Owner email aktif *','email'],['budget_idr','Budget (IDR)','number'],
+      ['budget_idr','Budget (IDR)','number'],
       ['start_date','Mulai','date'],['end_date','Berakhir','date']
      ] as const).filter(([key])=>editable||key!=='budget_idr').map(([key,label,type])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
        <input className={input+(key==='code'?' bg-slate-50 font-mono font-semibold text-slate-700':'' )}
@@ -109,6 +135,16 @@ export default function MarketingCampaigns(){
        Dibuat otomatis saat registrasi, unik per campaign, dan tetap saat revisi.
       </span>}
       </label>)}
+     <label className="min-w-0 text-xs font-semibold text-slate-700">Owner Campaign (anggota aktif)
+      <select className={input} required disabled={!editable||busy||owners.length===0} value={form.owner_email}
+       onChange={e=>setForm(x=>({...x,owner_email:e.target.value}))}>
+       <option value="">Pilih anggota aktif</option>
+       {owners.map(x=><option key={x.email} value={x.email}>{x.email} ({x.role})</option>)}
+      </select>
+      {owners.length===0?<span className="mt-1 block text-[11px] font-normal text-red-700">Belum ada Owner aktif atau daftar gagal dimuat. Minta Admin mengaktifkan anggota dengan role Marketing, Sales, atau Admin.</span>
+       :!ownerValid&&form.owner_email?<span className="mt-1 block text-[11px] font-normal text-red-700">Owner sebelumnya sudah tidak aktif. Pilih Owner baru dari daftar.</span>
+       :<span className="mt-1 block text-[11px] font-normal text-slate-500">Hanya email anggota aktif yang dapat dipilih, sesuai validasi server.</span>}
+     </label>
      <label className="text-xs font-semibold text-slate-700">Channel
       <select className={input} disabled={!editable||busy} value={form.channel} onChange={e=>setForm(x=>({...x,channel:e.target.value}))}>
        {campaignChannels.map(x=><option value={x} key={x}>{x}</option>)}
@@ -122,12 +158,13 @@ export default function MarketingCampaigns(){
      <textarea rows={4} disabled={!editable||busy} className={input+' resize-y'} value={form.notes} onChange={e=>setForm(x=>({...x,notes:e.target.value}))}/>
     </label>}
     <div className="mt-4 flex flex-wrap items-center gap-2">
-     {editable&&<button type="button" disabled={busy||!form.name.trim()||!form.code.trim()||!form.owner_email.trim()||['cancelled','completed'].includes(editing?.status||'')}
+     {editable&&<button type="button" disabled={busy||!form.name.trim()||!form.code.trim()||!ownerValid||['cancelled','completed'].includes(editing?.status||'')}
       onClick={()=>void submit()} className="inline-flex items-center gap-2 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-40">
        <CheckCircle2 size={16}/>{editing?'Simpan Revisi':'Daftarkan Campaign'}
       </button>}
      <button type="button" onClick={()=>{setNewMode(false);setEditing(null);}} className="rounded-lg border px-4 py-2.5 text-xs">Tutup</button>
     </div>
+    {error&&<p role="alert" className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-800">{error}</p>}
     {editing&&editable&&<p className="mt-3 text-xs text-slate-500">Budget tercatat: {money(editing.budget_idr||0)}. Revisi harus menggunakan versi terkini; tab lama ditolak server.</p>}
    </section>:<section className="flex min-h-60 items-center justify-center rounded-xl border bg-white p-5 text-center text-sm text-slate-500">Pilih Campaign untuk melihat efektivitas lead, atau buat campaign sebelum mendaftarkan lead baru.</section>}
   </div>
