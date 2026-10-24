@@ -33,6 +33,7 @@ test('source does not permit uncontrolled writes or change production gate',()=>
  assert.match(source,/INDIA_DOCUMENT_ENCRYPTION_KEY/);
  assert.match(source,/INDIA_AI_ENCRYPTION_KEY/);
  assert.match(source,/MANDATORY_ROLES/);
+ assert.match(source,/0030_flexguard_immutable_ledger/);
  assert.match(source,/PRAGMA foreign_key_check/);
  assert.match(source,/READ_ONLY_CLOUDFLARE_CONFIG_PREFLIGHT/);
  assert.doesNotMatch(source,/time_travel\/restore|workers\/scripts\/.*deployments.*POST/);

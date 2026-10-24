@@ -4,7 +4,7 @@
  * encryption-key continuity, live Cloudflare Access UAT, or a production signoff.
  */
 export const REQUIRED_LEDGER_VERSIONS: readonly number[] =
-  Array.from({length:16},(_,i)=>i+13);
+  Array.from({length:18},(_,i)=>i+13);
 
 /** Canonical main paths; pre-0021 ledgers do not necessarily record manifest paths. */
 export const CANONICAL_MANIFEST_PATHS: readonly string[] = [
@@ -16,6 +16,8 @@ export const CANONICAL_MANIFEST_PATHS: readonly string[] = [
  'migrations/0026_partner_reporting_administration.sql',
  'migrations/0027_customer_delivery_cash_renewal.sql',
  'migrations/0028_ai_mistral_provider.sql',
+ 'migrations/0029_indonesia_postal_reference.sql',
+ 'migrations/0030_flexguard_immutable_ledger.sql',
 ];
 
 type LedgerRow={version:number|string};
@@ -55,7 +57,7 @@ export function evaluateSchemaReadiness(
  return {
   status:missing_versions.length||missing_manifest_paths.length||conflicting_manifest_paths.length||manifest_without_ledger.length?'incomplete':'reconciled',
   latest_applied_version:applied.length?Math.max(...applied):null,
-  required_through_version:28, applied_versions:applied.sort((a,b)=>a-b),
+  required_through_version:30, applied_versions:applied.sort((a,b)=>a-b),
   missing_versions,missing_manifest_paths,conflicting_manifest_paths,manifest_without_ledger,
   evidence_scope:'Ledger/manifest consistency only. SQL hashes, native backup, restored original documents, Access identities, financial UAT and rollback require independent evidence.',
  };

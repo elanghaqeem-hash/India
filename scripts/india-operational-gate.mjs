@@ -62,15 +62,16 @@ async function run(){
   'Document Vault encryption key binding missing');
  const ledger=await query('SELECT version FROM india_schema_migrations ORDER BY version');
  const applied=new Set(ledger.map(x=>Number(x.version)));
- for(let v=13;v<=28;v++)check(applied.has(v),'Canonical D1 migration '+v+' absent');
- const manifests=await query("SELECT path FROM india_schema_file_manifest WHERE path LIKE 'migrations/002%'");
+ for(let v=13;v<=30;v++)check(applied.has(v),'Canonical D1 migration '+v+' absent');
+ const manifests=await query("SELECT path FROM india_schema_file_manifest WHERE path LIKE 'migrations/002%' OR path LIKE 'migrations/0030_%'");
  const canon=['0021_tender_bid_readiness','0022_document_vault_governance',
   '0023_tender_vault_integrity','0024_executive_sales_targets',
   '0025_vendor_resource_feasibility','0026_partner_reporting_administration',
-  '0027_customer_delivery_cash_renewal','0028_ai_mistral_provider'];
+  '0027_customer_delivery_cash_renewal','0028_ai_mistral_provider',
+  '0029_indonesia_postal_reference','0030_flexguard_immutable_ledger'];
  const expected=new Set(canon.map(x=>'migrations/'+x+'.sql'));
  for(const p of expected)check(manifests.some(x=>x.path===p),'Canonical SQL manifest missing');
- for(const row of manifests){const n=/^migrations\/(002[1-8])_/.exec(row.path);
+ for(const row of manifests){const n=/^migrations\/(002[1-9]|0030)_/.exec(row.path);
   if(n)check(expected.has(row.path),'Noncanonical SQL path collision');}
  const providerRows=await query("SELECT provider_id,model,priority,enabled,CASE WHEN key_iv IS NOT NULL AND key_ciphertext IS NOT NULL THEN 1 ELSE 0 END AS has_key,tested_ok FROM india_ai_providers ORDER BY priority");
  const catalog=validateProviderCatalog(providerRows);
@@ -91,7 +92,7 @@ async function run(){
   check((roles[role]||0)>=n,'Active signed-Access roster missing role '+role);
  console.log(JSON.stringify({scope:'READ_ONLY_CLOUDFLARE_CONFIG_PREFLIGHT',result:'PASS',
   worker:env.INDIA_GATE_WORKER_NAME,isolated_clone:true,
-  schema_version:28,provider_count:catalog.providers,provider_enabled:catalog.enabled,quick_check:'ok',signed_access_roster_count:emails.length,
+  schema_version:30,provider_count:catalog.providers,provider_enabled:catalog.enabled,quick_check:'ok',signed_access_roster_count:emails.length,
   note:'NO human JWT sessions or transaction UAT performed. Production release still HOLD.'}));
 }
 run().catch(error=>{console.error(JSON.stringify({scope:'READ_ONLY_CLOUDFLARE_CONFIG_PREFLIGHT',
