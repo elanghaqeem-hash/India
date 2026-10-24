@@ -135,8 +135,8 @@ export const Navbar: React.FC<NavbarProps> = ({
       <header className="no-print sticky top-0 z-40 w-full border-b border-slate-200 bg-white/95 backdrop-blur-md shadow-xs">
         <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-6">
           {/* Brand Logo & Name */}
-          <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center gap-2.5 transition-transform hover:scale-[1.01]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <Link href="/" className="flex min-w-0 items-center gap-1.5 transition-transform hover:scale-[1.01]">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-indigo-900 text-white shadow-md shadow-blue-500/20">
                 <Shield className="h-5 w-5 text-cyan-400" />
               </div>
@@ -153,7 +153,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
 
           {/* Header Actions: AI Trigger, Settings, Approvals, Profile */}
-          <div className="flex shrink-0 items-center gap-1 sm:gap-3">
+          <div className="flex min-w-0 shrink items-center gap-1 sm:gap-3">
             {/* AI Assistant Quick Trigger */}
             <button
               onClick={() => setAiAssistantOpen(true)}
@@ -188,7 +188,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             </Link>
 
             {/* Read-only server-verified identity: no selectable demo roles. */}
-            <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
+            <div className="flex min-w-0 max-w-[110px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
               <UserCheck className="h-4 w-4 shrink-0 text-indigo-700" aria-hidden="true"/>
               <div className="min-w-0">
                 <div className="truncate font-semibold" title={currentRoleInfo.label}>{currentRoleInfo.label}</div>
