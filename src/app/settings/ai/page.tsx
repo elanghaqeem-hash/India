@@ -5,7 +5,7 @@ import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, KeyRound, ArrowUp,
  ArrowDown, RefreshCcw, Trash2, Save, LoaderCircle, PlugZap, Send } from 'lucide-react';
 import type { AIProviderPublic, ProviderId } from '@/lib/ai-provider-registry';
 
-type ApiResponse={success:boolean;message?:string;configs?:AIProviderPublic[];
+type ApiResponse={success:boolean;message?:string;code?:string;encryptionReady?:boolean;configs?:AIProviderPublic[];
   content?:string;providerUsed?:string;modelUsed?:string;latencyMs?:number;isFallback?:boolean};
 const secureHeaders={'Content-Type':'application/json','x-india-ai-admin':'1'};
 const smallInput='w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-100';
@@ -14,9 +14,11 @@ export default function AISettingsPage(){
  const [configs,setConfigs]=useState<AIProviderPublic[]>([]);
  const [loading,setLoading]=useState(true);
  const [blocked,setBlocked]=useState('');
+ const [encryptionReady,setEncryptionReady]=useState<boolean|null>(null);
  const [busy,setBusy]=useState('');
  const [notice,setNotice]=useState('');
  const [noticeError,setNoticeError]=useState(false);
+ const [noticeScope,setNoticeScope]=useState('global');
  const [keys,setKeys]=useState<Record<string,string>>({});
  const [models,setModels]=useState<Record<string,string>>({});
  const [prompt,setPrompt]=useState('Jelaskan secara ringkas perbedaan VAPT dan Managed SOC dalam tiga kalimat.');
@@ -27,6 +29,7 @@ export default function AISettingsPage(){
    const data:ApiResponse=await response.json();
    if(!response.ok||!data.success){setBlocked(data.message||'Tidak bisa membuka pengaturan AI.');return;}
    setConfigs(data.configs||[]);
+   setEncryptionReady(data.encryptionReady??null);
    setBlocked('');
   }catch{setBlocked('Koneksi ke backend INDIA gagal.');}
   finally{setLoading(false);}
@@ -34,6 +37,7 @@ export default function AISettingsPage(){
  useEffect(()=>{void refresh();},[refresh]);
  const action=async(name:string,payload:Record<string,unknown>,successMessage:string)=>{
   setBusy(name);setNotice('');setNoticeError(false);
+  setNoticeScope(typeof payload.id==='string'?payload.id:'global');
   try{
    const response=await fetch('/api/ai/config',{method:'POST',headers:secureHeaders,
     credentials:'same-origin',cache:'no-store',body:JSON.stringify(payload)});
@@ -50,6 +54,11 @@ export default function AISettingsPage(){
  const save=(p:AIProviderPublic,enabled=p.enabled)=>{
   const pending=keys[p.id]?.trim();
   const model=(models[p.id]??p.model).trim();
+  if(pending&&encryptionReady===false){
+   setNoticeScope(p.id);setNoticeError(true);
+   setNotice('Secret enkripsi AI belum siap pada Worker. Hubungi Admin Cloudflare sebelum menyimpan API key.');
+   return;
+  }
   void action('save-'+p.id,{action:'save',id:p.id,model,enabled,
    ...(pending?{apiKey:pending}:{})},'Pengaturan tersimpan.');
  };
@@ -64,7 +73,7 @@ export default function AISettingsPage(){
   void action('delete-'+id,{action:'deleteKey',id},'API key dihapus.');
  };
  const runTest=async()=>{
-  setBusy('playground');setResult(null);setNotice('');
+  setBusy('playground');setResult(null);setNotice('');setNoticeScope('global');setNoticeError(false);
   try{
    const response=await fetch('/api/ai/generate',{method:'POST',headers:secureHeaders,
     credentials:'same-origin',cache:'no-store',body:JSON.stringify({prompt})});
@@ -93,8 +102,11 @@ export default function AISettingsPage(){
     <p><strong className="text-slate-900">Khusus Admin terverifikasi.</strong> API key dikirim hanya ke backend melalui HTTPS, dienkripsi AES-GCM di D1 dan tidak pernah ditampilkan ulang.
     Akun tanpa izin Admin akan ditolak oleh server. Penggunaan AI eksternal mengirimkan isi prompt ke penyedia yang dipilih; jangan memasukkan data rahasia klien tanpa otorisasi.</p>
   </div>
-  {notice&&<div role="status" className={'rounded-lg border px-4 py-3 text-xs font-semibold '+(noticeError?
+  {notice&&noticeScope==='global'&&<div role={noticeError?'alert':'status'} className={'rounded-lg border px-4 py-3 text-xs font-semibold '+(noticeError?
     'border-rose-200 bg-rose-50 text-rose-900':'border-emerald-200 bg-emerald-50 text-emerald-800')}>{notice}</div>}
+  {!loading&&!blocked&&encryptionReady===false&&<div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs leading-relaxed text-amber-950">
+    <strong>Enkripsi Worker belum siap.</strong> Pengaturan model dapat dibaca, tetapi API key baru tidak dapat disimpan sampai Admin Cloudflare memasang secret <code>INDIA_AI_ENCRYPTION_KEY</code> yang valid. Jangan masukkan API key ke chat.
+  </div>}
   {loading&&<div className="flex items-center gap-2 rounded-lg bg-white p-5 text-sm text-slate-600">
     <LoaderCircle className="h-4 w-4 animate-spin"/> Memverifikasi sesi Administrator dan konfigurasi D1...</div>}
   {!loading&&blocked&&<div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
@@ -143,7 +155,7 @@ export default function AISettingsPage(){
        <datalist id={'models-'+p.id}>{p.availableModels.map(m=><option key={m} value={m}/>)}</datalist>
       </label>
       <label className="block min-w-0 text-xs font-bold text-slate-700">API Key (isi untuk menambah/rotasi)
-       <input type="password" autoComplete="new-password" spellCheck={false}
+       <input type="password" autoComplete="new-password" autoCapitalize="off" autoCorrect="off" spellCheck={false}
         placeholder={p.hasKey?'Key telah disimpan aman - masukkan baru untuk mengganti':'Masukkan API key provider'}
         value={keys[p.id]||''} onChange={e=>setKeys(x=>({...x,[p.id]:e.target.value}))}
         className={'mt-1 '+smallInput}/>
@@ -157,6 +169,7 @@ export default function AISettingsPage(){
       <button type="button" disabled={!!busy||!p.hasKey} onClick={()=>clear(p.id)} className="inline-flex items-center gap-2 rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 disabled:opacity-40">
        <Trash2 className="h-3.5 w-3.5"/> Hapus key</button>
      </div>
+     {notice&&noticeScope===p.id&&<p role={noticeError?'alert':'status'} className={'mt-3 rounded-lg border px-3 py-2 text-xs font-semibold '+(noticeError?'border-rose-200 bg-rose-50 text-rose-900':'border-emerald-200 bg-emerald-50 text-emerald-800')}>{notice}</p>}
      {p.testedAt&&<p className="mt-2 text-[11px] text-slate-500">Pengujian terakhir: {new Date(p.testedAt+'Z').toLocaleString('id-ID')}</p>}
     </article>)}
    </section>

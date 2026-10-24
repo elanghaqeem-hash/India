@@ -41,9 +41,11 @@ export function AIWorkbench(){
   finally{setBusy(false);}
  };
  return <div className="no-print">
-  <button type="button" onClick={()=>setOpen(true)} className="fixed bottom-20 right-3 z-40 flex items-center gap-2 rounded-full border border-indigo-200 bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-xl hover:bg-indigo-900 lg:bottom-6 lg:right-6" aria-label="Buka opsi AI untuk drafting dan analisis">
-   <Sparkles className="h-4 w-4"/> AI Draft / Analisis
-  </button>
+  {pathname!=='/settings/ai'&&<button type="button" onClick={()=>setOpen(true)}
+   className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom))] right-3 z-40 flex h-11 w-11 items-center justify-center gap-2 rounded-full border border-indigo-200 bg-slate-900 text-xs font-bold text-white shadow-xl hover:bg-indigo-900 sm:h-auto sm:w-auto sm:px-4 sm:py-3 lg:bottom-6 lg:right-6"
+   aria-label="Buka opsi AI untuk drafting dan analisis" title="AI Draft / Analisis">
+   <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true"/><span className="hidden sm:inline">AI Draft / Analisis</span>
+  </button>}
   {open&&<div className="fixed inset-0 z-[90] flex items-end justify-end bg-slate-950/40 p-2 sm:p-4" role="dialog" aria-modal="true" aria-label="AI drafting assistant">
    <div className="flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
     <header className="flex items-center justify-between border-b p-4">
