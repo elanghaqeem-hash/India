@@ -18,7 +18,6 @@ import {
   RotateCcw,
   Zap,
 } from 'lucide-react';
-import { SystemRole } from '@/lib/types';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
 import { selectConversationHistory, type AIConversationTurn } from '@/lib/ai-conversation';
 
@@ -29,17 +28,16 @@ const WELCOME_MESSAGE = {
 };
 
 interface NavbarProps {
-  currentRole: SystemRole;
-  onRoleChange: (role: SystemRole) => void;
+  role: string | null;
+  email: string | null;
   pendingApprovalsCount?: number;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  currentRole,
-  onRoleChange,
-  pendingApprovalsCount = 1,
+  role,
+  email,
+  pendingApprovalsCount = 0,
 }) => {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
   // Chat content is ephemeral: only completed responses are passed as context.
@@ -91,16 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     };
   }, [aiAssistantOpen]);
 
-  const roles: Array<{ role: SystemRole; label: string; badge: string }> = [
-    { role: 'sales', label: 'M. Nadhil (Sales / AM)', badge: 'Maker' },
-    { role: 'pre_sales', label: 'Hendri (Pre-Sales Eng)', badge: 'Solution & Pricing' },
-    { role: 'head_sales', label: 'Reza Fahlevi (Head Sales)', badge: 'VP / Approver' },
-    { role: 'management', label: 'Direktur Utama (Management)', badge: 'Director / Final' },
-    { role: 'project_manager', label: 'Bambang (Project Manager)', badge: 'Delivery' },
-    { role: 'client_maker', label: 'Budi Santoso (Klien Maker)', badge: 'Portal Klien' },
-  ];
-
-  const currentRoleInfo = roles.find(r => r.role === currentRole) || roles[0];
+  const currentRoleInfo = {label: email||'Sesi belum terverifikasi',badge: role||'Cloudflare Access diperlukan'};
 
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,18 +152,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             </Link>
           </div>
 
-          {/* Global Quick Search (Desktop) */}
-          <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Cari Customer, Opportunity, Quotation, Tender..."
-                className="w-full rounded-lg border border-slate-200 bg-slate-50 py-2 pl-9 pr-4 text-xs font-normal text-slate-800 placeholder-slate-400 focus:border-blue-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all"
-              />
-            </div>
-          </div>
-
           {/* Header Actions: AI Trigger, Settings, Approvals, Profile */}
           <div className="flex shrink-0 items-center gap-1 sm:gap-3">
             {/* AI Assistant Quick Trigger */}
@@ -198,9 +175,9 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {/* Pending Approvals Notification Link */}
             <Link
-              href="/approvals"
+              href="/sales/activities"
               className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors"
-              title="Pusat Otorisasi & Keputusan"
+              title="Aktivitas dan tindak lanjut"
             >
               <Bell className="h-4 w-4" />
               {pendingApprovalsCount > 0 && (
@@ -210,50 +187,13 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </Link>
 
-            {/* Interactive Role Selector */}
-            <div className="relative">
-              <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-1 sm:gap-2 rounded-lg border border-slate-200 bg-white py-1.5 px-2 sm:px-3 text-xs font-medium text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors focus:outline-none"
-              >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-indigo-50 text-indigo-700">
-                  <UserCheck className="h-3.5 w-3.5" />
-                </div>
-                <div className="text-left hidden sm:block">
-                  <div className="font-semibold text-slate-900 leading-tight">{currentRoleInfo.label}</div>
-                  <div className="text-[10px] text-blue-600 font-medium">{currentRoleInfo.badge}</div>
-                </div>
-                <ChevronDown className="h-3.5 w-3.5 text-slate-400 ml-0.5" />
-              </button>
-
-              {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-xl border border-slate-200 bg-white p-1.5 shadow-xl shadow-slate-900/10 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                  <div className="px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-slate-400 border-b border-slate-100 mb-1">
-                    Pilih Profil & Role (RBAC Simulation)
-                  </div>
-                  <Link href="/settings/ai" onClick={() => setDropdownOpen(false)} className="mb-1 block rounded-lg px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50 sm:hidden">Pengaturan AI & API Key</Link>
-                  {roles.map(r => (
-                    <button
-                      key={r.role}
-                      onClick={() => {
-                        onRoleChange(r.role);
-                        setDropdownOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-xs rounded-lg text-left transition-colors ${
-                        currentRole === r.role
-                          ? 'bg-blue-50 text-blue-800 font-semibold'
-                          : 'text-slate-700 hover:bg-slate-50'
-                      }`}
-                    >
-                      <div>
-                        <div>{r.label}</div>
-                        <div className="text-[10px] text-slate-400 font-normal">{r.badge}</div>
-                      </div>
-                      {currentRole === r.role && <CheckCircle2 className="h-4 w-4 text-blue-600" />}
-                    </button>
-                  ))}
-                </div>
-              )}
+            {/* Read-only server-verified identity: no selectable demo roles. */}
+            <div className="flex max-w-[190px] items-center gap-2 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
+              <UserCheck className="h-4 w-4 shrink-0 text-indigo-700" aria-hidden="true"/>
+              <div className="min-w-0">
+                <div className="truncate font-semibold" title={currentRoleInfo.label}>{currentRoleInfo.label}</div>
+                <div className="truncate text-[10px] font-medium text-indigo-700">{currentRoleInfo.badge}</div>
+              </div>
             </div>
           </div>
         </div>
