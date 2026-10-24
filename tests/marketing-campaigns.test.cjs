@@ -94,7 +94,7 @@ test('Campaign and Lead UI have navigation, database-backed options and responsi
  assert.match(page,/\/api\/marketing\/campaigns/);
  assert.match(page,/conversionRate/);
  assert.match(page,/request\('PATCH'/);
- assert.match(leads,/campaign_id:id/);
+ assert.match(leads,/campaign_id:selected\?\.id\|\|''/);
  assert.match(leads,/Campaign terdaftar/);
  const sidebar=fs.readFileSync(path.join(root,'src/components/layout/Sidebar.tsx'),'utf8');
  const navigation=fs.readFileSync(path.join(root,'src/lib/enterprise-navigation.ts'),'utf8');
@@ -190,5 +190,29 @@ test('Campaign registration API persists valid active Owner, rejects unknown Own
   assert.match(created.body.code,/^CMP-/);
   assert.equal(db.prepare('SELECT owner_email FROM india_marketing_campaigns WHERE id=?').get(created.body.id).owner_email,'uat.marketing@example.test');
   assert.equal(db.prepare("SELECT COUNT(*) n FROM india_sales_audit WHERE entity_type='campaign' AND action='CREATE'").get().n,1);
+  // Planned campaigns are visible to Admin but not yet selectable by Sales.
+  const plannedAdmin=await call('GET',admin);
+  assert.equal(plannedAdmin.body.campaigns.length,1);
+  assert.equal(plannedAdmin.body.campaigns[0].status,'planned');
+  const plannedSales=await call('GET','uat.sales@example.test');
+  assert.equal(plannedSales.body.campaigns.length,0);
+  const activated=await call('PATCH',admin,{id:created.body.id,revision:1,status:'active'});
+  assert.equal(activated.status,200,JSON.stringify(activated.body));
+  assert.equal(db.prepare('SELECT status FROM india_marketing_campaigns WHERE id=?').get(created.body.id).status,'active');
+  const activeSales=await call('GET','uat.sales@example.test');
+  assert.equal(activeSales.body.campaigns.length,1);
+  assert.equal(activeSales.body.campaigns[0].id,created.body.id);
  }finally{db.close();}
+});
+
+test('Lead form displays inactive campaigns but only enables active options, and surfaces load errors',()=>{
+ const s=fs.readFileSync(path.join(root,'src/app/sales/leads/page.tsx'),'utf8');
+ assert.match(s,/const activeCampaigns=campaigns\.filter\(x=>x\.status==='active'\)/);
+ assert.match(s,/const inactiveCampaigns=campaigns\.filter\(x=>x\.status!=='active'\)/);
+ assert.match(s,/inactiveCampaigns\.map\(x=><option key=\{x\.id\} value=\{x\.id\} disabled>/);
+ assert.match(s,/\['admin','marketing'\]\.includes\(role\)/);
+ assert.match(s,/await api\('PATCH','\/api\/marketing\/campaigns',\{id:c\.id,revision:c\.revision,status:'active'\}\)/);
+ assert.match(s,/setCampaignError\(e instanceof Error\?e\.message:String\(e\)\)/);
+ const campaign=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
+ assert.match(campaign,/Campaign baru tersedia untuk Lead setelah status diubah menjadi Active/);
 });

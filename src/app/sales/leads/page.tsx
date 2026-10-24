@@ -9,7 +9,7 @@ type Lead={id:string;version:number;lead_number:string;account_name:string;sourc
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
  qualification:Record<string,string>;updated_at:string};
-type CampaignOption={id:string;code:string;name:string;status:string};
+type CampaignOption={id:string;code:string;name:string;status:string;revision:number};
 type Detail={lead:Lead;activities:{kind:string;summary:string;created_at:string}[];
  link:{opportunity_id:string;customer_id:string}|null};
 const statuses:Record<string,string>={new:'Lead Baru',assigned:'Assigned',qualified:'Qualified',disqualified:'Disqualified',converted:'Converted'};
@@ -36,6 +36,7 @@ export default function MarketingLeads(){
  const [list,setList]=useState<Lead[]>([]);
  const [scores,setScores]=useState<Record<string,{score:number;temperature:string}>>({});
  const [campaigns,setCampaigns]=useState<CampaignOption[]>([]);
+ const [campaignError,setCampaignError]=useState('');
  const [role,setRole]=useState('');
  const [form,setForm]=useState(empty());
  // Stable for safe network retries; regenerated only for the next new Lead.
@@ -52,8 +53,15 @@ export default function MarketingLeads(){
  const refresh=useCallback(async()=>{
   try{
    const j=await api('GET','/api/marketing/leads');setList(j.leads||[]);setRole(j.role||'');
-   const c=await api('GET','/api/marketing/campaigns').catch(()=>({campaigns:[]}));
-   setCampaigns((c.campaigns||[]).filter((x:CampaignOption)=>x.status==='active'));
+   // Marketing/Admin see planned campaigns too. Sales remains restricted by the API.
+   // Never silently mislabel an API failure as an empty Campaign directory.
+   try{
+    const c=await api('GET','/api/marketing/campaigns');
+    setCampaigns(c.campaigns||[]);setCampaignError('');
+   }catch(e){
+    setCampaigns([]);
+    setCampaignError(e instanceof Error?e.message:String(e));
+   }
    const intelligence=await api('GET','/api/marketing/lead-intelligence?mode=queue').catch(()=>({leads:[]}));
    setScores(Object.fromEntries((intelligence.leads||[]).map((x:{id:string;score:number;temperature:string})=>[x.id,{score:x.score,temperature:x.temperature}])));
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
@@ -74,6 +82,17 @@ export default function MarketingLeads(){
    if(next||j.id)await load(next||j.id||'');
    setMessage(result+(j.opportunity_id?' • Opportunity '+j.opportunity_id:''));}
   catch(e){setMessage(e instanceof Error?e.message:String(e));}
+  finally{setBusy(false);}
+ };
+ const activateCampaign=async(c:CampaignOption)=>{
+  if(!['admin','marketing'].includes(role)||!['planned','paused'].includes(c.status)||busy)return;
+  setBusy(true);setMessage('');
+  try{
+   await api('PATCH','/api/marketing/campaigns',{id:c.id,revision:c.revision,status:'active'});
+   await refresh();
+   setForm(prev=>({...prev,campaign_id:c.id,campaign:c.name}));
+   setMessage(`Campaign "${c.name}" berhasil diaktifkan dan dipilih untuk Lead baru.`);
+  }catch(e){setMessage('Gagal mengaktifkan Campaign: '+(e instanceof Error?e.message:String(e)));}
   finally{setBusy(false);}
  };
  const create=()=>void run(async()=>{
@@ -102,6 +121,9 @@ export default function MarketingLeads(){
  const qualified=list.filter(x=>x.status==='qualified').length;
  const converted=list.filter(x=>x.status==='converted').length;
  const shown=list.filter(x=>(x.account_name+' '+x.lead_number+' '+x.source+' '+x.campaign).toLowerCase().includes(query.toLowerCase()));
+ const activeCampaigns=campaigns.filter(x=>x.status==='active');
+ const inactiveCampaigns=campaigns.filter(x=>x.status!=='active');
+ const campaignStatusText:Record<string,string>={planned:'Direncanakan',paused:'Dijeda',completed:'Selesai',cancelled:'Dibatalkan'};
  return <main className="min-w-0 space-y-5 pb-24">
   <header className="flex flex-wrap items-start justify-between gap-3">
    <div><div className="flex items-center gap-2 text-xs font-bold text-blue-700"><Megaphone size={16}/> INDIA · Marketing</div>
@@ -139,14 +161,32 @@ export default function MarketingLeads(){
     <p className="mt-1 text-xs text-slate-500">Gunakan identitas perusahaan yang sebenarnya. Tidak ada data dummy yang diisi otomatis.</p>
     <div className="mt-4">
      <label className="block text-xs font-semibold text-slate-700">Campaign terdaftar (opsional, mengikat attribution ke D1)
-      <select className={'mt-1 '+cls} value={form.campaign_id} onChange={e=>{
-       const id=e.target.value,selected=campaigns.find(x=>x.id===id);
-       setForm(v=>({...v,campaign_id:id,campaign:selected?.name||''}));
+      <select className={'mt-1 '+cls} disabled={busy} value={form.campaign_id} onChange={e=>{
+       const id=e.target.value,selected=activeCampaigns.find(x=>x.id===id);
+       setForm(v=>({...v,campaign_id:selected?.id||'',campaign:selected?.name||''}));
       }}>
        <option value="">Tanpa Campaign terdaftar</option>
-       {campaigns.map(x=><option key={x.id} value={x.id}>{x.code} — {x.name}</option>)}
+       {activeCampaigns.map(x=><option key={x.id} value={x.id}>{x.code} — {x.name} (Aktif)</option>)}
+       {inactiveCampaigns.length>0&&<optgroup label="Terdaftar — belum dapat dipilih">
+        {inactiveCampaigns.map(x=><option key={x.id} value={x.id} disabled>{x.code} — {x.name} ({campaignStatusText[x.status]||x.status})</option>)}
+       </optgroup>}
       </select>
      </label>
+     {campaignError?<div role="alert" className="mt-2 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+      Gagal memuat Campaign: {campaignError}. <button type="button" disabled={busy} onClick={()=>void refresh()} className="font-bold underline">Muat ulang</button>
+     </div>:inactiveCampaigns.length>0&&['admin','marketing'].includes(role)?
+      <details open={activeCampaigns.length===0} className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-950">
+       <summary className="cursor-pointer font-semibold">{inactiveCampaigns.length} Campaign terdaftar belum aktif — lihat dan aktifkan</summary>
+       <p className="mt-2">Campaign berstatus Direncanakan/Dijeda sudah tersimpan di D1, tetapi belum dapat dihubungkan ke Lead baru sampai diaktifkan.</p>
+       <div className="mt-2 space-y-2">
+        {inactiveCampaigns.map(x=><div key={x.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-amber-200 bg-white p-2">
+         <span className="min-w-0 break-words"><b>{x.name}</b> <span className="font-normal">({campaignStatusText[x.status]||x.status})</span></span>
+         {['planned','paused'].includes(x.status)&&<button type="button" disabled={busy} onClick={()=>void activateCampaign(x)}
+          className="rounded-md bg-blue-700 px-3 py-2 font-semibold text-white disabled:opacity-50">Aktifkan &amp; pilih</button>}
+        </div>)}
+       </div>
+      </details>:!campaignError&&activeCampaigns.length===0?
+      <p className="mt-2 text-xs text-amber-800">Belum ada Campaign aktif. Minta Marketing/Admin mengaktifkan Campaign dari menu Kelola Campaign sebelum dikaitkan ke Lead.</p>:null}
     </div>
     <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
     {([
