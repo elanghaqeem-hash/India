@@ -33,7 +33,7 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
  fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;onPatch?:(patch:SalesFields)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label)=>(
+ {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=>(
   key==='client_tier'||key==='industry'||key==='business_type'
    ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
