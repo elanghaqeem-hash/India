@@ -272,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             )}
 
             {/* Chat Messages */}
-            <div ref={chatScrollRef} className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
+            <div ref={chatScrollRef} className="relative z-0 min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -313,20 +313,20 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSendChat} className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:p-3">
+            <form onSubmit={handleSendChat} className="relative z-20 flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:p-3">
               <input
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 placeholder="Tanyakan analisis harga, scoping, tender..."
                 aria-label="Pesan untuk AI Business Assistant"
-                className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-xs"
+                className="relative z-10 min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-xs"
               />
               <button
                 type="submit"
                 disabled={isAiLoading || !chatInput.trim()}
                 aria-label="Kirim pesan ke AI"
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
+                className="relative z-30 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>
