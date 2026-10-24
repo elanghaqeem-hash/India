@@ -97,5 +97,7 @@ test('Campaign and Lead UI have navigation, database-backed options and responsi
  assert.match(leads,/campaign_id:id/);
  assert.match(leads,/Campaign terdaftar/);
  const sidebar=fs.readFileSync(path.join(root,'src/components/layout/Sidebar.tsx'),'utf8');
- assert.match(sidebar,/\/sales\/campaigns/);
+ const navigation=fs.readFileSync(path.join(root,'src/lib/enterprise-navigation.ts'),'utf8');
+ assert.match(sidebar,/navigationForRole/);
+ assert.match(navigation,/\/sales\/campaigns/);
 });
