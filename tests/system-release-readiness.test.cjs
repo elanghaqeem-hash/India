@@ -54,6 +54,6 @@ test('Admin health API uses server-side evaluated evidence and never certifies p
  assert.match(route,/evaluateSchemaReadiness\(migrations\.results,manifest\.results\)/);
  assert.match(route,/production_gate:'HOLD'/);
  assert.match(ui,/release_readiness/);
- assert.match(ui,/Bukti UAT Access asli/);
- assert.match(ui,/Backup dan restore mandiri/);
+ assert.match(route,/Bukti UAT Access asli/);
+ assert.match(route,/Backup dan restore mandiri/);
 });
