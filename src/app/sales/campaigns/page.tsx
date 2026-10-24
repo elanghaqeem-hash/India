@@ -73,7 +73,11 @@ export default function MarketingCampaigns(){
     ?await request('PATCH',{id:editing.id,revision:editing.revision,...payload})
     :await request('POST',payload);
    await reload();
-   setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit.':`Campaign baru berhasil diregistrasi di D1. Kode: ${result.code}`);
+   const feedback=result.status==='active'
+    ?'Campaign aktif dan sudah dapat dipilih di registrasi Lead.'
+    :'Campaign tersimpan dengan status '+result.status+'. Campaign baru tersedia untuk Lead setelah status diubah menjadi Active.';
+   setMessage(editing?'Revisi campaign tersimpan dan tercatat di audit. '+feedback
+    :`Campaign berhasil diregistrasi di D1. Kode: ${result.code}. ${feedback}`);
    setEditing(null);setNewMode(false);setForm(empty());
   }catch(e){setError(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
