@@ -324,7 +324,7 @@ export default function PostPoPage(){
     <Section title="Readiness Check Sebelum Kick Off" description="Setiap isian wajib ditandai jelas. Form final hanya bisa diunduh jika semua parameter terpenuhi.">
      <div className="flex items-center gap-3 rounded-xl border border-slate-200 p-4">
       {ready?<CheckCircle2 className="h-8 w-8 text-emerald-600"/>:<AlertCircle className="h-8 w-8 text-amber-600"/>}
-      <div><div className="text-sm font-bold text-slate-900">{ready?(data.isDemo?'Simulasi: struktur dan nominal konsisten':'Lulus validasi struktur & konsistensi'):'Belum memenuhi gate Post-PO'}</div>
+      <div><div className="text-sm font-bold text-slate-900">{ready?'Sumber D1 dan field konsisten — dokumen unsigned':'Belum memenuhi gate Post-PO'}</div>
        <p className="text-xs text-slate-500">Registrasi: {regIssues.length} temuan · Proyek: {prjIssues.length} temuan</p></div>
      </div>
      {findings.length>0&&<div className="mt-3 max-h-[440px] overflow-y-auto rounded-lg border border-amber-200 bg-amber-50 p-3">
