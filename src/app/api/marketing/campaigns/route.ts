@@ -137,3 +137,54 @@ export async function PATCH(req:Request){
   return fail('Campaign gagal diubah. Periksa data atau koneksi D1.',503);
  }
 }
+
+/**
+ * Permanently remove an unlinked Campaign. Administrative cleanup is intentionally
+ * distinct from the ordinary edit permission: even final Campaigns may be removed
+ * only when not referenced by a Lead. Atomic D1 batch preserves an audit tombstone.
+ */
+export async function DELETE(req:Request){
+ const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
+ const {db,role,email}=auth.identity;
+ if(role!=='admin')return fail('Hanya Admin dapat menghapus Campaign.',403);
+ if(!ownOrigin(req))return fail('Origin permintaan tidak diizinkan',403);
+ try{
+  const raw=await req.text();
+  if(raw.length>1000)return fail('Permintaan penghapusan terlalu besar',413);
+  let parsed:unknown;
+  try{parsed=JSON.parse(raw);}catch{return fail('Data penghapusan tidak valid',422);}
+  if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return fail('Data penghapusan tidak valid',422);
+  const body=parsed as Record<string,unknown>;
+  if(!safeID(body.id))return fail('ID Campaign tidak valid',422);
+  const revision=body.revision;
+  if(!Number.isSafeInteger(revision)||Number(revision)<1)return fail('Revisi Campaign tidak valid',422);
+  if(typeof body.code!=='string'||!body.code.trim())return fail('Konfirmasi kode Campaign wajib diisi',422);
+  const code=body.code.trim().toUpperCase();
+  const current=await db.prepare('SELECT id,code,name,revision,status FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
+   .bind(body.id,TENANT).first<{id:string;code:string;name:string;revision:number;status:string}>();
+  if(!current)return fail('Campaign sudah dihapus atau tidak ditemukan',404);
+  if(current.code!==code)return fail('Konfirmasi kode Campaign tidak sesuai',409);
+  if(current.revision!==revision)return fail('Campaign sudah diperbarui. Muat ulang sebelum menghapus',409);
+  const linked=await db.prepare('SELECT COUNT(*) AS n FROM india_marketing_leads WHERE tenant_id=? AND campaign_id=?')
+   .bind(TENANT,current.id).first<{n:number}>();
+  if(Number(linked?.n||0)>0)return fail('Campaign memiliki Lead terkait. Penghapusan ditolak agar histori dan atribusi tidak rusak.',409);
+  // Both guards repeat inside ONE transaction, protecting against concurrent edits
+  // and new Lead registrations between the precheck and the delete operation.
+  const guard='tenant_id=? AND id=? AND revision=? AND code=? AND NOT EXISTS (SELECT 1 FROM india_marketing_leads WHERE tenant_id=? AND campaign_id=?)';
+  const summary='Deleted Campaign '+current.code+' | status='+current.status+' | name='+current.name;
+  const changes=await db.batch([
+   db.prepare(`INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary)
+    SELECT ?,tenant_id,'campaign',id,'DELETE',?,? FROM india_marketing_campaigns WHERE ${guard}`)
+    .bind(crypto.randomUUID(),email,summary,TENANT,current.id,revision,code,TENANT,current.id),
+   db.prepare(`DELETE FROM india_marketing_campaigns WHERE ${guard}`)
+    .bind(TENANT,current.id,revision,code,TENANT,current.id)
+  ]) as {meta?:{changes:number}}[];
+  if(changes?.[0]?.meta?.changes!==1||changes?.[1]?.meta?.changes!==1)
+   return fail('Campaign berubah atau telah terhubung ke Lead. Muat ulang.',409);
+  return reply({success:true,id:current.id,code:current.code,deleted:true});
+ }catch(e){
+  if(/FOREIGN KEY constraint failed|constraint failed/i.test(String(e)))
+   return fail('Campaign sedang digunakan transaksi lain. Penghapusan ditolak.',409);
+  return fail('Campaign gagal dihapus. Periksa koneksi D1 dan ulangi.',503);
+ }
+}
