@@ -15,8 +15,8 @@ export async function GET(req:Request){
   if(section==='health'){
    const start=Date.now();const ping=await db.prepare('SELECT 1 AS ok').first<{ok:number}>();
    const [migrations,manifest,members,guard,events]=await Promise.all([
-    db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all(),
-    db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all(),
+    db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all<{version:number|string}>(),
+    db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all<{path:string}>(),
     db.prepare('SELECT role,count(*) AS active_users FROM india_members WHERE active=1 GROUP BY role').all(),
     db.prepare('SELECT count(*) AS pending FROM india_sales_tx_guards').first(),
     db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all()
