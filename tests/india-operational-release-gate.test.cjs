@@ -88,3 +88,21 @@ test('independent restore rejects a forged checksum and produces no evidence',()
   assert.equal(fs.existsSync(evidence),false);
  }finally{fs.rmSync(dir,{recursive:true,force:true});}
 });
+
+
+test('release preflight requires real seven-provider D1 catalog, no fabricated virtual rows',async()=>{
+ const {validateProviderCatalog}=await import('file://'+path.join(root,'scripts/india-ai-provider-catalog-gate.mjs'));
+ const ids=['openai','gemini','anthropic','groq','openrouter','deepseek','mistral'];
+ const rows=ids.map((provider_id,i)=>({provider_id,model:'model-'+i,priority:i+1,enabled:0,has_key:0,tested_ok:null}));
+ assert.deepEqual(validateProviderCatalog(rows),{providers:7,enabled:0});
+ assert.throws(()=>validateProviderCatalog([rows[6]]),/seven stored provider records required/);
+ assert.throws(()=>validateProviderCatalog(rows.map((r,i)=>i===5?{...r,provider_id:'mistral'}:r)),/missing or unexpected provider ID/);
+ assert.throws(()=>validateProviderCatalog(rows.map((r,i)=>i===5?{...r,priority:1}:r)),/priorities must be unique/);
+ assert.throws(()=>validateProviderCatalog(rows.map((r,i)=>i===6?{...r,enabled:1}:r)),/enabled provider lacks encrypted key/);
+ assert.throws(()=>validateProviderCatalog(rows.map((r,i)=>i===6?{...r,enabled:1,has_key:1,tested_ok:0}:r)),/enabled provider lacks encrypted key/);
+ assert.deepEqual(validateProviderCatalog(rows.map((r,i)=>i===6?{...r,enabled:1,has_key:1,tested_ok:1}:r)),{providers:7,enabled:1});
+ const source=fs.readFileSync(preflight,'utf8');
+ assert.match(source,/validateProviderCatalog\(providerRows\)/);
+ assert.match(source,/FROM india_ai_providers ORDER BY priority/);
+ assert.doesNotMatch(source,/SELECT key_ciphertext,key_iv/);
+});
