@@ -6,6 +6,7 @@ export const AI_PROVIDERS = [
   { id:'groq', name:'Groq', model:'llama-3.3-70b-versatile', models:['llama-3.3-70b-versatile'] },
   { id:'openrouter', name:'OpenRouter', model:'openai/gpt-4o-mini', models:['openai/gpt-4o-mini','anthropic/claude-sonnet-4.5','google/gemini-2.5-flash'] },
   { id:'deepseek', name:'DeepSeek', model:'deepseek-chat', models:['deepseek-chat','deepseek-reasoner'] },
+  { id:'mistral', name:'Mistral AI', model:'mistral-small-latest', models:['mistral-small-latest','mistral-large-latest'] },
 ] as const;
 
 export type ProviderId = (typeof AI_PROVIDERS)[number]['id'];
