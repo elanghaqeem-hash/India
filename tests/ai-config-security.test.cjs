@@ -51,10 +51,12 @@ test('mobile link is reachable, browser does not show saved key values',()=>{
  const ui=text('src/app/settings/ai/page.tsx');
  const nav=text('src/components/layout/MobileNav.tsx');
  const sidebar=text('src/components/layout/Sidebar.tsx');
+ const menu=text('src/lib/enterprise-navigation.ts');
  assert.match(ui,/type="password"/);
  assert.match(ui,/p\.hasKey/);
  assert.doesNotMatch(ui,/type={showKey/);
  assert.match(ui,/x-india-ai-admin/);
- assert.match(nav,/AI Keys/);
- assert.match(sidebar,/AI Connections & API Keys/);
+ assert.match(menu,/AI Connections & API Keys/);
+ assert.match(nav,/navigationForRole/);
+ assert.match(sidebar,/navigationForRole/);
 });
