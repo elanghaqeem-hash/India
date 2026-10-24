@@ -1,4 +1,4 @@
-name: INDIA production ICOP AI composer hotfix release (one-time)
+name: INDIA production AI context rollout - fail closed
 
 on:
   push:
@@ -22,6 +22,9 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: 208155f241d4da84e1a6a9b44b7a8d28
       NEXT_TELEMETRY_DISABLED: '1'
       CI: 'true'
+      INDIA_PROD_VERIFIED_BACKUP_SHA256: ${{ secrets.INDIA_PROD_VERIFIED_BACKUP_SHA256 }}
+      INDIA_PROD_SIGNED_ACCESS_UAT: ${{ vars.INDIA_PROD_SIGNED_ACCESS_UAT }}
+      INDIA_PROD_FINANCE_SECURITY_SIGNOFF: ${{ vars.INDIA_PROD_FINANCE_SECURITY_SIGNOFF }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,6 +35,8 @@ jobs:
       - name: Require merged reviewed mobile chat hotfix
         run: |
           git merge-base --is-ancestor ae4336a48514cefe4df768936a6e1946673603f0 HEAD
+          git merge-base --is-ancestor 3b765b80879c1ea23b75bab894d8e4279d2ed5cf HEAD
+          grep -q "topic_hint: activeChatTopic" src/components/layout/Navbar.tsx
           grep -q "createPortal(" src/components/layout/Navbar.tsx
           grep -q "icop-ai-chat-open" src/app/globals.css
       - name: Verify Cloudflare token configured, do not disclose its value
@@ -40,26 +45,26 @@ jobs:
             echo "BLOCKED: Cloudflare deploy API token is not configured in Actions secrets."
             exit 2
           fi
-      - name: Snapshot production version and enforce immutable D1/Access/AI secret gates
+      - name: Preflight source compatibility and establish production rollback checkpoint
         id: checkpoint
-        run: node scripts/india-chat-hotfix-release-gate.mjs before
+        run: node scripts/india-prod-ai-schema-preflight.mjs before
       - name: Install dependencies
         run: npm install --no-audit --no-fund
-      - name: Layout and security regression tests
-        run: npm run test:layout && npm run test:ai
+      - name: Layout, conversation and security regression tests
+        run: npm run test:layout && npm run test:ai && npm run test:runtime-compat
       - name: TypeScript check
         run: npm run typecheck
       - name: Production Next.js build
         run: npm run build
       - name: OpenNext Cloudflare packaging
         run: npx opennextjs-cloudflare build
-      - name: Deploy approved UI hotfix to existing INDIA worker
+      - name: Deploy approved AI context release to existing INDIA Worker
         id: deploy
         run: npx opennextjs-cloudflare deploy
       - name: Verify new Worker version and unchanged production bindings
         env:
           INDIA_PREVIOUS_VERSION: ${{ steps.checkpoint.outputs.previous_version }}
-        run: node scripts/india-chat-hotfix-release-gate.mjs after
+        run: node scripts/india-prod-ai-schema-preflight.mjs after
       - name: Roll back to checkpoint if deployed Worker binding verification fails
         if: failure() && steps.deploy.outcome == 'success' && steps.checkpoint.outputs.previous_version != ''
         env:
