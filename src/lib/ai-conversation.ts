@@ -122,15 +122,27 @@ export function activeChatTopic(history:readonly AIConversationTurn[]):AIChatTop
  return null;
 }
 
+/**
+ * The browser retains all successful chat turns in memory while the wire format
+ * includes only six recent pairs. A bounded taxonomy hint from the full session
+ * can recover an older topic after the original subject scrolls out of context.
+ * No arbitrary user-provided instructions or old transcript text are accepted.
+ */
+export function parseConversationTopicHint(raw:unknown):AIChatTopic|null {
+ return typeof raw==='string'&&chatTopics.some(entry=>entry.id===raw)?raw as AIChatTopic:null;
+}
+
 /** Explicitly unrelated new subjects must not be forced back into old VAPT context. */
 export function contextualConversationAnchor(
- prompt:string,history:readonly AIConversationTurn[]
+ prompt:string,history:readonly AIConversationTurn[],topicHint?:unknown
 ):AIConversationAnchor|null {
  if(history.length<2 || prompt.length>200 || unrelatedSubject.test(prompt))return null;
  const recent=prompt.toLowerCase().replace(/\bmans\b/g,'mana').replace(/\byg\b/g,'yang');
  if(!followUpWords.test(recent))return null;
  const current=chatTopics.find(item=>item.pattern.test(prompt));
- const oldTopic=activeChatTopic(history);
+ // Do not permit a client hint to override an explicit topic switch in this prompt.
+ // The hint is a finite category, not narrative instructions or authorization.
+ const oldTopic=activeChatTopic(history)||parseConversationTopicHint(topicHint);
  if(!oldTopic || (current && current.id!==oldTopic))return null;
  const entry=chatTopics.find(x=>x.id===oldTopic)!;
  const comparison=comparisonWords.test(recent);
