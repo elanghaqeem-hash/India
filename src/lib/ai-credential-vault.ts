@@ -1,6 +1,5 @@
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import type { D1DB } from './boq-auth';
-import type { AIConversationRequest, AIConversationTurn } from './ai-conversation';
 import { AI_PROVIDERS, type ProviderId, type AIProviderRow, type AIProviderPublic,
   publicProvider, isProviderId } from './ai-provider-registry';
 
@@ -77,6 +76,7 @@ export async function probeProvider(id:ProviderId,model:string,apiKey:string):Pr
    groq:'https://api.groq.com/openai/v1/chat/completions',
    openrouter:'https://openrouter.ai/api/v1/chat/completions',
    deepseek:'https://api.deepseek.com/chat/completions',
+   mistral:'https://api.mistral.ai/v1/chat/completions',
   };
   url=endpoints[id];headers.Authorization='Bearer '+apiKey;
   body={model,messages:[{role:'user',content:'Respond PONG'}],max_tokens:12};
@@ -91,31 +91,27 @@ export async function probeProvider(id:ProviderId,model:string,apiKey:string):Pr
 }
 
 /** Admin-only test console and future server-side routing. Never use for public unauthenticated input. */
-export async function invokeAI(id:ProviderId,model:string,apiKey:string,prompt:string|AIConversationRequest):Promise<string>{
+export async function invokeAI(id:ProviderId,model:string,apiKey:string,prompt:string):Promise<string>{
  let url:string,headers:Record<string,string>={'Content-Type':'application/json'};
- const system = typeof prompt === 'string' ? undefined : prompt.system;
- const messages:AIConversationTurn[] = typeof prompt === 'string'
-  ? [{role:'user',content:prompt}]
-  : prompt.messages;
  let body:unknown;
  if(id==='gemini'){
   url='https://generativelanguage.googleapis.com/v1beta/models/'+encodeURIComponent(model)+':generateContent';
   headers['x-goog-api-key']=apiKey;
-  body={contents:messages.map(message=>({role:message.role==='assistant'?'model':'user',parts:[{text:message.content}]})),
-   ...(system?{systemInstruction:{parts:[{text:system}]}}:{}),generationConfig:{maxOutputTokens:750}};
+  body={contents:[{parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:750}};
  }else if(id==='anthropic'){
   url='https://api.anthropic.com/v1/messages';
   headers['x-api-key']=apiKey;headers['anthropic-version']='2023-06-01';
-  body={model,max_tokens:750,...(system?{system}:{}),messages};
+  body={model,max_tokens:750,messages:[{role:'user',content:prompt}]};
  }else{
   const endpoints:Record<Exclude<ProviderId,'gemini'|'anthropic'>,string>={
    openai:'https://api.openai.com/v1/chat/completions',
    groq:'https://api.groq.com/openai/v1/chat/completions',
    openrouter:'https://openrouter.ai/api/v1/chat/completions',
    deepseek:'https://api.deepseek.com/chat/completions',
+   mistral:'https://api.mistral.ai/v1/chat/completions',
   };
   url=endpoints[id];headers.Authorization='Bearer '+apiKey;
-  body={model,messages:[...(system?[{role:'system',content:system}]:[]),...messages],max_tokens:750};
+  body={model,messages:[{role:'user',content:prompt}],max_tokens:750};
  }
  const res=await fetch(url,{method:'POST',headers,body:JSON.stringify(body),signal:AbortSignal.timeout(25000),cache:'no-store'});
  if(!res.ok)throw new Error('Provider '+id+' gagal (HTTP '+res.status+').');
@@ -127,7 +123,7 @@ export async function invokeAI(id:ProviderId,model:string,apiKey:string,prompt:s
 }
 
 /** Used only by authorized API route, with explicit limits on input. */
-export async function runPriorityChain(db:D1DB,prompt:string|AIConversationRequest):Promise<{
+export async function runPriorityChain(db:D1DB,prompt:string):Promise<{
  content:string;providerUsed:string;modelUsed:string;latencyMs:number;tokensEstimate:number;isFallback:boolean;
 }>{
  const started=Date.now();
@@ -140,7 +136,7 @@ export async function runPriorityChain(db:D1DB,prompt:string|AIConversationReque
    const apiKey=await decryptProviderKey(row);
    const content=await invokeAI(row.provider_id,row.model,apiKey,prompt);
    return {content,providerUsed:AI_PROVIDERS.find(x=>x.id===row.provider_id)?.name||row.provider_id,
-     modelUsed:row.model,latencyMs:Date.now()-started,tokensEstimate:Math.round(((typeof prompt==='string'?prompt.length:prompt.system.length+prompt.messages.reduce((n,m)=>n+m.content.length,0))+content.length)/4),
+     modelUsed:row.model,latencyMs:Date.now()-started,tokensEstimate:Math.round((prompt.length+content.length)/4),
      isFallback:attempts.length>0};
   }catch{
    // Never log tokens, prompts or upstream response bodies.
