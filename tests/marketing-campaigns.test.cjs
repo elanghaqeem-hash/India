@@ -101,3 +101,94 @@ test('Campaign and Lead UI have navigation, database-backed options and responsi
  assert.match(sidebar,/navigationForRole/);
  assert.match(navigation,/\/sales\/campaigns/);
 });
+
+test('Campaign form selects only active server-provided owners and surfaces a failed save without discarding draft',()=>{
+ const api=fs.readFileSync(path.join(root,'src/app/api/marketing/campaigns/route.ts'),'utf8');
+ const page=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
+ assert.match(api,/SELECT email,role FROM india_members WHERE active=1 AND role IN/);
+ assert.match(api,/const owners=canEditCampaign\(role\)/);
+ assert.match(api,/Owner tidak terdaftar atau tidak aktif/);
+ assert.match(page,/owners\.map\(x=><option/);
+ assert.match(page,/selectedOwner=owners\.find/);
+ assert.match(page,/!ownerValid/);
+ assert.match(page,/setError\(e instanceof Error\?e\.message:String\(e\)\)/);
+ assert.match(page,/role="alert"/);
+ assert.doesNotMatch(page,/\['owner_email','Owner email aktif \*'/);
+});
+
+test('Campaign registration API persists valid active Owner, rejects unknown Owner and hides directory from Sales',async()=>{
+ const db=new DatabaseSync(':memory:');
+ db.exec('PRAGMA foreign_keys=ON;CREATE TABLE india_schema_migrations(version INTEGER PRIMARY KEY)');
+ db.exec("CREATE TABLE india_members(email TEXT PRIMARY KEY COLLATE NOCASE,role TEXT CHECK(role IN ('admin','finance','presales','sales','approver','viewer')),active INTEGER DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP,created_by TEXT)");
+ for(const name of ['0004_india_sales_isolation.sql','0005_marketing_lead_flow.sql','0009_lead_request_idempotency.sql','0010_marketing_campaigns.sql'])
+  db.exec(sql(name));
+ db.exec("CREATE TABLE india_sales_audit(id TEXT PRIMARY KEY,tenant_id TEXT,entity_type TEXT,entity_id TEXT,action TEXT,actor_email TEXT,summary TEXT)");
+ const members=[
+  ['uat.admin@example.test','admin',1],['uat.marketing@example.test','marketing',1],
+  ['uat.sales@example.test','sales',1],['uat.inactive@example.test','marketing',0]
+ ];
+ for(const member of members)db.prepare('INSERT INTO india_members(email,role,active) VALUES(?,?,?)').run(...member);
+ const d1={
+  prepare(q){return {_q:q,_args:[],
+   bind(...a){this._args=a;return this;},
+   async all(){return {results:db.prepare(this._q).all(...this._args),success:true};},
+   async first(){return db.prepare(this._q).get(...this._args)||null;},
+   async run(){const r=db.prepare(this._q).run(...this._args);return {success:true,meta:{changes:r.changes}};}
+  };},
+  async batch(items){
+   db.exec('BEGIN IMMEDIATE');
+   try{
+    const results=items.map(x=>({success:true,meta:{changes:db.prepare(x._q).run(...x._args).changes}}));
+    db.exec('COMMIT');return results;
+   }catch(e){db.exec('ROLLBACK');throw e;}
+  }
+ };
+ const mod={exports:{}};
+ const js=ts.transpileModule(fs.readFileSync(path.join(root,'src/app/api/marketing/campaigns/route.ts'),'utf8'),{
+  compilerOptions:{target:ts.ScriptTarget.ES2022,module:ts.ModuleKind.CommonJS,esModuleInterop:true}
+ }).outputText;
+ new Function('require','module','exports',js)(p=>{
+  if(p==='@/lib/boq-auth')return {
+   privateHeaders:{'Cache-Control':'no-store'},
+   authorizeBoQ:async req=>{
+    const email=req.headers.get('x-uat-email');
+    const member=db.prepare('SELECT role,active FROM india_members WHERE email=?').get(email);
+    return member?.active===1?{ok:true,identity:{db:d1,email,role:member.role}}:
+     {ok:false,response:Response.json({success:false,message:'Access denied'},{status:403})};
+   }
+  };
+  if(p==='@/lib/sales-workflow')return domain('sales-workflow');
+  if(p==='@/lib/marketing-campaign')return campaign;
+  throw Error('Unexpected campaign route import '+p);
+ },mod,mod.exports);
+ const call=async(method,email,payload)=>{
+  const req=new Request('https://india-uat.example.test/api/marketing/campaigns',{
+   method,headers:{origin:'https://india-uat.example.test','x-uat-email':email,'Content-Type':'application/json'},
+   ...(payload?{body:JSON.stringify(payload)}:{})
+  });
+  const res=await mod.exports[method](req);
+  return {status:res.status,body:await res.json()};
+ };
+ try{
+  const admin='uat.admin@example.test';
+  const list=await call('GET',admin);
+  assert.equal(list.status,200);
+  assert.equal(list.body.role,'admin');
+  assert.equal(list.body.owners.length,3);
+  assert.equal(list.body.owners.some(x=>x.email==='uat.inactive@example.test'),false);
+  const sales=await call('GET','uat.sales@example.test');
+  assert.equal(sales.status,200);
+  assert.deepEqual(sales.body.owners,[]);
+  const unauthorized=await call('POST','uat.sales@example.test',{...valid,owner_email:'uat.sales@example.test'});
+  assert.equal(unauthorized.status,403);
+  const missing=await call('POST',admin,{...valid,owner_email:'maria.hayu@defendit360.co.id'});
+  assert.equal(missing.status,422);
+  assert.match(missing.body.message,/Owner tidak terdaftar/);
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM india_marketing_campaigns').get().n,0);
+  const created=await call('POST',admin,{...valid,code:'',owner_email:'uat.marketing@example.test'});
+  assert.equal(created.status,201,JSON.stringify(created.body));
+  assert.match(created.body.code,/^CMP-/);
+  assert.equal(db.prepare('SELECT owner_email FROM india_marketing_campaigns WHERE id=?').get(created.body.id).owner_email,'uat.marketing@example.test');
+  assert.equal(db.prepare("SELECT COUNT(*) n FROM india_sales_audit WHERE entity_type='campaign' AND action='CREATE'").get().n,1);
+ }finally{db.close();}
+});
