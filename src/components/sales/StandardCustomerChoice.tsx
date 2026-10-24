@@ -1,8 +1,8 @@
 'use client';
 import {useEffect,useId,useState} from 'react';
-import {businessTypeOptions,CUSTOMER_SEGMENTS} from '@/lib/customer-classification';
+import {businessTypeOptions,CUSTOMER_INDUSTRIES,CUSTOMER_SEGMENTS} from '@/lib/customer-classification';
 
-type Field='client_tier'|'business_type';
+type Field='client_tier'|'industry'|'business_type';
 type Props={
  field:Field;label:string;value:string;industry?:string;disabled?:boolean;
  onChange:(value:string)=>void;
@@ -14,7 +14,7 @@ const control='mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate
 export function StandardCustomerChoice({field,label,value,industry='',disabled=false,onChange}:Props){
  const selectId=useId(),customId=useId();
  const [manual,setManual]=useState(false);
- const options:readonly string[]=field==='client_tier'?CUSTOMER_SEGMENTS:businessTypeOptions(industry);
+ const options:readonly string[]=field==='client_tier'?CUSTOMER_SEGMENTS:field==='industry'?CUSTOMER_INDUSTRIES:businessTypeOptions(industry);
  const known=options.includes(value);
  // Existing free-text values must be preserved and editable; never silently discard them.
  const custom=manual||Boolean(value&&!known);
@@ -27,12 +27,12 @@ export function StandardCustomerChoice({field,label,value,industry='',disabled=f
   <label htmlFor={selectId}>{label}</label>
   <select id={selectId} aria-label={label} disabled={disabled} className={control}
    value={custom?OTHER:value} onChange={e=>choose(e.target.value)}>
-   <option value="">— Pilih {field==='client_tier'?'segmentasi pelanggan':'bidang usaha'} —</option>
+   <option value="">— Pilih {field==='client_tier'?'segmentasi pelanggan':field==='industry'?'sektor industri':'bidang usaha'} —</option>
    {options.map(choice=><option key={choice} value={choice}>{choice}</option>)}
    <option value={OTHER}>Lainnya — isi manual</option>
   </select>
   {custom&&<div className="mt-2">
-   <label htmlFor={customId} className="block text-[11px] text-slate-600">Tulis {field==='client_tier'?'segmentasi pelanggan':'bidang usaha'} yang sesuai</label>
+   <label htmlFor={customId} className="block text-[11px] text-slate-600">Tulis {field==='client_tier'?'segmentasi pelanggan':field==='industry'?'sektor industri':'bidang usaha'} yang sesuai</label>
    <input id={customId} type="text" maxLength={180} autoComplete="off" disabled={disabled}
     className={control} placeholder="Ketik nilai selain pilihan di atas"
     value={value} onChange={e=>onChange(e.target.value)}/>
@@ -41,6 +41,7 @@ export function StandardCustomerChoice({field,label,value,industry='',disabled=f
    {industry?'Pilihan disesuaikan dengan Sektor industri.':'Pilih Sektor industri untuk rekomendasi yang lebih spesifik.'}
    {' '}Jika tidak tersedia, gunakan “Lainnya”.
   </p>}
+  {field==='industry'&&<p className="mt-1 text-[11px] font-normal text-slate-500">Pilih sektor utama pelanggan untuk rekomendasi bidang usaha.</p>}
   {field==='client_tier'&&<p className="mt-1 text-[11px] font-normal text-slate-500">Opsional, dapat diperbarui setelah registrasi.</p>}
  </div>;
 }
