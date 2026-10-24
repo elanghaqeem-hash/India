@@ -101,3 +101,17 @@ test('Campaign and Lead UI have navigation, database-backed options and responsi
  assert.match(sidebar,/navigationForRole/);
  assert.match(navigation,/\/sales\/campaigns/);
 });
+
+test('Campaign form selects only active server-provided owners and surfaces a failed save without discarding draft',()=>{
+ const api=fs.readFileSync(path.join(root,'src/app/api/marketing/campaigns/route.ts'),'utf8');
+ const page=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
+ assert.match(api,/SELECT email,role FROM india_members WHERE active=1 AND role IN/);
+ assert.match(api,/const owners=canEditCampaign\(role\)/);
+ assert.match(api,/Owner tidak terdaftar atau tidak aktif/);
+ assert.match(page,/owners\.map\(x=><option/);
+ assert.match(page,/selectedOwner=owners\.find/);
+ assert.match(page,/!ownerValid/);
+ assert.match(page,/setError\(e instanceof Error\?e\.message:String\(e\)\)/);
+ assert.match(page,/role="alert"/);
+ assert.doesNotMatch(page,/\['owner_email','Owner email aktif \*'/);
+});
