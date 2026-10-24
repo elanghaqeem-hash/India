@@ -1,0 +1,57 @@
+name: INDIA Operational Release Gate Evidence
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - scripts/india-operational-gate.mjs
+      - scripts/india-d1-0028-restore-rehearsal.py
+      - tests/india-operational-release-gate.test.cjs
+      - .github/workflows/india-operational-release-gate.yml
+      - docs/INDIA_OPERATIONAL_RELEASE_GATE_20261024.md
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'OFFLINE: synthetic regression only; LIVE_READONLY: isolated Worker/Access/D1 preflight'
+        required: true
+        type: choice
+        options: [OFFLINE, LIVE_READONLY]
+permissions:
+  contents: read
+concurrency:
+  group: india-operational-gate-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  offline:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Python
+        run: python3 --version
+      - name: Fail-closed controls and independent SQLite restore/rollback on synthetic fixture
+        run: node --test tests/india-operational-release-gate.test.cjs
+      - name: Validate JavaScript syntax
+        run: node --check scripts/india-operational-gate.mjs
+  live_control_plane:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.mode == 'LIVE_READONLY' }}
+    needs: offline
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: india-uat
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Verify dedicated candidate Worker, isolated D1 and protected Access roster
+        env:
+          INDIA_GATE_WORKER_NAME: ${{ vars.INDIA_GATE_WORKER_NAME }}
+          INDIA_GATE_D1_ID: ${{ vars.INDIA_GATE_D1_ID }}
+          INDIA_GATE_SHA: ${{ github.sha }}
+          INDIA_GATE_ACCESS_APP_ID: ${{ vars.INDIA_GATE_ACCESS_APP_ID }}
+          INDIA_GATE_TOKEN: ${{ secrets.INDIA_GATE_READ_ONLY_TOKEN }}
+        run: node scripts/india-operational-gate.mjs --preflight
+# This workflow NEVER deploys, changes D1, publishes backups or marks production PASS.
