@@ -12,7 +12,7 @@ const source = fs.readFileSync(path.join(base, 'src/middleware.ts'), 'utf8');
 const js = ts.transpileModule(source, {
   compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 }
 }).outputText;
-const module = { exports: {} };
+const sandboxModule = { exports: {} };
 const nextServer = {
   NextResponse: {
     next: () => ({ status: 200, allowed: true }),
@@ -20,13 +20,13 @@ const nextServer = {
   }
 };
 vm.runInNewContext(js, {
-  exports: module.exports,
+  exports: sandboxModule.exports,
   require: name => {
     assert.equal(name, 'next/server');
     return nextServer;
   }
 }, { filename: 'src/middleware.ts' });
-const { middleware, isEnabledD1ApiRoute } = module.exports;
+const { middleware, isEnabledD1ApiRoute } = sandboxModule.exports;
 
 const permitted = [
   '/api/boq', '/api/boq/catalog', '/api/ai/config', '/api/ai/generate',
