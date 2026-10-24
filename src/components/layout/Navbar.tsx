@@ -110,7 +110,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-india-ai-admin': '1' },
-        body: JSON.stringify({ prompt: userText, history }),
+        body: JSON.stringify({ prompt: userText, history, topic_hint: activeChatTopic(conversationTurns) }),
       });
       const data = await res.json();
       if (data.success && typeof data.content === 'string' && data.content.trim()) {
