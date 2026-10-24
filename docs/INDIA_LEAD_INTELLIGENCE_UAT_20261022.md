@@ -38,3 +38,17 @@
 
 ## Not included in this incremental PR
 Outbound automated communications, consent capture/provider sending, policy editor and score weight administration, machine-learning win probability, real Cloudflare Access human UAT, D1 production migration, Cron production installation.
+
+## Isolated Cloudflare D1 execution — 22 October 2026
+
+- UAT source: `india-uat-users-db` / `eaed652e-7322-4950-a304-dd50baa5de02`, initial max migration=13 and `quick_check=ok` / FK=0.
+- A fresh **Cloudflare SQL export was generated** at bookmark `00000022-00000000-0000510c-18b487aa3247d1f368ca0945773b423f`. The export URL is short-lived and not stored in GitHub; an offline/downloaded copy could not be obtained in this execution environment.
+- Creating another restore DB failed safely: Cloudflare quota 7406 (10 databases per account). Reused previously restored PR21 clone `4539347e-3fdb-4442-997d-4fa69847525d`. All 126 schema objects compared equal; readable application rows matched, apart from SQL migration ledger timestamps. Reserved Cloudflare internal `_cf_KV` does not permit normal query-based comparison.
+- Migration `0014_lead_intelligence.sql` rehearsed on the restore clone **first**, then applied to UAT source in an independent 11-statement D1 API batch. Both now show version 14, empty new nurture tables, `quick_check=ok`, zero FK violations. UAT source still retains two preexisting Lead rows, eight members, two Lead/Opportunity links, and fourteen Sales audit records.
+- Production binding `8395dd84-1b7d-4eaf-9990-1d8e75a42cb5` remains on max version 12; no production D1 or Worker deployment occurred.
+- Signed-human five-role UAT remains **BLOCKED**: Cloudflare Access on `uat-india.elang-haqeem.workers.dev` permits only the approved real administrator; UAT Sales A and B identities are `.invalid` fixtures, and no real Marketing/Viewer signed sessions are available. Its frontend release SHA remains `8de0717aae6b406f9d217a855e28c85ff40bc238` (not PR #22). No fake JWTs, role-policy weakening, or false HTTP/browser UAT PASS.
+- PR #21 Cron source now conditionally enables versioned nurturing reminders after migration 0014. Its [GitHub activity CI run](https://github.com/elanghaqeem-hash/India/actions/runs/39737795151) passed. The UAT Cron Worker upload succeeded with version `5bb2c333-cf49-4a80-8c20-cea2ad87e60c` and UAT-only D1 binding. Actual scheduled invocation of that exact version and idempotency remain a separate evidence gate.
+
+## Revised PR #21 Cron / 0014 UAT probe result
+The real UAT scheduled Worker version `5bb2c333-cf49-4a80-8c20-cea2ad87e60c` is deployed at 100% with only the UAT D1 binding. Synthetic active plan `pr22-uat-nurture-probe-20261022` was due before current WIB date. D1 reported **0** matching alerts before Cron; at **2026-10-22 07:15:48 UTC** it had **1** versioned `lead:nurture:` reminder without manual alert SQL replay. At 07:18:53 UTC count was still one. No claim is made for an independently logged second invocation after the upload: observability was temporarily unset by the upload and subsequently restored; two-tick live proof is an outstanding release gate. The test cadence `* * * * *` was restored to `*/15 * * * *`, and all probe records were cleaned. Original UAT counts and database integrity were reverified.
+Five-role signed human Access UAT remains **blocked** pending real test identities, revised UAT Access allow policy approval and deployment of the reviewed frontend branch. No production migration or deployment.
