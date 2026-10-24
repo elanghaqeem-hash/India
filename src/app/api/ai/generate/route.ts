@@ -32,7 +32,7 @@ export async function POST(req:Request){
  if(origin&&origin!==new URL(req.url).origin)return json({success:false,message:'Origin tidak diizinkan.'},403);
  if(req.headers.get('x-india-ai-admin')!=='1')return json({success:false,message:'Permintaan AI tidak valid.'},403);
 
- let payload:{prompt?:unknown;history?:unknown;task_type?:unknown}|null;
+ let payload:{prompt?:unknown;history?:unknown;task_type?:unknown;topic_hint?:unknown}|null;
  try{
   const raw=await req.text();
   if(raw.length>25000)return json({success:false,message:'Riwayat percakapan terlalu panjang.'},413);
@@ -56,7 +56,7 @@ export async function POST(req:Request){
    latencyMs:0,tokensEstimate:0,isFallback:false});
  }
 
- const anchor=contextualConversationAnchor(prompt,history);
+ const anchor=contextualConversationAnchor(prompt,history,payload?.topic_hint);
  const conversation:AIConversationRequest = {
   system:ICOP_CHAT_INSTRUCTION+(anchor?'\n'+anchor.guidance:''),
   messages:[...history,{role:'user',content:prompt.trim()}],
