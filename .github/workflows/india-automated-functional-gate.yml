@@ -1,0 +1,40 @@
+name: INDIA Comprehensive Automated Functional Release Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/**
+      - migrations/**
+      - tests/**
+      - scripts/india-automated-functional-gate.mjs
+      - package.json
+      - .github/workflows/india-automated-functional-gate.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: india-auto-gate-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  automatic-function-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install locked dependency graph
+        run: npm install --no-audit --no-fund
+      - name: Execute all automatable business gates (never deploy)
+        run: npm run gate:automated
+      - name: Publish non-sensitive source acceptance matrix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-source-auto-release-matrix
+          path: artifacts/india-automated-gate/result.json
+          retention-days: 14
+          if-no-files-found: warn
+# Actual Access JWT, original backup restore, signed transaction and production remain separate gates.
