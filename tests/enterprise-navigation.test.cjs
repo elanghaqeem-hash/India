@@ -19,7 +19,7 @@ test('ten existing business menu groups, no duplicate or demo routes',()=>{
   assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq$|flexguard$|post-po$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
- for(const legacy of ['/','/pricing','/approvals','/tender','/post-po','/proposals'])
+ for(const legacy of ['/','/pricing','/approvals','/tender','/proposals'])
   assert.ok(!all.includes(legacy),legacy);
 });
 
