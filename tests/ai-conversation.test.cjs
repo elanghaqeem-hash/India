@@ -2,7 +2,9 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { selectConversationHistory, parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment, MAX_AI_HISTORY_TURNS, MAX_AI_HISTORY_CHARS } =
+const { selectConversationHistory, parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment,
+  activeChatTopic, contextualConversationAnchor, isClearlyOffTopicChatAnswer, topicalClarification,
+  MAX_AI_HISTORY_TURNS, MAX_AI_HISTORY_CHARS } =
   require('../src/lib/ai-conversation.ts');
 
 const root = path.join(__dirname, '..');
@@ -119,4 +121,46 @@ test('server handles language preference without losing topic or calling model',
   assert.match(route, /languagePreferenceAcknowledgment\(history\)/);
   assert.match(route, /modelUsed:'local-instruction'/);
   assert.match(route, /WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia/);
+});
+
+
+test('misspelled cheaper follow-up refers to VAPT Black, Gray, White Box, not consumer goods',()=>{
+ const history=[
+  {role:'user',content:'Jelaskan jenis penetration testing untuk aplikasi web.'},
+  {role:'assistant',content:'Metode Black Box, Gray Box Testing, dan White Box digunakan untuk VAPT aplikasi.'},
+ ];
+ const anchor=contextualConversationAnchor('Mans yg lebih murah',history);
+ assert.equal(activeChatTopic(history),'vapt');
+ assert.equal(anchor?.topic,'vapt');
+ assert.equal(anchor?.comparison,true);
+ assert.deepEqual(anchor?.methods,['Black Box','Gray Box','White Box']);
+ assert.match(anchor.guidance,/VAPT \/ penetration testing/);
+ assert.match(anchor.guidance,/person-days/);
+ const wrong='Tentu, bisa Anda berikan konteks lebih lanjut? Produk tertentu, pakaian, atau kendaraan?';
+ assert.equal(isClearlyOffTopicChatAnswer(anchor,wrong),true);
+ const repair=topicalClarification(anchor);
+ assert.match(repair,/Black Box, Gray Box, White Box/);
+ assert.doesNotMatch(repair,/pakaian|kendaraan|produk tertentu/i);
+ assert.equal(isClearlyOffTopicChatAnswer(anchor,'Untuk VAPT, biaya tergantung scope dan person-days.'),false);
+});
+
+test('topic changes are respected, ambiguous short VAPT follow-ups retain active thread',()=>{
+ const vapt=[{role:'user',content:'Bandingkan VAPT black box dan gray box.'},
+   {role:'assistant',content:'Keduanya memiliki tingkat akses berbeda.'}];
+ assert.equal(contextualConversationAnchor('Mana yang lebih hemat?',vapt)?.topic,'vapt');
+ assert.equal(contextualConversationAnchor('Berapa biaya SOC/MDR?',vapt),null);
+ assert.equal(contextualConversationAnchor('Harga sepatu untuk olahraga?',vapt),null);
+ assert.equal(contextualConversationAnchor('Jelaskan ancaman ransomware dan mitigasinya',vapt),null);
+ assert.equal(contextualConversationAnchor('Mans yg lebih murah',[]),null);
+ const newTopic=[...vapt,{role:'user',content:'Bagaimana proses tender LPSE?'},{role:'assistant',content:'Dokumen tender mencakup RKS/KAK.'}];
+ assert.equal(contextualConversationAnchor('Bagaimana proses berikutnya?',newTopic)?.topic,'tender');
+});
+test('Admin generate route has server-side context grounding and bounded off-topic recheck',()=>{
+ const src=read('src/app/api/ai/generate/route.ts');
+ assert.match(src,/contextualConversationAnchor\(prompt,history\)/);
+ assert.match(src,/isClearlyOffTopicChatAnswer\(anchor,result\.content\)/);
+ assert.match(src,/local-context-guard/);
+ assert.match(src,/topicalClarification\(anchor\)/);
+ assert.match(src,/runPriorityChain\(auth\.identity\.db,conversation\)/);
+ assert.match(src,/authorizeBoQ\(req\)/);
 });
