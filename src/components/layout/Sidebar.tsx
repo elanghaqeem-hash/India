@@ -22,7 +22,7 @@ export const Sidebar:React.FC<SidebarProps> = ({role}) => {
       </div>
       <nav className="flex-1 space-y-1 px-3 py-3">
         {groups.map(group => (
-          <details key={group.id} className="group rounded-lg" defaultOpen={group.items.some(x=>x.href===pathname)||group.id==='workspace'}>
+          <details key={group.id} className="group rounded-lg" open={group.items.some(x=>x.href===pathname)||group.id==='workspace'}>
             <summary className="flex cursor-pointer list-none items-center justify-between rounded-md px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-indigo-500">
               <span>{group.label}</span>
               <ChevronDown aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-slate-400 transition-transform group-open:rotate-180"/>
