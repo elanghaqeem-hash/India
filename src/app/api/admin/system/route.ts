@@ -4,6 +4,7 @@ import {TENANT,safeID} from '@/lib/sales-workflow';
 import {atomicSales} from '@/lib/sales-transactions';
 import {operationEvent,txt,jakartaDate,csvText} from '@/lib/operations';
 import {effectiveSetting,validateSetting} from '@/lib/system-settings';
+import {evaluateSchemaReadiness} from '@/lib/release-readiness';
 export const dynamic='force-dynamic';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders});
 const fail=(message:string,status=422)=>reply({success:false,message},status);
@@ -14,13 +15,28 @@ export async function GET(req:Request){
   if(section==='health'){
    const start=Date.now();const ping=await db.prepare('SELECT 1 AS ok').first<{ok:number}>();
    const [migrations,manifest,members,guard,events]=await Promise.all([
-    db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all(),
-    db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all(),
+    db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all<{version:number|string}>(),
+    db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all<{path:string}>(),
     db.prepare('SELECT role,count(*) AS active_users FROM india_members WHERE active=1 GROUP BY role').all(),
     db.prepare('SELECT count(*) AS pending FROM india_sales_tx_guards').first(),
     db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all()
    ]);
-   return reply({success:true,role,identityEmail:email,checked_at:new Date().toISOString(),database:{ok:ping?.ok===1,latency_ms:Date.now()-start},migrations:migrations.results,manifest:manifest.results,members:members.results,transaction_guards:guard,latest_events:events.results,backup:{status:'external_verification_required',runbook:'docs/INDIA_MODULES_13_15_20261022.md',note:'Snapshot/restore D1 harus dibuktikan melalui Cloudflare. Pemeriksaan koneksi bukan bukti backup atau restore.'}});
+   const schema=evaluateSchemaReadiness(migrations.results,manifest.results);
+   return reply({success:true,role,identityEmail:email,checked_at:new Date().toISOString(),
+    database:{ok:ping?.ok===1,latency_ms:Date.now()-start},
+    migrations:migrations.results,manifest:manifest.results,members:members.results,transaction_guards:guard,latest_events:events.results,
+    release_readiness:{schema,production_gate:'HOLD',
+     required_evidence:[
+      'Backup dan restore mandiri + checksum sumber asli',
+      'Rekonsiliasi checksum SQL, objek dan data migrasi',
+      'Uji rollback terisolasi tanpa perubahan data lain',
+      'Kontinuitas kunci enkripsi dokumen asli dan Vault',
+      'Bukti UAT Access asli lintas role + pengujian akses ditolak',
+      'Transaksi Won–Delivery–BAST–Invoice–Payment–Renewal',
+      'UAT Android nyata, review keamanan/Finance dan persetujuan rilis',
+     ],
+     note:'Rekonsiliasi ledger/manifest tidak membuktikan uji asli; status HOLD tidak dapat diubah oleh halaman ini.'},
+    backup:{status:'external_verification_required',runbook:'docs/INDIA_SPRINT0_ADR_MIGRATION_RELEASE_20261024.md',note:'Snapshot/restore D1 harus dibuktikan melalui Cloudflare. Pemeriksaan koneksi bukan bukti backup atau restore.'}});
   }
   if(section==='audit'){
    const limit=100,page=Math.max(0,Number(u.searchParams.get('page')||0));if(!Number.isSafeInteger(page)||page>10000)return fail('Halaman tidak valid');
