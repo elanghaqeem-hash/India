@@ -1,7 +1,7 @@
 'use client';
 import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
-import {ArrowLeft,BarChart3,CheckCircle2,Plus,RefreshCw} from 'lucide-react';
+import {ArrowLeft,BarChart3,CheckCircle2,Plus,RefreshCw,Trash2} from 'lucide-react';
 import {campaignChannels,campaignStatuses,generateCampaignCode} from '@/lib/marketing-campaign';
 type Campaign={
  id:string;code:string;name:string;channel:string;status:string;owner_email:string;
@@ -13,7 +13,7 @@ const empty=()=>({code:generateCampaignCode(),name:'',channel:'webinar',status:'
  budget_idr:'0',start_date:'',end_date:'',notes:''});
 const input='mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500 disabled:bg-slate-100';
 const money=(n:number)=>'Rp'+Number(n||0).toLocaleString('id-ID');
-async function request(method:'GET'|'POST'|'PATCH',body?:Record<string,unknown>){
+async function request(method:'GET'|'POST'|'PATCH'|'DELETE',body?:Record<string,unknown>){
  const res=await fetch('/api/marketing/campaigns',{method,credentials:'same-origin',cache:'no-store',
   headers:{'Content-Type':'application/json'},...(body?{body:JSON.stringify(body)}:{})});
  const json=await res.json().catch(()=>null);
@@ -82,6 +82,25 @@ export default function MarketingCampaigns(){
   }catch(e){setError(e instanceof Error?e.message:String(e));}
   finally{setBusy(false);}
  };
+ const removeCampaign=async(c:Campaign)=>{
+  if(role!=='admin'||busy)return;
+  if(c.total>0){
+   setError('Campaign memiliki Lead terkait dan tidak dapat dihapus.');return;
+  }
+  const confirmed=window.confirm(
+   `Hapus Campaign "${c.name}" (${c.code}) secara permanen?\n\n`+
+   'Tindakan ini tidak bisa dibatalkan. Hanya Campaign tanpa Lead terkait yang dapat dihapus. Riwayat audit tetap disimpan.'
+  );
+  if(!confirmed)return;
+  setBusy(true);setError('');setMessage('');
+  try{
+   await request('DELETE',{id:c.id,revision:c.revision,code:c.code});
+   if(editing?.id===c.id){setEditing(null);setNewMode(false);setForm(empty());}
+   await reload();
+   setMessage(`Campaign "${c.name}" berhasil dihapus. Audit penghapusan tersimpan.`);
+  }catch(e){setError(e instanceof Error?e.message:String(e));}
+  finally{setBusy(false);}
+ };
  const active=campaigns.filter(x=>x.status==='active').length;
  const leads=campaigns.reduce((s,x)=>s+x.total,0);
  const converted=campaigns.reduce((s,x)=>s+x.converted,0);
@@ -111,14 +130,26 @@ export default function MarketingCampaigns(){
      <button type="button" disabled={busy} onClick={()=>void reload()} className="rounded-lg border p-2" aria-label="Refresh"><RefreshCw size={14}/></button>
     </div>
     {campaigns.length===0?<p className="rounded-lg bg-slate-50 p-4 text-xs text-slate-500">Belum ada Campaign atau akses Anda hanya menampilkan Campaign aktif. Marketing dapat membuat Campaign baru.</p>:
-     campaigns.map(c=><button key={c.id} onClick={()=>select(c)} className={'w-full rounded-lg border p-3 text-left '+(editing?.id===c.id?'border-blue-500 bg-blue-50':'hover:border-blue-200')}>
-      <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">{c.name}</strong><span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase">{c.status}</span></div>
-      <div className="mt-1 text-[11px] text-slate-500">{c.code} · {c.channel} · {c.owner_email}</div>
-      <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-700">
-       <span>Lead <b>{c.total}</b></span><span>Qualified <b>{c.qualified}</b></span>
-       <span>Converted <b>{c.converted}</b></span><span>Conversion <b>{c.conversionRate}%</b></span>
-      </div>
-     </button>)}
+     campaigns.map(c=><div key={c.id} className={'overflow-hidden rounded-lg border '+(editing?.id===c.id?'border-blue-500 bg-blue-50':'hover:border-blue-200')}>
+      <button type="button" disabled={busy} onClick={()=>select(c)} className="block w-full p-3 text-left disabled:opacity-60"
+       aria-label={`Buka Campaign ${c.name}`}>
+       <div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs">{c.name}</strong><span className="rounded bg-slate-100 px-2 py-1 text-[10px] font-bold uppercase">{c.status}</span></div>
+       <div className="mt-1 break-words text-[11px] text-slate-500">{c.code} · {c.channel} · {c.owner_email}</div>
+       <div className="mt-2 flex flex-wrap gap-3 text-[11px] text-slate-700">
+        <span>Lead <b>{c.total}</b></span><span>Qualified <b>{c.qualified}</b></span>
+        <span>Converted <b>{c.converted}</b></span><span>Conversion <b>{c.conversionRate}%</b></span>
+       </div>
+      </button>
+      {role==='admin'&&<div className="flex items-center justify-end gap-2 border-t border-slate-100 px-3 py-2">
+       {c.total>0&&<span className="text-[11px] text-slate-500">Terkunci: ada Lead terkait</span>}
+       <button type="button" disabled={busy||c.total>0} onClick={()=>void removeCampaign(c)}
+        title={c.total>0?'Campaign dengan Lead terkait tidak dapat dihapus':'Hapus Campaign permanen'}
+        aria-label={`Hapus Campaign ${c.name}`}
+        className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40">
+        <Trash2 size={15}/> Hapus
+       </button>
+      </div>}
+     </div>)}
    </section>
    {newMode||editing?<section className="min-w-0 rounded-xl border bg-white p-4">
     <div className="flex items-center justify-between gap-3"><h2 className="font-bold">{editing?'Perbarui Campaign':'Registrasi Campaign'}</h2>
