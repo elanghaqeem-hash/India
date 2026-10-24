@@ -55,3 +55,14 @@ The runner verifies actual Worker D1/Access binding, pinned deployed version, AI
 6. Obtain separate explicit authorization, then migrate production incrementally from ACTUAL baseline 0012 with independently proved backups and rollback. Never skip a version, invent signoff, or bind a shared DB to a candidate Worker.
 
 No production deployment or migration is authorized by this document.
+
+
+## Supplemental live Mistral UAT reconciliation (24 October 2026 WIB)
+
+The isolated D1 clone was inspected after the earlier 0028 Time Travel rehearsal. Actual india_ai_providers contained **only the disabled, unkeyed Mistral row** (priority 7), despite the D1 migration ledger ending at 0028. A schema-only success therefore did **not** prove the seven-provider catalog was populated.
+
+An isolated-UAT-only, guarded idempotent insert restored missing **unkeyed/disabled** provider metadata: openai, gemini, anthropic, groq, openrouter, and deepseek at priorities 1–6. The original Mistral row was not overwritten. Read-only postchecks report seven distinct provider IDs, contiguous priorities 1–7, no configured keys or enabled providers, PRAGMA quick_check=ok, and zero foreign-key violations. **No production D1 or provider credentials were copied or changed.**
+
+The release preflight now explicitly rejects incomplete AI provider records and enabled providers without both an encrypted key and a successful recorded real probe. This removes a false-positive catalog-readiness path. It does NOT replace actual API key provisioning, signed Access-role UAT or transaction-level signoff.
+
+Production is still on migration 0012 with six provider records. The shared UAT D1 is at 0014. The isolated 0028 clone is not connected to a deployed, dedicated Access-protected INDIA candidate Worker and has no live Mistral API test evidence. **Production release remains HOLD** until the original independent backup, Access, credential, operational and signoff gates are satisfied.
