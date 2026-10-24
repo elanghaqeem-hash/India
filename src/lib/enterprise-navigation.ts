@@ -55,6 +55,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
     item('Billing & Collections','/sales/billing',FINANCE),
     item('Revenue Register','/sales/revenue',FINANCE),
     item('Contracts & Renewal','/sales/renewals',COMMERCIAL),
+    item('FlexGuard Token Wallet','/flexguard',['admin','sales','presales','finance','approver']),
   ]},
   {id:'partners',label:'08 · Vendor, OEM & Partners',items:[
     item('Vendor & Partner Records','/partners',PRESALES),
