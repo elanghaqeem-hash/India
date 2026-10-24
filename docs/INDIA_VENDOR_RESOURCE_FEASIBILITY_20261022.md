@@ -1,9 +1,10 @@
 # INDIA — Vendor, Resource & Solution Feasibility (22 October 2026)
 
 ## Status / branch lineage
-- Branch: `feat/india-vendor-resource-feasibility-20261022`
-- Parent: PR #25 (Tender Readiness), which itself builds on PR #24 (vendor and independent clause compliance).
-- D1 migration: `0022_vendor_resource_feasibility.sql`; additive, with no fabricated resources or offers, and without auto-approval of existing deals.
+> **IMPORTANT (23 October 2026):** The original PR #27 migration `0022_vendor_resource_feasibility.sql` conflicts with the newer Vault governance migration `0022_document_vault_governance.sql`. Do not apply the original PR #27 `0022` to any existing or consolidated D1. Canonical integrated PR #35 uses `0025_vendor_resource_feasibility.sql`. Isolated operational UAT findings: `docs/INDIA_FEASIBILITY_ISOLATED_UAT_20261023.md`.
+- Canonical integration candidate: `feat/india-modules-13-15-completion-20261022` (PR #35); original feature was PR #27
+- Dependencies: PR #24 and #25 Vendor/Tender; PR #28 Vault/Tender; canonical migration sequence 0022–0026; subsequent PR #36 adds 0027.
+- D1 migration: `0025_vendor_resource_feasibility.sql`; additive, with no fabricated resources or offers, and without auto-approval of existing deals.
 - Production: **NOT DEPLOYED**. Do not merge this branch straight to main while PR #24/#25 are unmerged.
 
 ## New workflow
@@ -38,7 +39,7 @@ Opportunity → scoping → Feasibility Plan → resource roster → monthly all
 ## Release / UAT checklist (operator-executed; no production writes before approval)
 - [ ] Review/merge dependent PR #24, then #25 according to their own green release gates.
 - [ ] Take a **production-independent D1 UAT** backup/export; prove restoration into isolated database.
-- [ ] Apply migration 0022 only after 0016 through 0021 on the isolated D1. Check schema manifest, migration version, `PRAGMA foreign_key_check` and `PRAGMA quick_check`; verify no existing data altered or deleted.
+- [ ] Apply migration 0025 only after 0016 through 0024 on the isolated D1. Check schema manifest, migration version, `PRAGMA foreign_key_check` and `PRAGMA quick_check`; verify no existing data altered or deleted.
 - [ ] Execute engineer VAPT 2-app sizing, SOC 24x7 staffing, FortiSIEM license SKU and GRC consulting plan; independently verify expense, expiry and gross margin against BoQ.
 - [ ] Test simultaneous Sales A/Sales B, Presales, Finance, Approver and Admin through **real signed Cloudflare Access JWT**, including inability for Sales B to view Sales A Opportunities and confidential HPP redaction.
 - [ ] Reject overlapping reservations, negative/NaN amounts, stale prices, expired vendor quotes, same-maker approval and changed scope after approval.

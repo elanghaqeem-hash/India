@@ -1,0 +1,185 @@
+{
+  "scope": "LOCAL_ONLY: restore exported SQL and rehearse migrations; not remote restore/migration",
+  "backup_sha256": "ca7e56c8777353d04c340d853a9ef337343c82c83a958878f07758894963815e",
+  "backup_bytes": 31641970,
+  "baseline_tables": 51,
+  "baseline_rows": 83788,
+  "baseline_versions": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14
+  ],
+  "baseline_integrity": {
+    "foreign_key_violations": 0,
+    "quick_check": "ok"
+  },
+  "migration_plan": [
+    {
+      "path": "migrations/0015_secure_document_vault.sql",
+      "sha256": "f1552b06efbd0ceee1bb24981f10c36e12e9f453b71911c8a6cef8243cc21597"
+    },
+    {
+      "path": "migrations/0016_tender_vendor_compliance.sql",
+      "sha256": "72dbd5a549e1e7d0b63632cc384f39cbd04e8ac15e802dc378a032991e912c07"
+    },
+    {
+      "path": "migrations/0017_opportunity_email.sql",
+      "sha256": "0dfed396cf0ef406409e4de5f7e881c98456ef10c106dd0b62690911609defea"
+    },
+    {
+      "path": "migrations/0018_sales_forecast.sql",
+      "sha256": "bd95bc26b54865fa419d184cf91ea2883c1a30460a1fb559b6f2e4849bbd881f"
+    },
+    {
+      "path": "migrations/0019_verified_revenue.sql",
+      "sha256": "a700de9336755c5caa47d7db89b0bbfa478afdac6d8bb6267c114147c191ba59"
+    },
+    {
+      "path": "migrations/0020_activity_lead_intelligence.sql",
+      "sha256": "2b42ea58af1a2b97b8f88f60b43ad1b1ef7557fa7ca2bea5abe7f97117d4bfe6"
+    },
+    {
+      "path": "migrations/0021_tender_bid_readiness.sql",
+      "sha256": "405c4742d81b0f0bc734c1029ea707f6e7ef42f144a394d5535b7edb029b6df1"
+    },
+    {
+      "path": "migrations/0022_document_vault_governance.sql",
+      "sha256": "be9072ffecd1d7a9a11c4a528257be481532367977943bd88924c2718e7eb970"
+    },
+    {
+      "path": "migrations/0023_tender_vault_integrity.sql",
+      "sha256": "1ca75019336b19a692adec57347df3d2460894a3b01157a74367003bab6bbc77"
+    },
+    {
+      "path": "migrations/0024_executive_sales_targets.sql",
+      "sha256": "f87a1d4abaf7d00f688a5dd93b4cce9a149577fd0ffdff8f18c2b3a1e6535c6c"
+    },
+    {
+      "path": "migrations/0025_vendor_resource_feasibility.sql",
+      "sha256": "99d4c1566831496c51772e0ac0c2b270919f0283d94dc00a5007c8b16e3e35d2"
+    },
+    {
+      "path": "migrations/0026_partner_reporting_administration.sql",
+      "sha256": "e72eaa4853463c6c6b3eb8d9620b2beec02a40e10f1739aa04804709a0553398"
+    }
+  ],
+  "late_failure_rollback": {
+    "status": "PASS",
+    "foreign_key_violations": 0,
+    "quick_check": "ok",
+    "versions": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "legacy_tables_preserved_exactly_on_original_columns": 51,
+    "changed_metadata_tables": [],
+    "expected_added_columns": {}
+  },
+  "migration_success": {
+    "status": "PASS",
+    "foreign_key_violations": 0,
+    "quick_check": "ok",
+    "versions": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26
+    ],
+    "legacy_tables_preserved_exactly_on_original_columns": 49,
+    "changed_metadata_tables": [
+      "india_schema_file_manifest",
+      "india_schema_migrations"
+    ],
+    "expected_added_columns": {
+      "india_sales_negotiations": [
+        "communication_id"
+      ]
+    }
+  },
+  "checked_at_wib": "2026-10-23T05:34:01.051533+07:00",
+  "source_d1_id": "eaed652e-7322-4950-a304-dd50baa5de02",
+  "export_bookmark": "0000006e-00000000-0000510c-eed041a87a56f3db0ca81b18cfae3257",
+  "remote_restore_migration": {
+    "status": "BLOCKED",
+    "provider_error_code": 7406,
+    "http_status": 403,
+    "reason": "Cloudflare D1 per-account database limit reached (10); no existing database overwritten or deleted"
+  },
+  "human_access": {
+    "status": "BLOCKED",
+    "observed_access_human_users": 1,
+    "uat_policy_allowed_human_users": 1,
+    "nonfixture_active_admin_members": 1,
+    "fixture_members": 7,
+    "required_identity_roles": [
+      "sales_a",
+      "sales_b",
+      "marketing",
+      "presales",
+      "finance",
+      "approver",
+      "legal",
+      "admin",
+      "admin_reviewer"
+    ],
+    "human_jwts_available": false,
+    "note": "No fixture account, service token or role switching counted as distinct authenticated human UAT.",
+    "automated_http_probe": "Cloudflare edge returned HTTP 403 / error 1010; not counted as authenticated Access acceptance"
+  },
+  "source_sync": {
+    "previous_branch_sha": "0a30cde863895536fd92a18578c0e48b87a80b82",
+    "included_main_sha": "f2dd4b6a9db0008fba7a23ddf689a72f9ef4bfa4",
+    "conflicts": 0,
+    "includes": [
+      "all ten Sales stage labels from PR 29",
+      "immutable generated campaign codes"
+    ],
+    "test_repair": "Lead nurture test dates now match WIB instead of UTC, covering the UTC/WIB midnight boundary"
+  },
+  "verification": {
+    "full_regression_and_cloudflare_bundle": "PASS",
+    "consolidation_tests": 26,
+    "new_module_tests": 19,
+    "combined_browser_tests": 8,
+    "browser_scope": "Local production build, desktop and Android emulation; no genuine Access authentication"
+  }
+}

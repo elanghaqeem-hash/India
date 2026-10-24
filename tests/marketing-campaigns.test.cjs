@@ -35,6 +35,29 @@ test('Campaign domain checks real owner, status, budget, dates, and role permiss
  assert.equal(campaign.campaignProgress({total:4,qualified:2,converted:1}).conversionRate,25);
  assert.equal(campaign.campaignProgress({total:0,qualified:0,converted:0}).conversionRate,0);
 });
+test('Campaign codes auto-generate securely, validate, and remain unique across new forms',()=>{
+ const codes=Array.from({length:128},()=>campaign.generateCampaignCode());
+ assert.equal(new Set(codes).size,codes.length);
+ for(const code of codes){
+  assert.match(code,/^CMP-[0-9]{8}-[A-F0-9]{12}$/);
+  assert.equal(campaign.isAutoCampaignCode(code),true);
+  assert.equal(campaign.validateCampaign({...valid,code}).code,code);
+ }
+ assert.equal(campaign.isAutoCampaignCode('FSI_Q4_2026'),false);
+});
+test('Campaign creation auto-generates missing code on server with collision handling and locks code on edit',()=>{
+ const api=fs.readFileSync(path.join(root,'src/app/api/marketing/campaigns/route.ts'),'utf8');
+ const page=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');
+ assert.match(api,/typeof incoming\.code==='string'&&incoming\.code\.trim\(\)\?incoming\.code:generateCampaignCode\(\)/);
+ assert.match(api,/isAutoCampaignCode\(v\.code\)/);
+ assert.match(api,/UNIQUE constraint failed/);
+ assert.match(api,/attempt<4/);
+ assert.match(api,/body\.code\.trim\(\)\.toUpperCase\(\)!==current\.code/);
+ assert.match(page,/code:generateCampaignCode\(\)/);
+ assert.match(page,/Kode unik \(otomatis\)/);
+ assert.match(page,/readOnly=\{key==='code'\}/);
+ assert.doesNotMatch(page,/Kode unik \*/);
+});
 test('Campaign migration adds validated master and Lead attribution FK without fake rows',()=>{
  const db=new DatabaseSync(':memory:');
  db.exec('PRAGMA foreign_keys=ON;CREATE TABLE india_schema_migrations(version INTEGER PRIMARY KEY)');

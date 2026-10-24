@@ -44,7 +44,7 @@ test('authenticated roles, independent review, readiness and onward stage are D1
   const version=h.sql.prepare('SELECT version FROM india_feasibility_plans').get().version;
   await expect(api(h,'presales',{action:'review',version,decision:'approved',review_notes:'Self approval cannot be permitted here'}),403);
   await expect(h.flow('scope','presales'),201);
-  await expect(h.flow('propose','sales',{proposal_reference:'archive/proposal/QA-01',proposal_sha256:'a'.repeat(64)}),200);
+  await expect(h.flow('propose','sales',{...await h.proof('proposal','feasibility')}),200);
   await expect(h.flow('approve','approver'),200);
   await expect(h.stage('solution_design'),200);
   await expect(h.stage('commercial_review'),409);

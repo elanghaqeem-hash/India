@@ -1,3 +1,4 @@
+import {requireVaultDocument,vaultError} from '@/lib/document-vault';
 import {authorizeBoQ,privateHeaders} from '@/lib/boq-auth';
 import {TENANT,safeID,dateValid,requiredForStage,type SalesStage} from '@/lib/sales-workflow';
 import {canReadDeal} from '@/lib/sales-access';
@@ -24,7 +25,7 @@ export async function GET(req:Request){
    db.prepare('SELECT * FROM india_sales_negotiations WHERE tenant_id=? AND opportunity_id=? ORDER BY rowid DESC').bind(TENANT,id).all()
   ]);
   return res({success:true,role,identityEmail:email,deal:{id:d.id,title:d.title,stage:d.stage,flow_version:d.flow_version},releases:releases.results,negotiations:negotiations.results});
- }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return deny(v.message,v.status);}const t=transactionError(e);return deny(t.message,t.status);}
 }
 export async function POST(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return a.response;
@@ -70,6 +71,7 @@ export async function POST(req:Request){
    if(release.status!=='scoped')return deny('Proposal hanya dari scope tervalidasi',409);
    const reference=str(p.proposal_reference),sha=str(p.proposal_sha256).toLowerCase();
    if(reference.length<8||reference.length>400||!digest(sha))return deny('Referensi arsip proposal final dan SHA-256 wajib',422);
+   await requireVaultDocument(db,reference,sha,id,release.id,'proposal');
    const boq=await db.prepare('SELECT * FROM india_boq WHERE tenant_id=? AND id=?').bind(TENANT,f.boq_id||'').first<Boq>();
    if(!boq||boq.status!=='approved'||boq.quotation_number!==f.quotation_number)return deny('BoQ approved dan quotation harus cocok',409);
    const link=checkBoqLink({...boq,line_items:JSON.parse(boq.line_items_json)},d,acc,role,email);if(link)return deny(link,409);
@@ -86,6 +88,7 @@ export async function POST(req:Request){
   if(action==='approve'){
    if(!['admin','approver'].includes(role))return deny('Persetujuan proposal hanya Approver/Admin',403);
    if(release.status!=='proposed')return deny('Proposal harus berstatus Proposed',409);
+   await requireVaultDocument(db,release.proposal_reference!,release.proposal_sha256!,id,release.id,'proposal');
    const boq=await db.prepare('SELECT * FROM india_boq WHERE id=? AND tenant_id=?').bind(release.boq_id!,TENANT).first<Boq>();
    if([release.proposed_by,d.created_by,boq?.created_by].some(x=>x?.trim().toLowerCase()===email.toLowerCase()))return deny('Segregation of Duties: pembuat proposal, opportunity atau BoQ tidak boleh menyetujui sendiri',403);
    if(!boq||boq.status!=='approved'||boq.edit_seq!==release.boq_edit_seq)return deny('Versi BoQ berubah; revisi proposal diperlukan',409);
@@ -119,6 +122,7 @@ export async function POST(req:Request){
     const linked=await db.prepare("SELECT id FROM india_opportunity_emails WHERE id=? AND tenant_id=? AND opportunity_id=? AND direction='inbound' AND (release_id IS NULL OR release_id=?)").bind(communication,TENANT,id,release.id).first();
     if(!linked)return deny('Email harus berasal dari Opportunity dan paket yang sama',409);
    }
+   await requireVaultDocument(db,ref,sha,id,release.id,'negotiation');
    const event=crypto.randomUUID();
    guard.condition+=" AND EXISTS(SELECT 1 FROM india_sales_submissions WHERE id=? AND status='verified' AND release_id=?)";guard.args.push(submission.id,release.id);
    const writes=[db.prepare('INSERT INTO india_sales_negotiations(id,tenant_id,opportunity_id,release_id,submission_id,decision,amount_before_vat,notes,evidence_reference,evidence_sha256,created_by,communication_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(event,TENANT,id,release.id,submission.id,decision,amount,notes,ref,sha,email,communication||null),
@@ -129,5 +133,5 @@ export async function POST(req:Request){
    return res({success:true,id:event,decision},201);
   }
   return deny('Aksi lifecycle tidak dikenal');
- }catch(e){const t=transactionError(e);return deny(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return deny(v.message,v.status);}const t=transactionError(e);return deny(t.message,t.status);}
 }

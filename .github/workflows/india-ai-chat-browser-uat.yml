@@ -1,0 +1,46 @@
+name: INDIA ICOP AI multi-turn browser UAT (isolated mock)
+
+on:
+  push:
+    branches:
+      - fix/india-ai-chat-composer-mobile-20261022
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ai-conversation-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Test conversation and formatting helpers
+        run: npm run test:layout
+      - name: TypeScript verification
+        run: npm run typecheck
+      - name: Build web application
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Android and desktop four-turn browser tests (API mocked, no real customer data)
+        run: |
+          npm run start -- -p 3124 > /tmp/india-chat-uat.log 2>&1 &
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3124/ > /dev/null; then break; fi
+            sleep 2
+          done
+          if ! curl -fsS http://127.0.0.1:3124/ > /dev/null; then
+            cat /tmp/india-chat-uat.log
+            exit 1
+          fi
+          node tests/ai-chat-browser-uat.cjs
+        env:
+          INDIA_CHAT_UAT_BASE: http://127.0.0.1:3124

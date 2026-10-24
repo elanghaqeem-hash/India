@@ -28,6 +28,7 @@ test('canonical 0021 Tender, 0022 Vault governance and 0023 evidence gate have u
  try{
   const versions=d.sql.prepare('SELECT version FROM india_schema_migrations WHERE version BETWEEN 21 AND 23 ORDER BY version').all().map(x=>x.version);
   assert.deepEqual(versions,[21,22,23]);
+  assert.ok(d.sql.prepare("SELECT path FROM india_schema_file_manifest WHERE path='migrations/0015_secure_document_vault.sql'").get());
   for(const n of ['india_tender_checklist','india_document_library','india_document_vault','india_tender_vault_originals']){
    assert.ok(d.sql.prepare("SELECT name FROM sqlite_master WHERE name=?").get(n),'missing '+n);
   }

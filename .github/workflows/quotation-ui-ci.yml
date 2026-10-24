@@ -27,12 +27,41 @@ jobs:
         run: npm run test:consolidation
       - name: Presales Proposal Submission Negotiation PO transaction gates
         run: npm run test:sales-transactions
+      - name: Vault originals, retention concurrency and corruption gates
+        run: npm run test:document-vault
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build
         run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+      - name: Install Chromium for Sales stage-filter UAT
+        run: npx playwright install --with-deps chromium
+      - name: Browser UAT of all ten Sales stages on Android viewport and desktop
+        run: |
+          npm run start -- -p 3100 > /tmp/india-stage-filter-uat.log 2>&1 &
+          PID=$!
+          trap 'kill $PID 2>/dev/null || true' EXIT
+          for i in $(seq 1 90); do
+            if curl -fsS http://127.0.0.1:3100/sales/pipeline > /dev/null; then break; fi
+            sleep 2
+          done
+          if ! curl -fsS http://127.0.0.1:3100/sales/pipeline > /dev/null; then
+            cat /tmp/india-stage-filter-uat.log
+            exit 1
+          fi
+          node --test tests/sales-stage-filter-browser.test.cjs
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - name: Upload stage filter UAT screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: india-stage-filter-browser
+          path: artifacts/browser-uat/stage-filter-*.png
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Cloudflare Workers adapter packaging
         run: npx opennextjs-cloudflare build

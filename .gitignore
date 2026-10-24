@@ -34,3 +34,6 @@ Desktop.ini
 .DS_Store
 *.log
 *.tmp
+
+# Generated local browser verification artifacts
+artifacts/

@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import {
   Shield,
@@ -14,9 +15,18 @@ import {
   X,
   Send,
   Bot,
+  RotateCcw,
   Zap,
 } from 'lucide-react';
 import { SystemRole } from '@/lib/types';
+import { formatAIChatMessage } from '@/lib/ai-chat-format';
+import { selectConversationHistory, type AIConversationTurn } from '@/lib/ai-conversation';
+
+const WELCOME_MESSAGE = {
+  sender: 'ai' as const,
+  text: 'Halo! Saya Asisten AI ICOP CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
+  provider: 'Informasi awal (bukan hasil model AI)',
+};
 
 interface NavbarProps {
   currentRole: SystemRole;
@@ -32,16 +42,54 @@ export const Navbar: React.FC<NavbarProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
-  // Chatbot State
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; provider?: string }>>([
-    {
-      sender: 'ai',
-      text: 'Halo! Saya Asisten AI ICOP CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
-      provider: 'Informasi awal (bukan hasil model AI)',
-    },
-  ]);
+  // Chat content is ephemeral: only completed responses are passed as context.
+  const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; provider?: string }>>([WELCOME_MESSAGE]);
+  const [conversationTurns, setConversationTurns] = useState<AIConversationTurn[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [visualViewport, setVisualViewport] = useState<{ height: number; top: number } | null>(null);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (aiAssistantOpen && chatScrollRef.current) {
+      chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+    }
+  }, [chatMessages, isAiLoading, aiAssistantOpen]);
+
+  // Modal content uses a body portal to escape application stacking contexts.
+  // Hide the mobile nav, lock the page and resize to the visible keyboard area.
+  useEffect(() => {
+    if (!aiAssistantOpen) return;
+    const oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.body.classList.add('icop-ai-chat-open');
+
+    const viewport = window.visualViewport;
+    const syncViewport = () => {
+      if (viewport && window.innerWidth < 640) {
+        setVisualViewport({ height: viewport.height, top: viewport.offsetTop });
+      } else {
+        setVisualViewport(null);
+      }
+    };
+    syncViewport();
+    viewport?.addEventListener('resize', syncViewport);
+    viewport?.addEventListener('scroll', syncViewport);
+    window.addEventListener('resize', syncViewport);
+    const onEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setAiAssistantOpen(false);
+    };
+    window.addEventListener('keydown', onEscape);
+    return () => {
+      viewport?.removeEventListener('resize', syncViewport);
+      viewport?.removeEventListener('scroll', syncViewport);
+      window.removeEventListener('resize', syncViewport);
+      window.removeEventListener('keydown', onEscape);
+      document.body.style.overflow = oldOverflow;
+      document.body.classList.remove('icop-ai-chat-open');
+      setVisualViewport(null);
+    };
+  }, [aiAssistantOpen]);
 
   const roles: Array<{ role: SystemRole; label: string; badge: string }> = [
     { role: 'sales', label: 'M. Nadhil (Sales / AM)', badge: 'Maker' },
@@ -58,7 +106,8 @@ export const Navbar: React.FC<NavbarProps> = ({
     e.preventDefault();
     if (!chatInput.trim() || isAiLoading) return;
 
-    const userText = chatInput;
+    const userText = chatInput.trim();
+    const history = selectConversationHistory(conversationTurns);
     setChatInput('');
     setChatMessages(prev => [...prev, { sender: 'user', text: userText }]);
     setIsAiLoading(true);
@@ -67,10 +116,11 @@ export const Navbar: React.FC<NavbarProps> = ({
       const res = await fetch('/api/ai/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-india-ai-admin': '1' },
-        body: JSON.stringify({ prompt: userText }),
+        body: JSON.stringify({ prompt: userText, history }),
       });
       const data = await res.json();
-      if (data.success) {
+      if (data.success && typeof data.content === 'string' && data.content.trim()) {
+        setConversationTurns(prev => [...prev, { role: 'user', content: userText }, { role: 'assistant', content: data.content }]);
         setChatMessages(prev => [
           ...prev,
           { sender: 'ai', text: data.content, provider: data.providerUsed },
@@ -210,11 +260,15 @@ export const Navbar: React.FC<NavbarProps> = ({
       </header>
 
       {/* Global AI Assistant Drawer / Modal */}
-      {aiAssistantOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center sm:justify-end bg-slate-900/40 backdrop-blur-xs p-2 sm:p-4 animate-in fade-in">
-          <div className="w-full sm:w-[440px] h-[90vh] sm:h-[85vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden">
+      {aiAssistantOpen && typeof document !== 'undefined' && createPortal(
+        <div
+          className="icop-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
+          style={visualViewport ? { top: visualViewport.top + 'px', height: visualViewport.height + 'px', bottom: 'auto' } : undefined}
+        >
+          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"
+            className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
-            <div className="p-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 text-white flex items-center justify-between">
+            <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-white/10 flex items-center justify-center text-cyan-300">
                   <Bot className="h-5 w-5" />
@@ -227,16 +281,34 @@ export const Navbar: React.FC<NavbarProps> = ({
                   </div>
                 </div>
               </div>
-              <button
-                onClick={() => setAiAssistantOpen(false)}
-                className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
+              <div className="flex shrink-0 items-center gap-1">
+                <button
+                  type="button"
+                  aria-label="Mulai percakapan baru tanpa konteks sebelumnya"
+                  title="Percakapan baru"
+                  disabled={isAiLoading}
+                  onClick={() => {
+                    setChatMessages([WELCOME_MESSAGE]);
+                    setConversationTurns([]);
+                    setChatInput('');
+                  }}
+                  className="flex h-11 w-11 items-center justify-center rounded-lg text-slate-300 transition-colors hover:bg-white/10 hover:text-white disabled:opacity-40"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  aria-label="Tutup AI Business Assistant"
+                  onClick={() => setAiAssistantOpen(false)}
+                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
             </div>
 
             {/* Quick Context Chips */}
-            <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 flex gap-1.5 overflow-x-auto text-[11px]">
+            <div className="flex shrink-0 gap-1.5 overflow-x-auto border-b border-slate-200 bg-slate-50 px-3 py-2 text-[11px]">
               {[
                 'Analisis Margin BoQ VAPT',
                 'Syarat Tender LPSE Bank',
@@ -253,8 +325,14 @@ export const Navbar: React.FC<NavbarProps> = ({
               ))}
             </div>
 
+            {conversationTurns.length > 0 && (
+              <p className="shrink-0 bg-indigo-50 px-3 py-1 text-[10px] font-medium text-indigo-700" role="status">
+                Konteks percakapan aktif · {selectConversationHistory(conversationTurns).length / 2} tanya-jawab terbaru dapat digunakan
+              </p>
+            )}
+
             {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-3.5 text-xs">
+            <div ref={chatScrollRef} className="min-h-0 flex-1 space-y-3.5 overflow-y-auto overscroll-contain p-4 text-xs">
               {chatMessages.map((msg, i) => (
                 <div
                   key={i}
@@ -267,7 +345,17 @@ export const Navbar: React.FC<NavbarProps> = ({
                         : 'bg-slate-100 text-slate-900 border border-slate-200/80 rounded-bl-xs'
                     }`}
                   >
-                    {msg.text}
+                    {msg.sender === 'ai'
+                      ? formatAIChatMessage(msg.text).map((segment, segmentIndex) =>
+                          segment.format === 'bold' ? (
+                            <strong key={segmentIndex} className="font-semibold">{segment.text}</strong>
+                          ) : segment.format === 'italic' ? (
+                            <em key={segmentIndex}>{segment.text}</em>
+                          ) : (
+                            <React.Fragment key={segmentIndex}>{segment.text}</React.Fragment>
+                          ),
+                        )
+                      : msg.text}
                   </div>
                   {msg.provider && (
                     <span className="text-[9px] text-slate-400 mt-1 font-mono">
@@ -285,24 +373,27 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
 
             {/* Chat Input */}
-            <form onSubmit={handleSendChat} className="p-3 bg-white border-t border-slate-200 flex gap-2">
+            <form onSubmit={handleSendChat} className="flex shrink-0 items-center gap-2 border-t border-slate-200 bg-white px-3 pt-3 pb-[max(12px,env(safe-area-inset-bottom))] sm:p-3">
               <input
                 type="text"
                 value={chatInput}
                 onChange={e => setChatInput(e.target.value)}
                 placeholder="Tanyakan analisis harga, scoping, tender..."
-                className="flex-1 rounded-xl border border-slate-200 px-3 py-2 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                aria-label="Pesan untuk AI Business Assistant"
+                className="min-h-11 min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2 text-base focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 sm:text-xs"
               />
               <button
                 type="submit"
                 disabled={isAiLoading || !chatInput.trim()}
-                className="rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3.5 py-2 transition-colors flex items-center justify-center"
+                aria-label="Kirim pesan ke AI"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-white transition-colors hover:bg-blue-700 disabled:opacity-50"
               >
                 <Send className="h-4 w-4" />
               </button>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

@@ -120,13 +120,13 @@ export async function PATCH(req:Request){
  }else return deny('Aksi tidak tersedia',422);
  try{
   const g=dealGuard(deal);
-  g.condition+=' AND EXISTS (SELECT 1 FROM '+table+' WHERE '+key+'=? AND tenant_id=? AND opportunity_id=?'+')';
-  g.args.push(docId,TENANT,opp);
+  g.condition+=" AND EXISTS (SELECT 1 FROM "+table+" WHERE "+key+"=? AND tenant_id=? AND opportunity_id=? AND coalesce(retention_until,'')=? AND legal_hold=? AND coalesce(hold_reason,'')=?)";
+  g.args.push(docId,TENANT,opp,doc.retention_until||'',doc.legal_hold,doc.hold_reason||'');
   await atomicSales(db,g.condition,g.args,[
    db.prepare('UPDATE '+table+' SET '+field+'=?,hold_reason=CASE WHEN ?=\'legal_hold\' THEN ? ELSE hold_reason END,updated_by=?,updated_at=CURRENT_TIMESTAMP WHERE '+key+'=?').bind(value,field,reason,email,docId),
    salesAudit(db,opp,action,email,source+' / '+docId+' / '+reason),
    event(db,opp,source as 'release'|'library',docId,action,email,role,reason)
   ]);
   return res({success:true,id:docId,action,retention_until:field==='retention_until'?value:doc.retention_until,legal_hold:field==='legal_hold'?value:doc.legal_hold});
- }catch(e){const x=vaultError(e);return deny(x.message,x.status);}
+ }catch(e){if(/FLOW_CONFLICT|CHECK constraint/.test(String(e)))return deny('Kebijakan berubah; muat ulang sebelum menyimpan.',409);const x=vaultError(e);return deny(x.message,x.status);}
 }
