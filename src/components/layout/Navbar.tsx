@@ -30,13 +30,13 @@ const WELCOME_MESSAGE = {
 interface NavbarProps {
   role: string | null;
   email: string | null;
-  pendingApprovalsCount?: number;
+  pendingApprovalsCount?: number|null;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   role,
   email,
-  pendingApprovalsCount = 0,
+  pendingApprovalsCount = null,
 }) => {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
@@ -165,24 +165,24 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
 
             {/* AI API Settings Shortcut */}
-            <Link
+            {role==='admin'&&<Link
               href="/settings/ai"
               className="hidden sm:flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-purple-600 transition-colors"
               title="Konfigurasi API Key & Prioritas AI"
             >
               <Key className="h-4 w-4" />
-            </Link>
+            </Link>}
 
             {/* Pending Approvals Notification Link */}
             <Link
-              href="/sales/activities"
+              href="/approvals"
               className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-blue-600 transition-colors"
-              title="Aktivitas dan tindak lanjut"
+              title={pendingApprovalsCount===null?'Status antrian approval D1 belum terverifikasi':'Approval tertunda: '+pendingApprovalsCount}
             >
-              <Bell className="h-4 w-4" />
-              {pendingApprovalsCount > 0 && (
+              <Bell className="h-4 w-4" aria-label="Pusat approval" />
+              {pendingApprovalsCount !== null && pendingApprovalsCount > 0 && (
                 <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[10px] font-bold text-white shadow-xs">
-                  {pendingApprovalsCount}
+                  {pendingApprovalsCount>99?'99+':pendingApprovalsCount}
                 </span>
               )}
             </Link>

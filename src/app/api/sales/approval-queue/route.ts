@@ -10,7 +10,8 @@ const MAX_ROWS=100;
 const DETAIL_PATH:Record<string,string>={
  boq:'/boq',tender_deadline:'/sales/bid-readiness',tender_checklist:'/sales/bid-readiness',
  award_finance:'/sales/award',award_legal:'/sales/award',feasibility:'/sales/feasibility',
- invoice:'/sales/billing',payment:'/sales/billing',contract:'/sales/renewals'
+ invoice:'/sales/billing',payment:'/sales/billing',contract:'/sales/renewals',
+ flexguard_wallet:'/flexguard'
 };
 /** These queries reflect the actual reviewer roles in each existing transactional handler.
  * Never introduce a second approval ledger or infer authority from a client-selected role.
@@ -41,6 +42,8 @@ function queries(role:string):QuerySpec[]{
   items.push({kind:'contract',sql:
    "SELECT 'contract' AS kind,c.id,p.opportunity_id,('Contract · '||p.po_number) AS title,c.configured_by AS created_by,p.created_at FROM india_service_contracts c JOIN india_delivery_projects p ON p.tenant_id=c.tenant_id AND p.id=c.project_id WHERE c.tenant_id=? AND c.status='draft' AND c.configured_by IS NOT NULL AND c.end_date IS NOT NULL AND c.renewal_cents IS NOT NULL AND lower(c.configured_by)!=? ORDER BY p.created_at DESC LIMIT 101"});
  }
+ if(['admin','approver'].includes(role))items.push({kind:'flexguard_wallet',sql:
+  "SELECT 'flexguard_wallet' AS kind,w.id,p.opportunity_id,('FlexGuard entitlement · '||a.legal_name) AS title,w.created_by,w.created_at FROM india_flexguard_wallets w JOIN india_service_contracts c ON c.id=w.contract_id AND c.tenant_id=w.tenant_id JOIN india_sales_accounts a ON a.id=w.customer_id AND a.tenant_id=w.tenant_id JOIN india_delivery_projects p ON p.id=c.project_id AND p.tenant_id=c.tenant_id WHERE w.tenant_id=? AND w.status='draft' AND c.status='active' AND c.model='FlexGuard' AND lower(w.created_by)!=? ORDER BY w.created_at DESC LIMIT 101"});
  return items;
 }
 async function fetchQueue(db:D1DB,role:string,email:string){
@@ -55,7 +58,7 @@ async function fetchQueue(db:D1DB,role:string,email:string){
   const id=typeof row.opportunity_id==='string'&&row.opportunity_id.length>0?row.opportunity_id:null;
   if(!url)throw Error('Jenis approval tidak diizinkan');
   return {id:row.id,kind:row.kind,title:row.title,opportunity_id:id,created_at:row.created_at,
-   href:url+(id?'?opportunity_id='+encodeURIComponent(id):'')};
+   href:url+(row.kind==='flexguard_wallet'?'?wallet_id='+encodeURIComponent(row.id):(id?'?opportunity_id='+encodeURIComponent(id):''))};
  }));
  all.sort((a,b)=>b.created_at.localeCompare(a.created_at));
  const truncated=results.some(rows=>rows.length>MAX_ROWS)||all.length>250;
@@ -65,6 +68,7 @@ export async function GET(req:Request){
  const auth=await authorizeBoQ(req);
  if(!auth.ok)return auth.response;
  const {db,role,email}=auth.identity;
+ if(!['admin','sales','presales','finance','approver','legal'].includes(role))return reply({success:false,message:'Tidak berwenang membaca antrean approval.'},403);
  try{
   const data=await fetchQueue(db,role,email);
   return reply({success:true,role,generated_at:new Date().toISOString(),

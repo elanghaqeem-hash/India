@@ -9,9 +9,10 @@ const STATIONS:readonly Station[]=[
  {href:'/sales/bid-readiness',name:'Tender Bid/No-Bid & Compliance',description:'Kelengkapan RKS/KAK, bukti asli dan keputusan reviewer independen.',roles:['admin','presales','approver','finance','legal']},
  {href:'/sales/award',name:'PO/SPK Finance & Legal',description:'Verifikasi dokumen asli dan review ganda sebelum Closed Won.',roles:['admin','sales','finance','approver','legal']},
  {href:'/sales/billing',name:'BAST, Invoice & Collection',description:'Approval Finance, alokasi pembayaran dan rekonsiliasi.',roles:['admin','finance','approver']},
+ {href:'/flexguard',name:'FlexGuard Entitlement',description:'Approval token wallet D1 oleh checker independen.',roles:['admin','approver']},
  {href:'/sales/renewals',name:'Contract & Renewal',description:'Persetujuan kontrak dan perubahan masa layanan.',roles:['admin','sales','presales','finance','approver','legal']}
 ];
-const LABELS:Record<string,string>={boq:'BoQ',tender_deadline:'Tender deadline',tender_checklist:'Tender checklist',award_finance:'PO Finance',award_legal:'PO Legal',feasibility:'Technical feasibility',invoice:'Invoice',payment:'Collection',contract:'Contract'};
+const LABELS:Record<string,string>={boq:'BoQ',tender_deadline:'Tender deadline',tender_checklist:'Tender checklist',award_finance:'PO Finance',award_legal:'PO Legal',feasibility:'Technical feasibility',invoice:'Invoice',payment:'Collection',contract:'Contract',flexguard_wallet:'FlexGuard entitlement'};
 export default function CanonicalApprovalLinks(){
  const [role,setRole]=useState<string|null>(null);
  const [state,setState]=useState<'checking'|'ready'|'denied'>('checking');
