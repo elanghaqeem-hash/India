@@ -153,7 +153,7 @@ test('Campaign registration API persists valid active Owner, rejects unknown Own
    authorizeBoQ:async req=>{
     const email=req.headers.get('x-uat-email');
     const member=db.prepare('SELECT role,active FROM india_members WHERE email=?').get(email);
-    return member?.active===1?{ok:true,identity:{db,email,role:member.role}}:
+    return member?.active===1?{ok:true,identity:{db:d1,email,role:member.role}}:
      {ok:false,response:Response.json({success:false,message:'Access denied'},{status:403})};
    }
   };
