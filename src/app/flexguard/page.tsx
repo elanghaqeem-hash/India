@@ -11,7 +11,9 @@ export default function FlexGuardPage(){
  useEffect(()=>{
   const controller=new AbortController();
   setError('');
-  void fetch('/api/sales/flexguard',{credentials:'same-origin',cache:'no-store',signal:controller.signal})
+  const requestedWallet=new URLSearchParams(window.location.search).get('wallet_id')||'';
+  const scopedQuery=/^[a-zA-Z0-9][a-zA-Z0-9._:-]{0,127}$/.test(requestedWallet)?'?wallet_id='+encodeURIComponent(requestedWallet):'';
+  void fetch('/api/sales/flexguard'+scopedQuery,{credentials:'same-origin',cache:'no-store',signal:controller.signal})
    .then(async res=>{const j=await res.json();if(!res.ok||j.success!==true)throw Error(j.message||'Ledger D1 belum siap');if(!controller.signal.aborted){setWallets(j.wallets);setRole(j.role);setSelected(old=>j.wallets.some((w:Wallet)=>w.id===old)?old:j.wallets[0]?.id||'');}})
    .catch(e=>{if(!controller.signal.aborted){setWallets([]);setError(e instanceof Error?e.message:'Ledger D1 tidak tersedia');}});
   return ()=>controller.abort();
@@ -26,6 +28,7 @@ export default function FlexGuardPage(){
  return <main className="mx-auto max-w-6xl space-y-5 pb-24">
   <header className="rounded-xl border bg-white p-5"><h1 className="text-xl font-bold">FlexGuard · D1 Immutable Token Ledger</h1>
    <p className="mt-2 text-sm text-slate-600">Kuota dan saldo dihitung dari event D1 immutable. Reservasi, konsumsi dan refund memerlukan saldo serta referensi sah. Semua transaksi ditolak bila migrasi 0030 belum diterapkan.</p>
+   <Link href="/flexguard" className="mt-3 mr-4 inline-block text-sm font-semibold text-indigo-700 underline">Semua wallet →</Link>
    <Link href="/sales/renewals" className="mt-3 inline-block text-sm font-semibold text-indigo-700 underline">Kontrak & Renewal →</Link></header>
   {error&&<p role="alert" className="rounded-xl border border-rose-300 bg-rose-50 p-4 text-sm text-rose-900">BLOCKED — {error}</p>}
   {notice&&<p role="status" className="rounded-xl border border-emerald-200 p-3 text-sm">{notice}</p>}

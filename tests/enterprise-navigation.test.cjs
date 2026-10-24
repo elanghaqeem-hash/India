@@ -16,10 +16,10 @@ test('ten existing business menu groups, no duplicate or demo routes',()=>{
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
-  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq$|flexguard$|post-po$)/);
+  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq$|flexguard$|post-po$|approvals$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
- for(const legacy of ['/','/pricing','/approvals','/tender','/proposals'])
+ for(const legacy of ['/','/pricing','/tender','/proposals'])
   assert.ok(!all.includes(legacy),legacy);
 });
 
@@ -51,11 +51,14 @@ test('shell and header never supply demo users or selectable role; mobile has al
  const side=read('src/components/layout/Sidebar.tsx');
  const mobile=read('src/components/layout/MobileNav.tsx');
  assert.match(shell,/fetch\('\/api\/sales\/identity'/);
- assert.match(shell,/pendingApprovalsCount=\{0\}/);
+ assert.match(shell,/fetch\('\/api\/sales\/approval-queue'/);
+ assert.match(shell,/pendingApprovalsCount=\{pendingApprovalsCount\}/);
  assert.doesNotMatch(shell,/useState<SystemRole>\('sales'\)/);
  assert.doesNotMatch(header,/RBAC Simulation|onRoleChange\(|const roles: Array/);
  assert.match(header,/Sesi belum terverifikasi/);
  assert.match(side,/navigationForRole\(role\)/);
  assert.match(mobile,/navigationForRole\(role\)/);
  assert.match(mobile,/aria-label="Buka seluruh menu INDIA"/);
+ assert.match(header,/href="\/approvals"/);
+ assert.match(header,/role==='admin'&&<Link/);
 });

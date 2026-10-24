@@ -55,6 +55,7 @@ test('reviewer sees only eligible D1 items and links to canonical module',async(
  assert.equal(r.body.items.length,1);
  assert.equal(r.body.items[0].href,'/boq?opportunity_id=opp-42');
  assert.ok(sqls.every(s=>s.includes('lower(')||s.includes('FROM india_billing')));
+ assert.ok(sqls.some(s=>s.includes('FROM india_flexguard_wallets w')));
 });
 test('approval browser loads real queue, never treats failures as zero pending',()=>{
  assert.match(ui,/fetch\('\/api\/sales\/identity'/);

@@ -15,6 +15,7 @@ type Session={status:'checking'|'ready'|'denied';identity:Identity|null};
  */
 export const AppShell:React.FC<AppShellProps> = ({children})=>{
   const [session,setSession]=useState<Session>({status:'checking',identity:null});
+  const [pendingApprovalsCount,setPendingApprovalsCount]=useState<number|null>(null);
   useEffect(()=>{
     const controller=new AbortController();
     fetch('/api/sales/identity',{method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal})
@@ -28,10 +29,27 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
       .catch(()=>{if(!controller.signal.aborted)setSession({status:'denied',identity:null});});
     return ()=>controller.abort();
   },[]);
+  // The bell count is real, role-scoped D1 data, or null when not verified. Never assume zero on failure.
+  useEffect(()=>{
+    if(session.status!=='ready'){setPendingApprovalsCount(null);return;}
+    const controller=new AbortController();
+    const refresh=async()=>{
+      try{
+        const response=await fetch('/api/sales/approval-queue',{method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal});
+        const data=await response.json();
+        if(!response.ok||data.success!==true||!Array.isArray(data.items))throw Error('Approval queue unavailable');
+        if(!controller.signal.aborted)setPendingApprovalsCount(data.items.length);
+      }catch{if(!controller.signal.aborted)setPendingApprovalsCount(null);}
+    };
+    void refresh();
+    const onVisible=()=>{if(document.visibilityState==='visible')void refresh();};
+    document.addEventListener('visibilitychange',onVisible);
+    return ()=>{controller.abort();document.removeEventListener('visibilitychange',onVisible);};
+  },[session.status]);
   const role=session.status==='ready'?session.identity?.role??null:null;
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
-      <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={0}/>
+      <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount}/>
       <div role="status" className="no-print border-b border-slate-200 bg-slate-100 px-4 py-2 text-center text-xs font-medium text-slate-700">
         {session.status==='checking'?'Memverifikasi sesi Cloudflare Access…':
          session.status==='ready'? `Sesi terverifikasi · Role: ${role}`:
