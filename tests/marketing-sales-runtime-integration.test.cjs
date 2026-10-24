@@ -9,7 +9,7 @@ const source=p=>fs.readFileSync(path.join(root,p),'utf8');
 const tenant='defendit360';
 const users={a:'uat.sales.a@india.invalid',b:'uat.sales.b@india.invalid',admin:'uat.admin@india.invalid',viewer:'uat.viewer@india.invalid',marketing:'uat.marketing@india.invalid'};
 const q={need:'Annual security assessment',budget_status:'Approved',decision_maker:'CISO',procurement_process:'Direct purchase',contact_phone:'081234567890'};
-const customer={industry:'Banking',business_type:'Financial Services',employee_band:'100-500',company_phone:'021000000',hq_address:'UAT synthetic address',hq_province:'DKI Jakarta',hq_postal:'12345'};
+const customer={industry:'Banking',business_type:'Financial Services',employee_band:'100-500',company_phone:'021000000',hq_address:'UAT synthetic address',hq_province:'DKI Jakarta',hq_postal:'12345',hq_village_code:'31.71.01.1001'};
 class D1Mock{
  constructor(){
   this.sql=new DatabaseSync(':memory:');
@@ -20,6 +20,12 @@ class D1Mock{
    '0006_bid_and_requirements.sql','0007_quotation_submission.sql','0008_po_legal_evidence.sql',
    '0009_lead_request_idempotency.sql','0010_marketing_campaigns.sql','0011_marketing_sales_consolidation.sql'])
     this.sql.exec(source('migrations/'+f));
+  // Isolated synthetic-only postal reference: mirrors the actual D1 lookup path.
+  this.sql.exec(source('tests/fixtures/india_postal_tables.sql'));
+  this.sql.prepare('INSERT INTO india_postal_areas(region_code,postal_code,province_code,province_name,regency_code,regency_name,district_code,district_name,village_name,village_kind,source_version) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+   .run('31.71.01.1001','12345','31','DKI Jakarta','31.71','Kota Jakarta Pusat','31.71.01','Gambir','Gambir','Kelurahan','UAT-SYNTHETIC');
+  this.sql.prepare('INSERT INTO india_postal_import_state(singleton,status,source_version,row_count,province_count,postal_count) VALUES(?,?,?,?,?,?)')
+   .run(1,'ready','UAT-SYNTHETIC',83712,38,15000);
   for(const [key,mail] of Object.entries(users))
     this.sql.prepare("INSERT INTO india_members(email,role,active) VALUES(?,?,1)").run(mail,key==='a'||key==='b'?'sales':key);
  }
@@ -66,6 +72,7 @@ function api(db){
    }};
   if(p==='@/lib/sales-workflow')return loadDomain('sales-workflow',modules);
   if(p==='@/lib/marketing-lead')return loadDomain('marketing-lead',modules);
+  if(p==='@/lib/indonesia-postal')return loadDomain('indonesia-postal',modules);
   throw Error('Unexpected route import '+p);
  };
  const mod={exports:{}};
