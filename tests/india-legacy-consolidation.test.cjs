@@ -12,7 +12,7 @@ test('legacy pages never expose browser demo store or invented business balances
  }
 });
 test('legacy route compatibility reuses existing D1-backed sales workspaces',()=>{
- for(const [name,target] of [['pricing','/boq'],['tender','/sales/bid-readiness'],['post-po','/sales/delivery']]){
+ for(const [name,target] of [['pricing','/boq'],['tender','/sales/bid-readiness']]){
   const source=read('src/app/'+name+'/page.tsx');
   assert.match(source,/from 'next\/navigation'/);
   assert.ok(source.includes("redirect('"+target+"'"),name);
@@ -31,6 +31,7 @@ test('root and approval center derive role from real Access/D1 identity',()=>{
  assert.match(read('src/app/page.tsx'),/firstAccessibleHref/);
  assert.match(read('src/app/approvals/page.tsx'),/STATIONS\.filter\(s=>role&&s\.roles\.includes\(role\)\)/);
  assert.match(read('src/app/flexguard/page.tsx'),/BLOCKED/);
+ assert.match(read('src/app/post-po/page.tsx'),/hasDualVerifiedPO/);
  assert.doesNotMatch(read('src/app/flexguard/page.tsx'),/\/api\/wallets/);
 });
 test('old mutable API routes stay fail closed by middleware',()=>{

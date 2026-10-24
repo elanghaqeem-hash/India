@@ -50,6 +50,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   ]},
   {id:'delivery',label:'06 · Project Delivery & Operations',items:[
     item('Service Delivery & Projects','/sales/delivery',['admin','presales','finance','approver']),
+    item('Official Post-PO Forms','/post-po',['admin','sales','presales','finance','approver','legal']),
   ]},
   {id:'cash',label:'07 · Contract-to-Cash & Renewal',items:[
     item('Billing & Collections','/sales/billing',FINANCE),

@@ -16,7 +16,7 @@
     "test:pricing": "node --test tests/pricing-technical-writer.test.cjs",
     "test:boq": "node --test tests/boq-export.test.cjs",
     "test:quotation-docx": "node --experimental-strip-types --test tests/quotation-docx.test.cjs",
-    "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs",
+    "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs tests/post-po-canonical.test.cjs",
     "test:boq-domain": "node --test tests/boq-domain.test.cjs",
     "test:ai": "node --experimental-strip-types --test tests/ai-config-security.test.cjs tests/ai-conversation.test.cjs tests/mistral-migration.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
