@@ -1,79 +1,59 @@
 'use client';
 
-import React from 'react';
+import React,{useState} from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare, Megaphone, CalendarDays, UsersRound } from 'lucide-react';
+import {usePathname} from 'next/navigation';
+import {LayoutGrid, Menu, X} from 'lucide-react';
+import {navigationForRole} from '@/lib/enterprise-navigation';
 
-interface MobileNavProps {
-  pendingApprovalsCount?: number;
-}
+interface MobileNavProps {role:string;}
 
-export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 }) => {
-  const pathname = usePathname();
-
-  const items = [
-    { label: 'Customer 360', href: '/customers', icon: UsersRound },
-    { label: 'Delivery', href: '/sales/delivery', icon: ClipboardCheck },
-    { label: 'Billing', href: '/sales/billing', icon: FileSpreadsheet },
-    { label: 'Renewal', href: '/sales/renewals', icon: CalendarDays },
-    { label: 'Partners', href: '/partners', icon: UsersRound },
-    { label: 'Reports', href: '/reports', icon: LayoutDashboard },
-    { label: 'Settings', href: '/settings/system', icon: KeyRound },
-    { label: 'Campaigns', href: '/sales/campaigns', icon: Megaphone },
-    { label: 'Leads', href: '/sales/leads', icon: Megaphone },
-    { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
-    { label: 'Activity', href: '/sales/activities', icon: CalendarDays },
-    { label: 'Lead Score', href: '/sales/lead-intelligence', icon: Megaphone },
-    { label: 'Tender', href: '/sales/compliance', icon: FileSearch },
-    { label: 'Bid Ready', href: '/sales/bid-readiness', icon: ClipboardCheck },
-    { label: 'Vault', href: '/sales/documents', icon: FileSpreadsheet },
-    { label: 'Feasibility', href: '/sales/feasibility', icon: UsersRound },
-    { label: 'Email', href: '/sales/communications', icon: FileSpreadsheet },
-    { label: 'Executive', href: '/sales/executive', icon: LayoutDashboard },
-    { label: 'Forecast', href: '/sales/forecast', icon: KanbanSquare },
-    { label: 'Revenue', href: '/sales/revenue', icon: ClipboardCheck },
-    { label: 'Demo 360', href: '/', icon: LayoutDashboard },
-    { label: 'Scoping', href: '/scoping', icon: FileSearch },
-    { label: 'Price Demo', href: '/pricing', icon: Calculator },
-    { label: 'BoQ', href: '/boq', icon: ClipboardList },
-    { label: 'DoA Demo', href: '/approvals', icon: Stamp, badge: pendingApprovalsCount },
-    { label: 'Proposal', href: '/proposals', icon: FileSpreadsheet },
-    { label: 'Post-PO', href: '/post-po', icon: ClipboardCheck },
-    { label: 'AI Keys', href: '/settings/ai', icon: KeyRound },
-  ];
-
+/** All ten groups remain reachable on Android without a 29-item bottom bar. */
+export const MobileNav:React.FC<MobileNavProps> = ({role}) => {
+  const pathname=usePathname();
+  const [open,setOpen]=useState(false);
+  const groups=navigationForRole(role);
+  const shortcuts=groups.filter(x=>x.items.length>0).slice(0,3);
   return (
-    <nav aria-label="Navigasi utama mobile" className="no-print fixed inset-x-0 bottom-0 z-50 flex min-h-16 overflow-x-auto border-t border-slate-200 bg-white/95 px-1 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(15,23,42,0.04)] backdrop-blur-md lg:hidden">
-      <div className="flex h-full min-w-max items-center">
-        {items.map(item => {
-          const isActive = pathname === item.href;
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              aria-current={isActive ? 'page' : undefined}
-              className={`relative flex min-h-16 w-[76px] min-w-[76px] flex-col items-center justify-center gap-1 rounded-md py-2 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-500 ${
-                isActive ? 'text-blue-600 font-bold' : 'text-slate-500 hover:text-slate-900'
-              }`}
-            >
-              <div className="relative">
-                <Icon className={`h-5 w-5 ${isActive ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                {item.badge && item.badge > 0 ? (
-                  <span className="absolute -top-1.5 -right-2 flex h-4 w-4 items-center justify-center rounded-full bg-rose-600 text-[9px] font-extrabold text-white">
-                    {item.badge}
-                  </span>
-                ) : null}
+    <>
+      {open && (
+        <div className="no-print fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 max-h-[min(70dvh,650px)] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl lg:hidden" role="dialog" aria-modal="false" aria-label="Seluruh menu INDIA">
+          <div className="mb-3 flex items-center justify-between gap-2">
+            <h2 className="text-sm font-bold text-slate-900">Menu INDIA sesuai role</h2>
+            <button type="button" onClick={()=>setOpen(false)} aria-label="Tutup menu" className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200"><X className="h-5 w-5"/></button>
+          </div>
+          {groups.map(group=>(
+            <section key={group.id} className="mb-3 border-b border-slate-100 pb-2">
+              <h3 className="px-2 py-1 text-xs font-semibold text-slate-500">{group.label}</h3>
+              <div className="grid grid-cols-2 gap-1">
+                {group.items.map(link=>(
+                  <Link key={link.href} href={link.href} onClick={()=>setOpen(false)}
+                    aria-current={pathname===link.href?'page':undefined}
+                    className={`rounded-lg px-3 py-3 text-xs font-medium focus-visible:outline-2 focus-visible:outline-indigo-500 ${pathname===link.href?'bg-indigo-50 text-indigo-800':'text-slate-700 hover:bg-slate-50'}`}>
+                    {link.label}
+                  </Link>
+                ))}
               </div>
-              <span className="w-full truncate px-0.5 text-center text-[10px] tracking-tight">{item.label}</span>
-              {isActive && (
-                <div className="absolute bottom-0 h-0.5 w-6 rounded-full bg-blue-600" />
-              )}
-            </Link>
-          );
+            </section>
+          ))}
+          {groups.length===0&&<p className="text-sm text-slate-700">Belum ada menu untuk role ini.</p>}
+        </div>
+      )}
+      <nav aria-label="Navigasi utama mobile" className="no-print fixed inset-x-0 bottom-0 z-50 flex min-h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] shadow-[0_-4px_20px_rgba(15,23,42,0.04)] backdrop-blur-md lg:hidden">
+        {shortcuts.map(group=>{
+          const link=group.items[0];
+          return <Link key={group.id} href={link.href} onClick={()=>setOpen(false)} aria-current={pathname===link.href?'page':undefined}
+            className={`flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-center text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-indigo-500 ${pathname===link.href?'text-indigo-700':'text-slate-600'}`}>
+            <LayoutGrid className="h-5 w-5" aria-hidden="true"/>
+            <span className="max-w-full truncate">{group.label.replace(/^\d+ · /,'')}</span>
+          </Link>;
         })}
-      </div>
-    </nav>
+        <button type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Buka seluruh menu INDIA"
+          className="flex min-h-14 min-w-16 flex-col items-center justify-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-indigo-700 focus-visible:outline-2 focus-visible:outline-indigo-500">
+          {open?<X className="h-5 w-5"/>:<Menu className="h-5 w-5"/>}
+          Semua menu
+        </button>
+      </nav>
+    </>
   );
 };

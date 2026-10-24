@@ -6,6 +6,11 @@ const baseUrl = process.env.INDIA_UAT_BASE || 'http://127.0.0.1:3125';
 async function check(browser, name, viewport, mobile) {
   const context = await browser.newContext({ viewport, isMobile: mobile, hasTouch: mobile });
   const page = await context.newPage();
+  // Browser-only synthetic identity: verify menu visibility without claiming real Access UAT.
+  await page.route('**/api/sales/identity', async route => route.fulfill({
+    status: 200, contentType: 'application/json',
+    body: JSON.stringify({success:true,identity:{email:'admin@browser.invalid',role:'admin'}}),
+  }));
   try {
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
     const nav = page.getByRole('navigation', { name: 'Navigasi utama mobile' });
