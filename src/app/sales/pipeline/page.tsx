@@ -6,7 +6,6 @@ import { StageFilter } from '@/components/sales/StageFilter';
 import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
-import {CUSTOMER_INDUSTRIES} from '@/lib/customer-classification';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -26,7 +25,7 @@ const listSelect:Record<string,string[]>={
  delivery_model:['Remote','Onsite','Hybrid'],
  resourcing_model:['Belum dikonfirmasi','Shared','Dedicated','Hybrid'],
  customer_decision:['pending','approved','rejected'],
- payment_va:['BCA','OCBC NISP'],industry:[...CUSTOMER_INDUSTRIES],
+ payment_va:['BCA','OCBC NISP'],
 };
 const stageLabel=(s:string)=>SALES_STAGES.find(x=>x[0]===s)?.[1]||s;
 const stages:SalesStage[]=SALES_STAGES.map(x=>x[0]);
@@ -35,7 +34,7 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
  {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label)=>(
-  key==='client_tier'||key==='business_type'
+  key==='client_tier'||key==='industry'||key==='business_type'
    ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
    : <React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
