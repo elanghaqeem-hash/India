@@ -60,12 +60,10 @@ test('existing staffing rates are preserved', () => {
   assert.equal(result.totalHRCost, 21000000);
 });
 
-test('pricing page has mobile cards, desktop table and guards quotation on unset writer rates', () => {
-  assert.match(page, /space-y-2\.5 xl:hidden/);
-  assert.match(page, /hidden min-w-0 overflow-x-auto xl:block/);
-  assert.match(page, /id="writer-cost-rate"/);
-  assert.match(page, /id="writer-selling-rate"/);
-  assert.match(page, /writerHasUnconfiguredRate/);
-  assert.match(page, /disabled=\{writerHasUnconfiguredRate\}/);
-  assert.match(page, /setStaffing\(prev => prev\.map/);
+test('retired pricing UI cannot persist demo price or bypass D1 BoQ approval', () => {
+  assert.ok(page.includes("from 'next/navigation'"));
+  assert.ok(page.includes("redirect('/boq'"));
+  assert.doesNotMatch(page, /appStore|generateQuotationNumber|calculate3Ranges/);
+  const boqPage = readFileSync(join(root, 'src/app/boq/page.tsx'), 'utf8');
+  assert.ok(boqPage.includes('/api/boq'));
 });
