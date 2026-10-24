@@ -19,7 +19,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
-import { selectConversationHistory, type AIConversationTurn } from '@/lib/ai-conversation';
+import { selectConversationHistory, activeChatTopic, type AIConversationTurn } from '@/lib/ai-conversation';
 
 const WELCOME_MESSAGE = {
   sender: 'ai' as const,
@@ -90,6 +90,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [aiAssistantOpen]);
 
   const currentRoleInfo = {label: email||'Sesi belum terverifikasi',badge: role||'Cloudflare Access diperlukan'};
+  const activeTopic = activeChatTopic(conversationTurns);
+  const activeTopicLabels:Record<string,string>={
+    vapt:'VAPT / penetration testing',boq:'BoQ / quotation',tender:'Tender / pengadaan',
+    soc:'SOC / MDR',grc:'GRC',pricing:'Pricing',sales:'Sales / pipeline',
+  };
 
   const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -267,7 +272,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 
             {conversationTurns.length > 0 && (
               <p className="shrink-0 bg-indigo-50 px-3 py-1 text-[10px] font-medium text-indigo-700" role="status">
-                Konteks percakapan aktif · {selectConversationHistory(conversationTurns).length / 2} tanya-jawab terbaru dapat digunakan
+                Konteks aktif{activeTopic?' · '+activeTopicLabels[activeTopic]:''} · {selectConversationHistory(conversationTurns).length / 2} tanya-jawab terakhir. Pertanyaan lanjutan tetap terkait; gunakan Percakapan baru untuk mengganti sesi.
               </p>
             )}
 

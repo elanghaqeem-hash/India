@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { runPriorityChain } from '@/lib/ai-credential-vault';
-import { parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment, type AIConversationRequest } from '@/lib/ai-conversation';
+import { parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment,
+ contextualConversationAnchor, isClearlyOffTopicChatAnswer, topicalClarification,
+ type AIConversationRequest } from '@/lib/ai-conversation';
 import { containsPersonalIdentifier } from '@/lib/ai-data-policy';
 
 export const dynamic='force-dynamic';
@@ -54,12 +56,31 @@ export async function POST(req:Request){
    latencyMs:0,tokensEstimate:0,isFallback:false});
  }
 
+ const anchor=contextualConversationAnchor(prompt,history);
  const conversation:AIConversationRequest = {
-  system:ICOP_CHAT_INSTRUCTION,
+  system:ICOP_CHAT_INSTRUCTION+(anchor?'\n'+anchor.guidance:''),
   messages:[...history,{role:'user',content:prompt.trim()}],
  };
  try{
-  const result=await runPriorityChain(auth.identity.db,conversation);
+  let result=await runPriorityChain(auth.identity.db,conversation);
+  // Guard a narrow, observable failure mode: consumer products suggested in
+  // a VAPT costing follow-up. Retry only once; never echo irrelevant content.
+  if(isClearlyOffTopicChatAnswer(anchor,result.content)){
+   try{
+    const retry=await runPriorityChain(auth.identity.db,{
+     ...conversation,
+     system:conversation.system+'\nRespons awal salah mengalihkan pembahasan ke barang konsumsi. Jawab tentang domain keamanan siber yang aktif saja; apabila belum cukup konteks, tanyakan klarifikasi khusus domain itu.',
+    });
+    result=retry;
+   }catch{
+    // Provider could be unavailable for retry; return only a topic-specific clarification.
+   }
+   if(isClearlyOffTopicChatAnswer(anchor,result.content)&&anchor){
+    return json({success:true,content:topicalClarification(anchor),
+     providerUsed:'ICOP (penjaga konteks)',modelUsed:'local-context-guard',
+     latencyMs:0,tokensEstimate:0,isFallback:false});
+   }
+  }
   return json({success:true,...result});
  }catch{
   return json({success:false,message:'Belum ada provider AI yang bisa digunakan atau semua koneksi gagal.'},503);

@@ -152,7 +152,8 @@ async function run() {
     'Alat apa saja yang bisa digunakan untuk itu?',
     'Jelaskan fungsi dua alat yang baru Anda sebutkan dan perbedaannya.',
     'Gunakan bahasa Indonesia saja',
-    'Berapa estimasi person-days untuk pekerjaan tersebut? Jelaskan asumsi, tanpa mengarang harga atau data klien.'
+    'Berapa estimasi person-days untuk pekerjaan tersebut? Jelaskan asumsi, tanpa mengarang harga atau data klien.',
+    'Mans yg lebih murah'
   ];
   const history = [];
   const answers = [];
@@ -177,6 +178,12 @@ async function run() {
       pass('Turn 3: refers to previously mentioned tool(s)',
         tools.some(t => result.content.toLowerCase().includes(t.toLowerCase())));
     }
+    if (i === 5) {
+      const text = result.content.toLowerCase();
+      pass('Turn 6: misspelled cheaper comparison stays within VAPT context',
+        /vapt|penetration test|pentest|pentester|pengujian keamanan|black box|gray box|white box|scope|person.days|klarifikasi/i.test(text) &&
+        !/pakaian|kendaraan|baju|sepatu/i.test(text));
+    }
     answers.push(result.content);
     history.push({ role: 'user', content: prompts[i] }, { role: 'assistant', content: result.content });
     // Match frontend history budgeting for long responses.
@@ -199,7 +206,7 @@ async function run() {
     result: 'PASS', kind: 'REAL_ADMIN_CLOUDFLARE_ACCESS_OPENROUTER_UAT',
     candidate_sha: c.sha, target_worker: UAT_WORKER, database: 'isolated UAT',
     provider: 'OpenRouter', model, validated_turns: prompts.length,
-    checks: count, no_customer_data: true, actual_model_calls: 4
+    checks: count, no_customer_data: true, actual_model_calls: 5
   }));
 }
 run().catch(err => {
