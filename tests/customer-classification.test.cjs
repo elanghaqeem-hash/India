@@ -37,8 +37,7 @@ test('pipeline and Lead conversion share dropdowns; no simulated choices sent to
  assert.match(component,/value={value}/);
  assert.match(component,/disabled={disabled}/);
  assert.match(component,/aria-label={label}/);
- assert.match(pipeline,/key==='client_tier'\|\|key==='business_type'/);
- assert.match(leads,/field==='client_tier'\|\|field==='business_type'/);
- assert.match(leads,/CUSTOMER_INDUSTRIES\.map/);
- assert.match(pipeline,/industry:\[\.\.\.CUSTOMER_INDUSTRIES\]/);
+ assert.match(pipeline,/key==='client_tier'\|\|key==='industry'\|\|key==='business_type'/);
+ assert.match(leads,/field==='client_tier'\|\|field==='industry'\|\|field==='business_type'/);
+ assert.match(component,/field==='industry'\?CUSTOMER_INDUSTRIES/);
 });
