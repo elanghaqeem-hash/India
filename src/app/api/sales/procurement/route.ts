@@ -124,5 +124,5 @@ export async function PATCH(req:Request){
    return resp({success:true,status:'reviewed',compliance});
   }
   return fail('Aksi tidak dikenali');
- }catch{return fail('Review procurement gagal atau tabel D1 belum siap',503);}
+ }catch(e){return /COMPLIANCE_CONFLICT/i.test(String(e))?fail('Klausul mandatory belum memenuhi compliance; periksa matriks per klausul.',409):fail('Review procurement gagal atau tabel D1 belum siap',503);}
 }

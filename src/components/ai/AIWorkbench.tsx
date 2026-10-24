@@ -27,6 +27,7 @@ export function AIWorkbench(){
   }).catch(e=>setError(e instanceof Error?e.message:'Daftar AI belum siap.'));
  },[open]);
  useEffect(()=>{setPrompt(mode.starter);setOutput('');setApproved(false);},[pathname]);
+ useEffect(()=>{const receive=(event:Event)=>{const detail=(event as CustomEvent<{prompt:string}>).detail;if(typeof detail?.prompt==='string'){setPrompt(detail.prompt.slice(0,4800));setApproved(false);setOutput('');setOpen(true);}};window.addEventListener('india-ai-context',receive);return()=>window.removeEventListener('india-ai-context',receive);},[]);
  const run=async()=>{
   if(!approved||!providers.length||busy)return;
   setBusy(true);setError('');setOutput('');

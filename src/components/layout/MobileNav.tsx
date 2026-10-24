@@ -3,7 +3,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare, Megaphone } from 'lucide-react';
+import { LayoutDashboard, FileSearch, Calculator, Stamp, FileSpreadsheet, ClipboardCheck, ClipboardList, KeyRound, KanbanSquare, Megaphone, CalendarDays, UsersRound } from 'lucide-react';
 
 interface MobileNavProps {
   pendingApprovalsCount?: number;
@@ -13,9 +13,22 @@ export const MobileNav: React.FC<MobileNavProps> = ({ pendingApprovalsCount = 1 
   const pathname = usePathname();
 
   const items = [
+    { label: 'Partners', href: '/partners', icon: UsersRound },
+    { label: 'Reports', href: '/reports', icon: LayoutDashboard },
+    { label: 'Settings', href: '/settings/system', icon: KeyRound },
     { label: 'Campaigns', href: '/sales/campaigns', icon: Megaphone },
     { label: 'Leads', href: '/sales/leads', icon: Megaphone },
     { label: 'Pipeline', href: '/sales/pipeline', icon: KanbanSquare },
+    { label: 'Activity', href: '/sales/activities', icon: CalendarDays },
+    { label: 'Lead Score', href: '/sales/lead-intelligence', icon: Megaphone },
+    { label: 'Tender', href: '/sales/compliance', icon: FileSearch },
+    { label: 'Bid Ready', href: '/sales/bid-readiness', icon: ClipboardCheck },
+    { label: 'Vault', href: '/sales/documents', icon: FileSpreadsheet },
+    { label: 'Feasibility', href: '/sales/feasibility', icon: UsersRound },
+    { label: 'Email', href: '/sales/communications', icon: FileSpreadsheet },
+    { label: 'Executive', href: '/sales/executive', icon: LayoutDashboard },
+    { label: 'Forecast', href: '/sales/forecast', icon: KanbanSquare },
+    { label: 'Revenue', href: '/sales/revenue', icon: ClipboardCheck },
     { label: 'Demo 360', href: '/', icon: LayoutDashboard },
     { label: 'Scoping', href: '/scoping', icon: FileSearch },
     { label: 'Price Demo', href: '/pricing', icon: Calculator },

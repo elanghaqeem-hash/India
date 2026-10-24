@@ -32,6 +32,7 @@ async function api(method:'GET'|'POST'|'PATCH',url:string,data?:Record<string,un
 const money=(v:number)=>'Rp'+Number(v||0).toLocaleString('id-ID');
 export default function MarketingLeads(){
  const [list,setList]=useState<Lead[]>([]);
+ const [scores,setScores]=useState<Record<string,{score:number;temperature:string}>>({});
  const [campaigns,setCampaigns]=useState<CampaignOption[]>([]);
  const [role,setRole]=useState('');
  const [form,setForm]=useState(empty());
@@ -51,6 +52,8 @@ export default function MarketingLeads(){
    const j=await api('GET','/api/marketing/leads');setList(j.leads||[]);setRole(j.role||'');
    const c=await api('GET','/api/marketing/campaigns').catch(()=>({campaigns:[]}));
    setCampaigns((c.campaigns||[]).filter((x:CampaignOption)=>x.status==='active'));
+   const intelligence=await api('GET','/api/marketing/lead-intelligence?mode=queue').catch(()=>({leads:[]}));
+   setScores(Object.fromEntries((intelligence.leads||[]).map((x:{id:string;score:number;temperature:string})=>[x.id,{score:x.score,temperature:x.temperature}])));
   }catch(e){setMessage(e instanceof Error?e.message:String(e));}
  },[]);
  const load=async(id:string)=>{
@@ -78,7 +81,7 @@ export default function MarketingLeads(){
   setRequestKey(crypto.randomUUID());
   return result;
  },'Lead tersimpan di D1');
- const changeStatus=(status:'assigned'|'qualified'|'disqualified')=>{
+ const changeStatus=(status:'assigned'|'qualified')=>{
   if(!selected)return;
   void run(()=>api('PATCH','/api/marketing/leads',{id:selected.lead.id,version:selected.lead.version,status,qualification}),
    'Status dan qualification disimpan.',selected.lead.id);
@@ -109,6 +112,8 @@ export default function MarketingLeads(){
   <div className="flex flex-wrap gap-2">
    <Link href="/sales/campaigns" className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Kelola Campaign &amp; Attribution →</Link>
    <Link href="/sales/pipeline" className="rounded-lg border bg-white px-3 py-2 text-xs font-semibold text-slate-700">Sales Pipeline →</Link>
+   <Link href="/sales/activities" className="rounded-lg border border-blue-200 bg-white px-3 py-2 text-xs font-semibold text-blue-700">Jadwal &amp; Follow-up →</Link>
+   <Link href="/sales/lead-intelligence" className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700">Lead Score · Nurturing · Conversion Analysis →</Link>
   </div>
   {message&&<div role="status" className="whitespace-pre-wrap rounded-lg border border-blue-200 bg-blue-50 p-3 text-xs text-blue-900">{message}</div>}
   <section className="grid grid-cols-3 gap-2">
@@ -124,6 +129,7 @@ export default function MarketingLeads(){
       <div className="flex justify-between gap-2"><b className="min-w-0 truncate text-xs">{x.account_name}</b><span className="shrink-0 rounded bg-slate-100 px-2 py-1 text-[10px] font-semibold">{statuses[x.status]||x.status}</span></div>
       <div className="mt-1 text-[11px] text-slate-500">{x.lead_number} · {x.service_family} · {money(x.estimated_value_idr)}</div>
       <div className="mt-1 break-all text-[11px] text-slate-500">{x.assigned_sales_email}</div>
+      {scores[x.id]&&<div className="mt-1 text-[11px] font-semibold text-blue-700">Lead Score {scores[x.id].score}/100 · {scores[x.id].temperature}</div>}
      </button>)}
    </section>
    {newMode?<section className="rounded-xl border bg-white p-4">
@@ -170,7 +176,7 @@ export default function MarketingLeads(){
     {!['converted','disqualified'].includes(selected.lead.status)&&<div className="flex flex-wrap gap-2">
      {selected.lead.status==='new'&&<button disabled={busy} onClick={()=>changeStatus('assigned')} className="rounded-lg border px-3 py-2 text-xs font-bold">Tandai Assigned</button>}
      <button disabled={busy} onClick={()=>changeStatus('qualified')} className="inline-flex items-center gap-1 rounded-lg bg-blue-700 px-3 py-2 text-xs font-bold text-white"><UserRoundCheck size={15}/> Simpan & Qualified</button>
-     <button disabled={busy} onClick={()=>changeStatus('disqualified')} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Disqualified</button>
+     <Link href="/sales/lead-intelligence" className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-bold text-rose-700">Disqualified dengan Reason Code →</Link>
     </div>}
     {selected.lead.status==='qualified'&&<div className="space-y-2 rounded-xl border border-emerald-200 bg-emerald-50 p-3">
      <div className="flex items-center gap-2 text-xs font-bold text-emerald-900"><ClipboardList size={16}/> Konversi menjadi Customer + Opportunity</div>

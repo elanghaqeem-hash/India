@@ -43,8 +43,14 @@ function route(file,role,email,db,additional={}){
   '@/lib/sales-workflow':sales,
   '@/lib/sales-transactions':domain('sales-transactions'),
   // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
+  '@/lib/document-vault':{requireVaultDocument:async()=>{throw Error('Unauthorized original lookup reached');},authenticateWonOriginals:async()=>{throw Error('Unauthorized Won original lookup reached');},vaultError:()=>{throw Error('Unexpected Vault error handler');}},
   '@/lib/sales-journey':{salesJourney:()=>[]},
   '@/lib/sales-procurement':{needsTenderGate:()=>false,procurementGate:()=>[]},
+  '@/lib/solution-feasibility-gate':{feasibilityReady:async()=>{throw Error('Unauthorized feasibility lookup reached');}},
+  '@/lib/tender-readiness':{
+   tenderReady:async()=>{throw Error('Unauthorized tender readiness lookup reached');},
+   guardTender:()=>{throw Error('Unauthorized tender export guard reached');}
+  },
   '@/lib/sales-submission':{submissionMatches:()=>false},
   '@/lib/sales-award':{validAwardForWon:()=>false},
   '@/lib/quotation-docx':{createQuotationDocx:()=>{throw Error('Unauthorized Word export reached');}},

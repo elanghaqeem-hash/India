@@ -19,6 +19,8 @@ import {
   Sparkles,
   KanbanSquare,
   Megaphone,
+  CalendarDays,
+  UsersRound,
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -29,9 +31,22 @@ export const Sidebar: React.FC<SidebarProps> = ({ pendingApprovalsCount = 1 }) =
   const pathname = usePathname();
 
   const navigation = [
+    { name: 'Vendor, OEM & Partners', href: '/partners', icon: Building2, badge: 'D1' },
+    { name: 'Reports, Analytics & AI', href: '/reports', icon: TrendingUp, badge: 'D1' },
+    { name: 'Administration & Settings', href: '/settings/system', icon: ClipboardList, badge: 'Admin' },
     { name: 'Marketing Campaigns', href: '/sales/campaigns', icon: Megaphone, badge: 'D1' },
     { name: 'Marketing & Leads', href: '/sales/leads', icon: Megaphone, badge: 'D1' },
     { name: 'Sales Pipeline & CRM', href: '/sales/pipeline', icon: KanbanSquare, badge: 'D1' },
+    { name: 'Activity, SLA & Follow-up', href: '/sales/activities', icon: CalendarDays, badge: 'D1' },
+    { name: 'Lead Score & Nurturing', href: '/sales/lead-intelligence', icon: TrendingUp, badge: 'D1' },
+    { name: 'Tender Compliance & Vendor', href: '/sales/compliance', icon: FileSearch, badge: 'D1' },
+    { name: 'Bid Readiness & Checklist', href: '/sales/bid-readiness', icon: ClipboardCheck, badge: 'D1' },
+    { name: 'Encrypted Document Vault', href: '/sales/documents', icon: FileText, badge: 'D1' },
+    { name: 'Vendor, Resource & Feasibility', href: '/sales/feasibility', icon: UsersRound, badge: 'D1' },
+    { name: 'Email & Negotiation', href: '/sales/communications', icon: FileText, badge: 'D1' },
+    { name: 'Executive Sales Dashboard', href: '/sales/executive', icon: LayoutDashboard, badge: 'D1' },
+    { name: 'Sales Forecast & Revenue', href: '/sales/forecast', icon: TrendingUp, badge: 'D1' },
+    { name: 'Revenue Register', href: '/sales/revenue', icon: FileCheck2, badge: 'D1' },
     { name: 'BoQ Management', href: '/boq', icon: ClipboardList, badge: 'D1' },
     {
       name: 'Legacy 360 (Demo)',

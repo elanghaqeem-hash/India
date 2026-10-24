@@ -1,3 +1,4 @@
+import {enforceBoQApprovalPolicy} from '@/lib/system-settings';
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { validateBoQ,can } from '@/lib/boq-domain';
@@ -47,6 +48,7 @@ export async function PATCH(req:Request,ctx:{params:Promise<{id:string}>}){
     .bind(i.email,new Date().toISOString(),id,'defendit360',row.edit_seq));
   }else if(action==='approve'){
    checkTransition('approve',{...row,line_items:JSON.parse(row.line_items_json),cost_items:JSON.parse(row.cost_items_json)},i,String(p.reason||''));
+   await enforceBoQApprovalPolicy(i.db,row,i.role,String(p.reason||''));
    writes.push(i.db.prepare("UPDATE india_boq SET status='approved',approved_by=?,updated_by=?,updated_at=?,edit_seq=edit_seq+1 WHERE id=? AND tenant_id=? AND status='submitted' AND edit_seq=?")
     .bind(i.email,i.email,new Date().toISOString(),id,'defendit360',row.edit_seq));
   }else if(action==='reject'){
@@ -64,5 +66,5 @@ export async function PATCH(req:Request,ctx:{params:Promise<{id:string}>}){
     .bind(crypto.randomUUID(),'defendit360',target,action.toUpperCase(),i.email,String(p.reason||'').slice(0,500)));
   await atomicSales(i.db,"EXISTS(SELECT 1 FROM india_boq WHERE id=? AND tenant_id=? AND edit_seq=? AND status=?) AND EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id=? AND stage=? AND data_json=?)",[id,'defendit360',row.edit_seq,row.status,owner!.id,'defendit360',owner!.stage,owner!.data_json],writes);
   return answer({success:true,id:target});
- }catch(e){if(/FLOW_CONFLICT|CHECK constraint/.test(String(e))){const t=transactionError(e);return err(t.message,t.status);}const message=e instanceof Error?e.message:'Gagal memproses perubahan';return err(message,message.includes('UNIQUE constraint')?409:message.includes('Segregation of Duties')?403:message.includes('tidak boleh')||message.includes('Approver')||message.includes('diizinkan')?403:400);}
+ }catch(e){if(/FLOW_CONFLICT|CHECK constraint/.test(String(e))){const t=transactionError(e);return err(t.message,t.status);}const message=e instanceof Error?e.message:'Gagal memproses perubahan';return err(message,message.includes('UNIQUE constraint')?409:message.includes('Segregation of Duties')?403:message.includes('Approval Matrix')||message.includes('tidak boleh')||message.includes('Approver')||message.includes('diizinkan')?403:400);}
 }

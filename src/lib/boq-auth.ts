@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
+import {accessRestricted} from './system-settings';
 import type { BoQRole } from './boq-domain';
 
 export interface D1Prepared {
@@ -35,6 +36,7 @@ export async function authorizeBoQ(request:Request):Promise<Result>{
    const member=await db.prepare('SELECT role,active FROM india_members WHERE email=?').bind(email).first<{role:BoQRole;active:number}>();
    if(!member||member.active!==1||!['admin','marketing','finance','presales','sales','approver','legal','viewer'].includes(member.role))
     return deny(403,'Akun belum diberi akses sesuai peran.');
+   try{if(await accessRestricted(db,new URL(request.url).pathname,member.role))return deny(403,'Resource dibatasi oleh Access Policy institusi.');}catch{return deny(503,'Access Policy belum siap; verifikasi migrasi administrasi.');}
    return {ok:true,identity:{email,role:member.role,db}};
  }catch{return deny(401,'Token login Access tidak valid atau kedaluwarsa.');}
 }

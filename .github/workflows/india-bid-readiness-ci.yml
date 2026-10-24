@@ -1,0 +1,29 @@
+name: INDIA Tender Compliance Bid Readiness
+on:
+  push:
+    branches: [feat/india-tender-bid-readiness-20261022, feat/india-ag-vault-tender-integration-20261022]
+  pull_request:
+    branches: [main, feat/india-p1-p2-integration-20261022, feat/india-tender-bid-readiness-20261022]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  readiness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm install --no-audit --no-fund
+      - name: Bid readiness security and SQLite D1 regressions
+        run: npm run test:bid-readiness && npm run test:p1-p2
+      - name: Seven-role Marketing Sales regressions
+        run: npm run test:sales && npm run test:marketing && npm run test:india-negative
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Cloudflare Next.js worker packaging
+        run: npm run build:cf
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'

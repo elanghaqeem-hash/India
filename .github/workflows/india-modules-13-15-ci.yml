@@ -1,0 +1,31 @@
+name: INDIA Modules 13 14 15 Completion
+on:
+  push:
+    branches: [feat/india-modules-13-15-completion-20261022]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Marketing Sales consolidation and isolation
+        run: npm run test:consolidation
+      - name: Live UAT target and human-session guard regression (offline)
+        run: node --test tests/india-feasibility-live-access-guard.test.cjs
+      - name: Full regression and OpenNext Cloudflare package (never deploy)
+        run: npm run build:cf
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
+      - run: npx playwright install --with-deps chromium
+      - name: Desktop and Android emulation with actual route handlers and isolated SQLite
+        run: node tests/run-modules-browser.cjs
