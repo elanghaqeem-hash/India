@@ -45,7 +45,7 @@ export const MobileNav:React.FC<MobileNavProps> = ({role}) => {
           return <Link key={group.id} href={link.href} onClick={()=>setOpen(false)} aria-current={pathname===link.href?'page':undefined}
             className={`flex min-h-14 min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-lg px-1 text-center text-[10px] font-semibold focus-visible:outline-2 focus-visible:outline-indigo-500 ${pathname===link.href?'text-indigo-700':'text-slate-600'}`}>
             <LayoutGrid className="h-5 w-5" aria-hidden="true"/>
-            <span className="max-w-full truncate">{group.label.replace(/^\\d+ · /,'')}</span>
+            <span className="max-w-full truncate">{group.label.replace(/^\d+ · /,'')}</span>
           </Link>;
         })}
         <button type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Buka seluruh menu INDIA"
