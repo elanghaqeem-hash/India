@@ -55,6 +55,7 @@ async function runScenario(browser, name, viewport, mobile) {
     assert.equal(sent[4].history[0].content, turns[0], name + ': first VAPT topic still visible');
     assert.match(sent[4].history.at(-1).content, /Burp Suite/i);
     assert.equal(sent[4].prompt, 'Mans yg lebih murah');
+    assert.equal(sent[4].topic_hint, 'vapt', name + ': context topic derived from entire chat');
 
     const rect = await input.boundingBox();
     assert.ok(rect, name + ': composer exists');
@@ -64,6 +65,7 @@ async function runScenario(browser, name, viewport, mobile) {
     await input.fill('Pertanyaan baru tentang tender');
     await send.click();
     assert.equal(sent[5]?.history?.length, 0, name + ': New Chat resets history');
+    assert.equal(sent[5]?.topic_hint, null, name + ': New Chat clears topic hint');
 
     console.log(name + ': PASS (five continuous turns including VAPT costing typo, mobile composer, reset)');
   } finally {
