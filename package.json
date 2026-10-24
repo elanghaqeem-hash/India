@@ -18,7 +18,7 @@
     "test:quotation-docx": "node --experimental-strip-types --test tests/quotation-docx.test.cjs",
     "test:post-po": "node --experimental-strip-types --test tests/post-po-documents.test.cjs tests/post-po-canonical.test.cjs",
     "test:boq-domain": "node --test tests/boq-domain.test.cjs",
-    "test:ai": "node --experimental-strip-types --test tests/ai-config-security.test.cjs tests/ai-conversation.test.cjs tests/mistral-migration.test.cjs",
+    "test:ai": "node --experimental-strip-types --test tests/ai-config-security.test.cjs tests/ai-conversation.test.cjs tests/mistral-migration.test.cjs tests/india-prod-ai-release-gate.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
     "test:sales": "node --experimental-strip-types --test tests/sales-stage-filter.test.cjs tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
     "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
