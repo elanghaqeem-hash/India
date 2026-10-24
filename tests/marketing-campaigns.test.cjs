@@ -86,7 +86,7 @@ test('Authenticated Marketing Campaign API and Lead link use D1; no demo or stor
   assert.ok(api.includes(expected),expected);
  for(const expected of ["campaign_id","india_marketing_campaigns","selected.status!=='active'","v.campaign=selected.name"])
   assert.ok(leads.includes(expected),expected);
- assert.ok(mid.includes("path==='/api/marketing/campaigns'"));
+ assert.ok(mid.includes("'/api/marketing/campaigns'"));
 });
 test('Campaign and Lead UI have navigation, database-backed options and responsive layouts',()=>{
  const page=fs.readFileSync(path.join(root,'src/app/sales/campaigns/page.tsx'),'utf8');

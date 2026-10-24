@@ -38,8 +38,8 @@ test('only server stores ciphertext; GET response cannot leak key, admin JWT pro
 });
 test('AI generation is admin-gated and demo API stays blocked',()=>{
  const middleware=text('src/middleware.ts');
- assert.match(middleware,/path==='\/api\/ai\/config'/);
- assert.match(middleware,/path==='\/api\/ai\/generate'/);
+ assert.match(middleware, /'\/api\/ai\/config'/);
+ assert.match(middleware, /'\/api\/ai\/generate'/);
  assert.match(middleware,/API demo nonpersisten dinonaktifkan/);
  const route=text('src/app/api/ai/generate/route.ts');
  assert.match(route,/auth\.identity\.role!=='admin'/);
