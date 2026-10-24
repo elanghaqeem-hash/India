@@ -5,6 +5,8 @@ import { PRESALES_FIELDS } from '@/lib/sales-access';
 import { StageFilter } from '@/components/sales/StageFilter';
 import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
+import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
+import {CUSTOMER_INDUSTRIES} from '@/lib/customer-classification';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -24,7 +26,7 @@ const listSelect:Record<string,string[]>={
  delivery_model:['Remote','Onsite','Hybrid'],
  resourcing_model:['Belum dikonfirmasi','Shared','Dedicated','Hybrid'],
  customer_decision:['pending','approved','rejected'],
- payment_va:['BCA','OCBC NISP'],industry:['Banking','Asuransi','Multifinance','Sekuritas','Fintech','BUMN','Pemerintah','Healthcare','Retail','Manufaktur','Teknologi Informasi','Lainnya'],
+ payment_va:['BCA','OCBC NISP'],industry:[...CUSTOMER_INDUSTRIES],
 };
 const stageLabel=(s:string)=>SALES_STAGES.find(x=>x[0]===s)?.[1]||s;
 const stages:SalesStage[]=SALES_STAGES.map(x=>x[0]);
@@ -32,13 +34,18 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
  fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;onPatch?:(patch:SalesFields)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=><React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
+ {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label)=>(
+  key==='client_tier'||key==='business_type'
+   ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
+      industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
+   : <React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
   {label}
   {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
   <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key==='client_tier'?'Opsional — boleh dikosongkan':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
- </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
+ </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>
+ ))}
  </div>;
 }
 const SALES_FIELD_GROUPS: Array<{title:string;description:string;keys:readonly string[]}>= [
