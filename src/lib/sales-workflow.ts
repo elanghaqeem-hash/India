@@ -24,9 +24,12 @@ export type SalesDeal={
  estimated_value:number; flow_version?:number; fields:SalesFields; created_at:string; created_by?:string;
 };
 export const ACCOUNT_FIELDS=[
- ['client_tier','Segmentasi pelanggan'],['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],
+ ['client_tier','Segmentasi pelanggan (opsional)'],['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],
  ['npwp','NPWP'],['company_phone','Nomor telepon perusahaan'],['fax','Nomor fax / N/A'],
  ['hq_address','Alamat kantor pusat'],['hq_province','Provinsi'],['hq_postal','Kode pos'],
+ ['hq_province_code','Kode provinsi'],['hq_regency','Kabupaten / Kota'],['hq_regency_code','Kode kabupaten/kota'],
+ ['hq_district','Kecamatan / Distrik'],['hq_district_code','Kode kecamatan'],
+ ['hq_village','Desa / Kelurahan'],['hq_village_code','Kode desa/kelurahan'],['hq_village_kind','Jenis desa/kelurahan'],
  ['billing_same_as_hq','Alamat penagihan sama dengan kantor pusat (ya/tidak)'],
  ['billing_address','Alamat penagihan'],['billing_province','Provinsi penagihan'],['billing_postal','Kode pos penagihan'],
  ['primary_name','PIC utama - nama'],['primary_phone','PIC utama - telepon'],['primary_email','PIC utama - email'],
@@ -159,7 +162,7 @@ export function stageProbability(stage:SalesStage):number{
 export function documentChecklist(deal:SalesDeal,account:SalesAccount){
  const f=account.fields,d=deal.fields;
  const registration=[
- ...ACCOUNT_FIELDS.filter(([k])=>!['billing_address','billing_province','billing_postal'].includes(k)||f.billing_same_as_hq==='tidak')
+ ...ACCOUNT_FIELDS.filter(([k])=>k!=='client_tier'&&(!['billing_address','billing_province','billing_postal'].includes(k)||f.billing_same_as_hq==='tidak'))
   .map(([k])=>k).filter(k=>!has(f[k])),
  ...(['npwp','fax','technical_name','technical_phone','technical_email','billing_name','billing_phone','billing_email','tax_name','tax_phone','tax_email'].filter(k=>!has(f[k]))),
  'primaryKtpNumber (isi pada form Post-PO, jangan simpan di CRM)',

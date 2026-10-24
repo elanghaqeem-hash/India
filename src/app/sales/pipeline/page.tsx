@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
 import { StageFilter } from '@/components/sales/StageFilter';
 import type { StageFilterValue } from '@/lib/sales-stage-filter';
+import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -15,6 +16,7 @@ type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_numbe
  activities:{kind:string;subject:string;detail:string;created_at:string}[];journey:JourneyGate[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500';
+const headquartersKeys=new Set(['hq_province','hq_postal','hq_province_code','hq_regency','hq_regency_code','hq_district','hq_district_code','hq_village','hq_village_code','hq_village_kind']);
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
 const listSelect:Record<string,string[]>={
  service_family:[...SERVICE_FAMILIES],contract_model:['One-Time','Recurring','Subscription','Project-based'],
@@ -26,17 +28,17 @@ const listSelect:Record<string,string[]>={
 };
 const stageLabel=(s:string)=>SALES_STAGES.find(x=>x[0]===s)?.[1]||s;
 const stages:SalesStage[]=SALES_STAGES.map(x=>x[0]);
-function FormFields({fields,values,onUpdate,readOnly}:{
- fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;readOnly?:(k:string)=>boolean;
+function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
+ fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;onPatch?:(patch:SalesFields)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.map(([key,label])=><label key={key} className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
+ {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=><React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
   {label}
   {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
-  <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>}
- </label>)}
+  <input className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key==='client_tier'?'Opsional — boleh dikosongkan':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
+ </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>)}
  </div>;
 }
 const SALES_FIELD_GROUPS: Array<{title:string;description:string;keys:readonly string[]}>= [
@@ -194,7 +196,7 @@ export default function SalesPipelinePage(){
   <h2 className="font-bold">Customer Registration • Master Data</h2>
   <p className="text-xs text-slate-500">Customer ID diterbitkan otomatis. Field kosong harus dilengkapi sebelum tahap Qualified dan sebelum dokumen final.</p>
   <label className="block text-xs font-bold">Nama badan usaha resmi *<input className={inputClass} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-  <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+  <FormFields fields={ACCOUNT_FIELDS} values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
   <button disabled={busy||!isMaker} onClick={saveAccount} className="rounded-lg bg-blue-700 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Simpan Customer Account</button>
  </section>}
  {tab==='newdeal'&&<section className="space-y-4 rounded-xl border bg-white p-4">
@@ -255,7 +257,7 @@ export default function SalesPipelinePage(){
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
     <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!mayEditAccount} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))}/>
+    <FormFields fields={ACCOUNT_FIELDS} values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
     <button disabled={busy||!mayEditAccount} onClick={updateAccount} className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white">Simpan Customer</button></div>
    </details>
   </section>

@@ -3,6 +3,8 @@ import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,CheckCircle2,ClipboardList,Megaphone,Plus,Search,UserRoundCheck} from 'lucide-react';
 import {SERVICE_FAMILIES} from '@/lib/sales-workflow';
+import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
+import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
@@ -12,8 +14,8 @@ type Detail={lead:Lead;activities:{kind:string;summary:string;created_at:string}
  link:{opportunity_id:string;customer_id:string}|null};
 const statuses:Record<string,string>={new:'Lead Baru',assigned:'Assigned',qualified:'Qualified',disqualified:'Disqualified',converted:'Converted'};
 const cls='w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:border-blue-500';
-const customerFields=[['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],['company_phone','Telepon kantor'],['hq_address','Alamat kantor pusat'],['hq_province','Provinsi'],['hq_postal','Kode pos'],['technical_name','PIC teknis'],['technical_email','Email PIC teknis'],['billing_name','PIC penagihan'],['billing_email','Email penagihan'],['tax_name','PIC pajak'],['tax_email','Email pajak']] as const;
-const initialCustomer=()=>Object.fromEntries(customerFields.map(([name])=>[name,''])) as Record<typeof customerFields[number][0],string>;
+const customerFields=[['industry','Sektor industri'],['business_type','Bidang usaha'],['employee_band','Jumlah pegawai'],['company_phone','Telepon kantor'],['hq_address','Alamat kantor pusat'],['technical_name','PIC teknis'],['technical_email','Email PIC teknis'],['billing_name','PIC penagihan'],['billing_email','Email penagihan'],['tax_name','PIC pajak'],['tax_email','Email pajak']] as const;
+const initialCustomer=()=>Object.fromEntries([...customerFields.map(([name])=>[name,'']),...POSTAL_FIELDS.map(name=>[name,''])]) as Record<string,string>;
 const flds=[
  ['need','Kebutuhan / pain point'],['budget_status','Budget / status pendanaan'],
  ['decision_maker','Pengambil keputusan'],['procurement_process','Proses pengadaan'],
@@ -182,7 +184,7 @@ export default function MarketingLeads(){
      <div className="flex items-center gap-2 text-xs font-bold text-emerald-900"><ClipboardList size={16}/> Konversi menjadi Customer + Opportunity</div>
      <p className="text-xs text-emerald-900">Konversi hanya dapat dilakukan Sales pemilik Lead atau Admin. Data kebutuhan, owner dan sumber Lead akan dipetakan tanpa input ulang.</p>
      <input className={cls} aria-label="Nama proyek" value={title} onChange={e=>setTitle(e.target.value)}/>
-     <details className="rounded-lg border border-emerald-200 bg-white p-3"><summary className="cursor-pointer text-xs font-semibold text-emerald-900">Data Registrasi Customer / Project untuk Form Word</summary><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{customerFields.map(([field,label])=><label key={field} className="text-xs font-medium text-slate-700">{label}<input className={'mt-1 '+cls} type={field.includes('email')?'email':'text'} value={customerProfile[field]} onChange={e=>setCustomerProfile(old=>({...old,[field]:e.target.value}))}/></label>)}</div></details>
+     <details className="rounded-lg border border-emerald-200 bg-white p-3"><summary className="cursor-pointer text-xs font-semibold text-emerald-900">Data Registrasi Customer / Project untuk Form Word</summary><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{customerFields.map(([field,label])=><label key={field} className="text-xs font-medium text-slate-700">{label}<input className={'mt-1 '+cls} type={field.includes('email')?'email':'text'} value={customerProfile[field]} onChange={e=>setCustomerProfile(old=>({...old,[field]:e.target.value}))}/></label>)}<PostalAddressFields values={customerProfile} onChange={patch=>setCustomerProfile(old=>({...old,...patch}))}/></div></details>
      <button disabled={busy||!title.trim()} onClick={convert} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Convert Lead → Opportunity</button>
     </div>}
     <div className="border-t pt-3"><h3 className="text-sm font-bold">Aktivitas Marketing</h3>

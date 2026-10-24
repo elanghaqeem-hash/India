@@ -50,11 +50,13 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   ]},
   {id:'delivery',label:'06 · Project Delivery & Operations',items:[
     item('Service Delivery & Projects','/sales/delivery',['admin','presales','finance','approver']),
+    item('Official Post-PO Forms','/post-po',['admin','sales','presales','finance','approver','legal']),
   ]},
   {id:'cash',label:'07 · Contract-to-Cash & Renewal',items:[
     item('Billing & Collections','/sales/billing',FINANCE),
     item('Revenue Register','/sales/revenue',FINANCE),
     item('Contracts & Renewal','/sales/renewals',COMMERCIAL),
+    item('FlexGuard Token Wallet','/flexguard',['admin','sales','presales','finance','approver']),
   ]},
   {id:'partners',label:'08 · Vendor, OEM & Partners',items:[
     item('Vendor & Partner Records','/partners',PRESALES),

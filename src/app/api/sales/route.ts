@@ -10,6 +10,7 @@ import {validAwardForWon,type AwardDoc} from '@/lib/sales-award';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, dateValid, cleanFields, safeID, documentChecklist,
  type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
 import {atomicSales,currentRelease,dealGuard,salesAudit,transactionError,poSnapshot,type FlowDeal} from '@/lib/sales-transactions';
+import {canonicalPostalFields} from '@/lib/indonesia-postal';
 export const dynamic='force-dynamic';
 const answer=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 const fail=(message:string,status=400)=>answer({success:false,message},status);
@@ -117,7 +118,9 @@ export async function POST(req:Request){
    if(!allowed(role,salesPerms))return fail('Hanya Sales/Admin boleh registrasi pelanggan',403);
    const legal_name=String(p.legal_name||'').trim().replace(/\s+/g,' ');
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
-   const fields=cleanFields(p.fields||{},ACCOUNT_KEYS);
+   let fields;
+   try{fields=await canonicalPostalFields(db,cleanFields(p.fields||{},ACCOUNT_KEYS));}
+   catch(e){return fail(e instanceof Error?e.message:'Wilayah kantor pusat tidak valid',422);}
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
    await db.batch([db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
     .bind(id,TENANT,legal_name,customer_number,JSON.stringify(fields),email),db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email) VALUES (?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,'account',id,'CREATE',email)]);
@@ -216,7 +219,9 @@ export async function PATCH(req:Request){
    if(!canEditAccount(role,email,row.created_by))return fail('Hanya pembuat Customer Account atau Admin yang dapat memperbarui master data',403);
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim().replace(/\s+/g,' ');
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
-   const fields={...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)};
+   let fields;
+   try{fields=await canonicalPostalFields(db,{...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)});}
+   catch(e){return fail(e instanceof Error?e.message:'Wilayah kantor pusat tidak valid',422);}
    await atomicSales(db,'EXISTS(SELECT 1 FROM india_sales_accounts WHERE id=? AND tenant_id=? AND data_json=? AND legal_name=?)',[row.id,TENANT,row.data_json,row.legal_name],[
     db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=?').bind(name,JSON.stringify(fields),row.id,TENANT),
     db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary) VALUES (?,?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,'account',row.id,'UPDATE',email,'Perubahan Customer diperiksa ulang pada paket penawaran aktif')

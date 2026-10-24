@@ -42,6 +42,7 @@ function route(file,role,email,db,additional={}){
   '@/lib/sales-access':access,
   '@/lib/sales-workflow':sales,
   '@/lib/sales-transactions':domain('sales-transactions'),
+  '@/lib/indonesia-postal':{canonicalPostalFields:async(_db,fields)=>fields},
   // Stubs are limited to collaborators not reached by these deny-before-side-effect tests.
   '@/lib/document-vault':{requireVaultDocument:async()=>{throw Error('Unauthorized original lookup reached');},authenticateWonOriginals:async()=>{throw Error('Unauthorized Won original lookup reached');},vaultError:()=>{throw Error('Unexpected Vault error handler');}},
   '@/lib/sales-journey':{salesJourney:()=>[]},

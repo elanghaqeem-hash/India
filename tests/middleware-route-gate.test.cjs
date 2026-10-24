@@ -30,7 +30,7 @@ const { middleware, isEnabledD1ApiRoute } = sandboxModule.exports;
 
 const permitted = [
   '/api/boq', '/api/boq/catalog', '/api/ai/config', '/api/ai/generate',
-  '/api/ai/assist', '/api/scoping/upload',
+  '/api/ai/assist', '/api/scoping/upload', '/api/reference/postal',
   '/api/marketing/leads', '/api/marketing/campaigns',
   '/api/marketing/lead-intelligence', '/api/sales',
   '/api/sales/customer360', '/api/sales/service-operations',
