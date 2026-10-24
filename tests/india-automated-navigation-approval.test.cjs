@@ -18,7 +18,7 @@ test('FlexGuard pending entitlement flows to original wallet via canonical D1 qu
  assert.match(q,/FROM india_flexguard_wallets w/);
  assert.match(q,/w.status='draft'/);
  assert.match(q,/lower\(w.created_by\)!=\?/);
- assert.match(q,/wallet_id=\+encodeURIComponent/);
+ assert.ok(q.includes("?wallet_id='+encodeURIComponent(row.id)"));
  assert.match(wallet,/wallet_id=/);
 });
 test('isolated real migrations 1–30 parse and existing wallet table supports approval query',()=>{
