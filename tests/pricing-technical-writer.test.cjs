@@ -61,9 +61,9 @@ test('existing staffing rates are preserved', () => {
 });
 
 test('retired pricing UI cannot persist demo price or bypass D1 BoQ approval', () => {
-  assert.match(page, /from 'next\\/navigation'/);
-  assert.match(page, /redirect\\('\/boq'/);
+  assert.ok(page.includes("from 'next/navigation'"));
+  assert.ok(page.includes("redirect('/boq'"));
   assert.doesNotMatch(page, /appStore|generateQuotationNumber|calculate3Ranges/);
   const boqPage = readFileSync(join(root, 'src/app/boq/page.tsx'), 'utf8');
-  assert.match(boqPage, /\/api\/boq/);
+  assert.ok(boqPage.includes('/api/boq'));
 });
