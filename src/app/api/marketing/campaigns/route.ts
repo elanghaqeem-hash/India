@@ -156,8 +156,8 @@ export async function DELETE(req:Request){
   if(!parsed||typeof parsed!=='object'||Array.isArray(parsed))return fail('Data penghapusan tidak valid',422);
   const body=parsed as Record<string,unknown>;
   if(!safeID(body.id))return fail('ID Campaign tidak valid',422);
-  const revision=body.revision;
-  if(!Number.isSafeInteger(revision)||Number(revision)<1)return fail('Revisi Campaign tidak valid',422);
+  const revision=Number(body.revision);
+  if(!Number.isSafeInteger(revision)||revision<1)return fail('Revisi Campaign tidak valid',422);
   if(typeof body.code!=='string'||!body.code.trim())return fail('Konfirmasi kode Campaign wajib diisi',422);
   const code=body.code.trim().toUpperCase();
   const current=await db.prepare('SELECT id,code,name,revision,status FROM india_marketing_campaigns WHERE id=? AND tenant_id=?')
