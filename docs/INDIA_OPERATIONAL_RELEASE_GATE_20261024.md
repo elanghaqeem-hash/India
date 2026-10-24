@@ -66,3 +66,34 @@ An isolated-UAT-only, guarded idempotent insert restored missing **unkeyed/disab
 The release preflight now explicitly rejects incomplete AI provider records and enabled providers without both an encrypted key and a successful recorded real probe. This removes a false-positive catalog-readiness path. It does NOT replace actual API key provisioning, signed Access-role UAT or transaction-level signoff.
 
 Production is still on migration 0012 with six provider records. The shared UAT D1 is at 0014. The isolated 0028 clone is not connected to a deployed, dedicated Access-protected INDIA candidate Worker and has no live Mistral API test evidence. **Production release remains HOLD** until the original independent backup, Access, credential, operational and signoff gates are satisfied.
+
+---
+
+## Addendum — PR #54 Context Continuity operational release gate (24 Oct 2026)
+
+**Decision: HOLD / BLOCKED for production.** This is the result of an actual read-only GitHub/Cloudflare inspection on 24 October 2026, not an estimated PASS. No production Worker or database was changed.
+
+### Verified source and deployment baselines
+- PR #54 `fix(ai): preserve multi-turn INDIA chat context` merged into `main` as **efac1b95ba7769ffb6dbb3eae61d3ae157005d51**.
+- All **9/9** head-commit GitHub CI workflows concluded `success`: automated functional release, ICOP chat composer Android/desktop browser, modules 13–15, customer delivery, tender readiness, quotations, executive dashboard, sales activity, and P1/P2 commercial integration. These prove source and simulated gates only, not live-provider/human UAT.
+- Production Worker `india` has Cloudflare deployment version `30253763-11da-4171-a53f-9a842e990f00` dated **2026-10-23T15:11:47Z**, older than the PR #54 merge. Its bound D1 remains production `8395dd84-1b7d-4eaf-9990-1d8e75a42cb5`; production migration ledger max **0012**.
+- Shared UAT Worker `uat-india` has release binding `d055bc5928020c35453193921560d3818f811c19`, not the PR #54 code; UAT D1 binding remains `eaed652e-7322-4950-a304-dd50baa5de02`; migration ledger max **0014**.
+- Both Workers carry `INDIA_AI_ENCRYPTION_KEY` as a `secret_text` binding. This **updates an earlier finding** in this document: the shared UAT secret has since been installed. Only secret *existence* was inspected, never its value.
+- Cloudflare Access application audience matches each Worker binding. UAT application has one Admin allow rule plus five named commercial allow identities (six eligible emails in total). Database UAT has two active Admin members, but no genuine signed JWT/OTP UAT transaction evidence; a separate Legal identity/signoff is absent.
+
+### Rehearsal database, provider readiness and rollback
+- The unbound D1 rehearsal clone `india-uat-full-restore-20261023` (ID `5b9b58de-be29-48bb-9023-018c7f15f68b`) is still at migration max **0028**. It is **not** attached to any of the account's 16 Worker scripts. Its 0029 postal-related reference tables are present with 83,712 entries and 38 provinces, but the canonical 0029 manifest/ledger is **not** applied. Canonical migration 0030 FlexGuard has not been verified on this clone. Do not treat the reference table's existence as successful 0029 migration.
+- Shared UAT D1 contains six AI provider metadata rows, with **0 enabled / 0 encrypted keys / 0 successful tests**. OpenRouter is unconfigured in UAT. Production contains enabled/tested OpenRouter and OpenAI, but **production credentials were not copied to UAT** and must not be.
+- Cloudflare D1 Time Travel **bookmarks were retrieved successfully** for production, shared UAT and isolated clone. Bookmark values are intentionally not committed to Git. Bookmark availability alone does not pass an independent SQL export/hash/restore or rollback transaction rehearsal gate.
+- Cloudflare account has **10/10 D1 databases** allocated. No database was dropped, created, restored, or migrated during this PR #54 inspection.
+- UAT/production Access and D1 binding isolation preflight is **PASS**; multi-role genuine user-session verification, actual provider call, full backup/restore, migration reconciliation to canonical 0030, physical Android, Legal/Security/Finance/recovery acceptance and production release remain **BLOCKED**.
+
+### Mandatory manual/controlled gates before deployment
+1. Preserve an original immutable D1 export and verify SHA-256 plus an independent restore and rollback rehearsal on a safe, approved environment. Never restore over the shared UAT/production databases or delete existing D1 instances to create a slot.
+2. Reconcile source migrations 0015–0030 against the actual UAT 0014 baseline, and 0013–0030 against the **different** production 0012 baseline. Verify manifest, old rows and original Vault/AI encryption continuity before applying anything. An isolated 0028 clone is insufficient for release 0030.
+3. Deploy the exact reviewed `main` commit to a dedicated, Access-protected, **unshared UAT** candidate with original D1 isolation and rollback checkpoint; never use `india` or shared `uat-india` as a substitute for the dedicated gate.
+4. Admin must install a **separate UAT** OpenRouter credential using the Admin form (never through chat/GitHub). Test Connection must pass and provider must become enabled/tested in UAT D1.
+5. Validate real signed Cloudflare Access login per authorized role and negative cross-owner tests. Run the six-turn genuine model scenario including the exact misspelled follow-up **`Mans yg lebih murah`**; reject replies mentioning consumer goods instead of VAPT without caveats.
+6. Complete contract-to-cash/Vault and approval operations, physical Android visual acceptance, independent Security/Finance/Legal/recovery signoffs and production rollback rehearsal. Only then approve and run a separately controlled production deployment.
+
+**No deployment, production migration, provider secret access, database restoration or fictional UAT success was performed by this addendum.**
