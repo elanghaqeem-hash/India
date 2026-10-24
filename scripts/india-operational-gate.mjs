@@ -4,6 +4,7 @@
  * No write endpoints, no secret values or email addresses in stdout.
  * This only certifies cloud configuration and SQL schema; no signed human UAT.
  */
+import { validateProviderCatalog } from './india-ai-provider-catalog-gate.mjs';
 const ACCOUNT='208155f241d4da84e1a6a9b44b7a8d28';
 const CLONE='5b9b58de-be29-48bb-9023-018c7f15f68b';
 const PRODUCTION='8395dd84-1b7d-4eaf-9990-1d8e75a42cb5';
@@ -71,6 +72,8 @@ async function run(){
  for(const p of expected)check(manifests.some(x=>x.path===p),'Canonical SQL manifest missing');
  for(const row of manifests){const n=/^migrations\/(002[1-8])_/.exec(row.path);
   if(n)check(expected.has(row.path),'Noncanonical SQL path collision');}
+ const providerRows=await query("SELECT provider_id,model,priority,enabled,CASE WHEN key_iv IS NOT NULL AND key_ciphertext IS NOT NULL THEN 1 ELSE 0 END AS has_key,tested_ok FROM india_ai_providers ORDER BY priority");
+ const catalog=validateProviderCatalog(providerRows);
  const quick=await query('PRAGMA quick_check');
  check(quick[0]?.quick_check==='ok','SQLite integrity check failed');
  check((await query('PRAGMA foreign_key_check')).length===0,'Foreign key violations found');
@@ -88,7 +91,7 @@ async function run(){
   check((roles[role]||0)>=n,'Active signed-Access roster missing role '+role);
  console.log(JSON.stringify({scope:'READ_ONLY_CLOUDFLARE_CONFIG_PREFLIGHT',result:'PASS',
   worker:env.INDIA_GATE_WORKER_NAME,isolated_clone:true,
-  schema_version:28,quick_check:'ok',signed_access_roster_count:emails.length,
+  schema_version:28,provider_count:catalog.providers,provider_enabled:catalog.enabled,quick_check:'ok',signed_access_roster_count:emails.length,
   note:'NO human JWT sessions or transaction UAT performed. Production release still HOLD.'}));
 }
 run().catch(error=>{console.error(JSON.stringify({scope:'READ_ONLY_CLOUDFLARE_CONFIG_PREFLIGHT',
