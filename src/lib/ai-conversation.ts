@@ -82,3 +82,88 @@ export function languagePreferenceAcknowledgment(history: readonly AIConversatio
   const topic = lastSubject.content.replace(/\s+/g, ' ').trim().slice(0, 140);
   return `Baik, mulai sekarang saya akan menjawab dalam Bahasa Indonesia. Pembahasan sebelumnya tetap berlanjut: “${topic}”. Pertanyaan berikutnya tetap saya hubungkan dengan topik tersebut.`;
 }
+
+
+/**
+ * Context hints are made only from an allowlisted topic taxonomy, never from
+ * history text as system instructions. The model still receives original turns.
+ * This guards short, misspelled follow-ups without rewriting the user's words.
+ */
+export type AIChatTopic = 'vapt'|'boq'|'tender'|'soc'|'grc'|'pricing'|'sales';
+export type AIConversationAnchor = {
+ topic: AIChatTopic;
+ label: string;
+ comparison: boolean;
+ methods: readonly string[];
+ guidance: string;
+};
+
+const chatTopics: readonly {id:AIChatTopic;label:string;pattern:RegExp}[] = [
+ {id:'vapt',label:'VAPT / penetration testing',
+  pattern:/\b(?:vapt|pen(?:etration)?[\s-]?test(?:ing)?|pentest(?:ing)?|vulnerability assessment|black[\s-]?box|gr[ae]y[\s-]?box|white[\s-]?box|burp suite|owasp zap)\b/i},
+ {id:'boq',label:'Bill of Quantities (BoQ)',pattern:/\b(?:boq|bill of quantities|bill of quantity|hpps?|quotation)\b/i},
+ {id:'tender',label:'Tender / pengadaan',pattern:/\b(?:tender|lpse|pengadaan|rks|kak|bid.no.bid)\b/i},
+ {id:'soc',label:'SOC / MDR',pattern:/\b(?:soc|mdr|siem|security operations center|monitoring insiden)\b/i},
+ {id:'grc',label:'Governance, Risk & Compliance',pattern:/\b(?:grc|iso 27001|kepatuhan|manajemen risiko|pdp)\b/i},
+ {id:'pricing',label:'Harga / costing',pattern:/\b(?:pricing|costing|gross margin|margin penjualan)\b/i},
+ {id:'sales',label:'Sales / opportunity',pattern:/\b(?:pipeline|opportunity|lead management|sales forecast)\b/i},
+];
+const unrelatedSubject = /\b(?:baju|pakaian|sepatu|kendaraan|mobil|motor|parfum|restoran|resep|hotel|penerbangan)\b/i;
+const comparisonWords = /\b(?:lebih murah|murahan|lebih hemat|paling hemat|mana.{0,28}murah|harga|biaya|mahal|cost|estimasi)\b/i;
+const followUpWords = /\b(?:mana|mans|yg|yang|itu|tadi|tersebut|mereka|keduanya|lebih|berapa|bagaimana|caranya|perbedaannya|alternatif|bandingkan|bandingannya|pilih|dipakai|biayanya|harganya|murah|hemat)\b/i;
+
+/** The displayed topic is inferred from prior user messages first, not the model output. */
+export function activeChatTopic(history:readonly AIConversationTurn[]):AIChatTopic|null {
+ const meaningful=history.filter(t=>t.role==='user'&&!isIndonesianLanguagePreference(t.content)).reverse();
+ for(const turn of [...meaningful,...history.filter(t=>t.role==='assistant').reverse()]){
+  const found=chatTopics.find(item=>item.pattern.test(turn.content));
+  if(found)return found.id;
+ }
+ return null;
+}
+
+/** Explicitly unrelated new subjects must not be forced back into old VAPT context. */
+export function contextualConversationAnchor(
+ prompt:string,history:readonly AIConversationTurn[]
+):AIConversationAnchor|null {
+ if(history.length<2 || prompt.length>200 || unrelatedSubject.test(prompt))return null;
+ const recent=prompt.toLowerCase().replace(/\bmans\b/g,'mana').replace(/\byg\b/g,'yang');
+ if(!followUpWords.test(recent))return null;
+ const current=chatTopics.find(item=>item.pattern.test(prompt));
+ const oldTopic=activeChatTopic(history);
+ if(!oldTopic || (current && current.id!==oldTopic))return null;
+ const entry=chatTopics.find(x=>x.id===oldTopic)!;
+ const comparison=comparisonWords.test(recent);
+ const transcript=history.slice(-8).map(t=>t.content).join(' ');
+ const methods=oldTopic==='vapt'
+  ? [
+   [/black[\s-]?box/i,'Black Box'],
+   [/gr[ae]y[\s-]?box/i,'Gray Box'],
+   [/white[\s-]?box/i,'White Box'],
+   ].filter(([pattern])=>(pattern as RegExp).test(transcript))
+    .map(([,label])=>label as string)
+  : [];
+ const guidance=[
+  'Konteks lanjutan teridentifikasi: '+entry.label+'.',
+  'Pertahankan topik ini untuk rujukan singkat dan typo; jangan memulai percakapan baru.',
+  ...(comparison ? ['Pertanyaan pengguna merupakan kemungkinan perbandingan harga/biaya dari pembahasan sebelumnya. Jangan mengalihkannya menjadi pembahasan barang konsumsi.'] : []),
+  ...(methods.length>1 ? ['Metode yang sudah disebut: '+methods.join(', ')+'. Jika sesuai pertanyaan, bandingkan metode-metode ini. Biaya tergantung scope, kerumitan, akses dan person-days; jangan mengarang angka.'] : []),
+  'Bila objek perbandingan masih ambigu, tanyakan satu klarifikasi spesifik dalam topik '+entry.label+'.',
+  'Permintaan baru yang jelas berbeda topik tetap harus diikuti.',
+ ].join(' ');
+ return {topic:oldTopic,label:entry.label,comparison,methods,guidance};
+}
+
+/** Deliberately narrow rejection: unrelated consumer-goods clarification during VAPT costing. */
+export function isClearlyOffTopicChatAnswer(anchor:AIConversationAnchor|null,answer:string):boolean {
+ if(anchor?.topic!=='vapt'||!anchor.comparison)return false;
+ const consumerExamples=/\b(?:pakaian|kendaraan|baju|sepatu|mobil|motor|perabot|produk tertentu|elektronik rumah tangga)\b/i;
+ const cybersecurity=/\b(?:vapt|penetration testing|pentest|pentester|pengujian keamanan|black[\s-]?box|gr[ae]y[\s-]?box|white[\s-]?box|kerentanan|audit keamanan)\b/i;
+ return consumerExamples.test(answer)&&!cybersecurity.test(answer);
+}
+
+export function topicalClarification(anchor:AIConversationAnchor):string {
+ if(anchor.topic==='vapt'&&anchor.methods.length>=2)
+  return 'Kita masih membahas VAPT/penetration testing. Apakah yang ingin Anda bandingkan adalah biaya '+anchor.methods.join(', ')+'? Perbandingan bergantung pada cakupan, akses, kompleksitas, dan person-days.';
+ return 'Kita masih membahas '+anchor.label+'. Pilihan atau metode mana dari pembahasan tadi yang ingin Anda bandingkan?';
+}
