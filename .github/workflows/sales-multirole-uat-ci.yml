@@ -35,6 +35,8 @@ jobs:
         run: npm run test:boq-workflow && npm run test:boq-domain && npm run test:quotation-docx && npm run test:post-po && npm run test:ai
       - name: Presales Proposal Submission Negotiation PO transaction gates
         run: npm run test:sales-transactions
+      - name: Vault originals, retention concurrency and corruption gates
+        run: npm run test:document-vault
       - name: TypeScript verification
         run: npm run typecheck
       - name: Next production build

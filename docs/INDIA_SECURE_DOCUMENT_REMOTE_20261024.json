@@ -1,0 +1,149 @@
+{
+  "date_wib": "2026-10-24",
+  "database_id": "5b9b58de-be29-48bb-9023-018c7f15f68b",
+  "database_name": "india-uat-full-restore-20261023",
+  "unbound_worker_check": {
+    "workers_checked": 15,
+    "clone_bindings": 0
+  },
+  "backup": {
+    "bytes": 31642830,
+    "sha256": "920ed54ff2a2554b8a5cf18c6517f91502d2f5733563ae0327ed5b1e2a0c9370",
+    "matches_prior_artifact": true
+  },
+  "preflight_read": {
+    "versions": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+    ],
+    "quick_check": "ok",
+    "foreign_key_violations": 0,
+    "application_tables": 51,
+    "transaction_guards": 0
+  },
+  "atomic_probe": {
+    "result": "REJECTED",
+    "http_status": 400,
+    "cloudflare_code": 7500,
+    "reason": "free-tier daily row-read quota exceeded",
+    "no_rollback_success_claim": true
+  },
+  "native_export_after_rejection": {
+    "bytes": 31642830,
+    "sha256": "920ed54ff2a2554b8a5cf18c6517f91502d2f5733563ae0327ed5b1e2a0c9370",
+    "byte_identical_to_before": true
+  },
+  "migration_0015_0026": {
+    "result": "PASS",
+    "transaction_statements": 164,
+    "rows_written_reported": 266,
+    "versions_after": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26
+    ],
+    "all_12_manifest_paths_present": true,
+    "foreign_key_violations": 0,
+    "quick_check": "ok",
+    "guards": 0
+  },
+  "human_access_uat": "NOT RUN",
+  "production_changed": false,
+  "quota_state": "Initial denial resolved after UTC day rollover; subsequent real migration succeeded",
+  "late_failure_rollback": {
+    "result": "PASS",
+    "batch_statements": 166,
+    "distinct_failure": "CHECK constraint failed: marker=17427",
+    "recovered_baseline_byte_identical": true,
+    "rollback_native_export_sha256": "920ed54ff2a2554b8a5cf18c6517f91502d2f5733563ae0327ed5b1e2a0c9370",
+    "new_objects_after_rollback": 0,
+    "foreign_key_violations": 0,
+    "quick_check": "ok"
+  },
+  "manifest_0015_repair": {
+    "result": "PASS",
+    "source": "Reuse exact prior PR #28 correction",
+    "verified_schema_objects_before_repair": 270,
+    "guarded_statement_count": 3,
+    "original_bytes_affected": 0
+  },
+  "final_backup": {
+    "bytes": 31707970,
+    "sha256": "ebedb7e1f607f14a5de6124fc7bccaa5d18e181fb503c21ddfa852a79dd4dd93"
+  },
+  "data_preservation": {
+    "scope": "ACTUAL_REMOTE_NATIVE_EXPORT_RESTORED_LOCALLY_AFTER_REAL_MIGRATION",
+    "legacy_tables": 51,
+    "unchanged_non_metadata_tables": 49,
+    "changed_metadata_tables": [
+      "india_schema_file_manifest",
+      "india_schema_migrations"
+    ],
+    "schema_objects_matching_local_rehearsal": 270,
+    "versions": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26
+    ],
+    "integrity": {
+      "foreign_key_violations": 0,
+      "quick_check": "ok"
+    },
+    "manifest_0015_present": true,
+    "originals_present": 0,
+    "library_originals_present": 0
+  },
+  "worker_deployment": "NOT RUN: exact candidate staging and Vault secret provisioning pending"
+}

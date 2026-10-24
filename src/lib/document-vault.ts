@@ -63,3 +63,22 @@ export function vaultError(e:unknown){
  if(s.includes('VAULT_KEY_UNAVAILABLE'))return {status:503,message:'Kunci Document Vault belum dikonfigurasi.'};
  return {status:503,message:'Dokumen tidak tersedia atau integritas penyimpanan gagal diperiksa.'};
 }
+
+/** Reauthenticate exactly the four originals used by the accepted current release before Won. */
+export async function authenticateWonOriginals(db:D1DB,opportunity:string){
+ const row=await db.prepare(`SELECT r.id AS release_id,r.proposal_reference,r.proposal_sha256,
+ s.evidence_reference AS submission_ref,s.evidence_sha256 AS submission_sha,
+ n.evidence_reference AS decision_ref,n.evidence_sha256 AS decision_sha,
+ a.archive_reference AS award_ref,a.original_sha256 AS award_sha,a.document_kind
+ FROM india_sales_releases r
+ JOIN india_sales_negotiations n ON n.release_id=r.id AND n.tenant_id=r.tenant_id AND n.opportunity_id=r.opportunity_id
+ AND n.rowid=(SELECT max(n2.rowid) FROM india_sales_negotiations n2 WHERE n2.release_id=r.id) AND n.decision='approved'
+ JOIN india_sales_submissions s ON s.id=n.submission_id AND s.release_id=r.id AND s.tenant_id=r.tenant_id AND s.opportunity_id=r.opportunity_id AND s.status='verified'
+ JOIN india_sales_po_checks c ON c.release_id=r.id AND c.tenant_id=r.tenant_id AND c.opportunity_id=r.opportunity_id
+ JOIN india_sales_award_documents a ON a.id=c.award_id AND a.release_id=r.id AND a.tenant_id=r.tenant_id AND a.opportunity_id=r.opportunity_id
+ WHERE r.tenant_id=? AND r.opportunity_id=? AND r.status='approved'`).bind(TENANT,opportunity)
+ .first<{release_id:string;proposal_reference:string;proposal_sha256:string;submission_ref:string;submission_sha:string;decision_ref:string;decision_sha:string;award_ref:string;award_sha:string;document_kind:string}>();
+ if(!row)throw Error('VAULT_EVIDENCE: Empat dokumen asli versi paket yang sama wajib sebelum Won.');
+ for(const [reference,sha,kind] of [[row.proposal_reference,row.proposal_sha256,'proposal'],[row.submission_ref,row.submission_sha,'submission'],[row.decision_ref,row.decision_sha,'negotiation'],[row.award_ref,row.award_sha,row.document_kind]])
+  await requireVaultDocument(db,reference,sha,opportunity,row.release_id,kind);
+}

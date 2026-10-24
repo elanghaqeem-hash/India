@@ -1,3 +1,4 @@
+import {requireVaultDocument,authenticateWonOriginals,vaultError} from '@/lib/document-vault';
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders, type D1DB } from '@/lib/boq-auth';
 import { boqTotals, type BoQLine } from '@/lib/boq-domain';
@@ -165,6 +166,7 @@ export async function POST(req:Request){
    const awards=await db.prepare('SELECT * FROM india_sales_award_documents WHERE tenant_id=? AND opportunity_id=? AND release_id=?').bind(TENANT,d.id,release.id).all<AwardDoc & {po_data_json:string}>();
    const award=awards.results.find(x=>validAwardForWon(x,d.fields.po_number||'')&&x.po_data_json===poSnapshot(d.fields));
    if(!award)return fail('PO asli dengan data yang sama harus direview Finance dan Legal secara independen',409);
+   await requireVaultDocument(db,award.archive_reference,award.original_sha256,d.id,release.id,award.document_kind);
    const number=d.fields.po_number||'',date=d.fields.po_date||'',reference=d.fields.po_reference||'',n=Number(d.fields.po_amount_before_vat);
    if(!number||!dateValid(date)||!reference||reference.length<8||!Number.isFinite(n)||n<=0)
      return fail('Nomor, tanggal, referensi bukti PO dan nilai PO harus lengkap',409);
@@ -195,7 +197,7 @@ export async function POST(req:Request){
    return answer({success:true,status,missing});
   }
   return fail('Aksi tidak dikenali');
- }catch(e){const t=transactionError(e);return fail(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return fail(v.message,v.status);}const t=transactionError(e);return fail(t.message,t.status);}
 }
 export async function PATCH(req:Request){
  const auth=await authorizeBoQ(req);if(!auth.ok)return auth.response;
@@ -288,6 +290,7 @@ export async function PATCH(req:Request){
        Math.abs(po.po_amount_before_vat-Number(d.fields.po_amount_before_vat))>0.01)
       return fail('Verifikasi PO oleh Finance/Approver harus selesai dengan bukti yang sama.',409);
    }
+   if(stage==='closed_won')await authenticateWonOriginals(db,d.id);
    const guard=dealGuard(row);
    await atomicSales(db,guard.condition,guard.args,[
     db.prepare('UPDATE india_sales_opportunities SET stage=? WHERE id=? AND tenant_id=?').bind(stage,d.id,TENANT),
@@ -296,5 +299,5 @@ export async function PATCH(req:Request){
    return answer({success:true,stage});
   }
   return fail('Jenis perubahan tidak dikenali');
- }catch(e){const t=transactionError(e);return fail(t.message,t.status);}
+ }catch(e){if(/VAULT_|OperationError/.test(String(e))){const v=vaultError(e);return fail(v.message,v.status);}const t=transactionError(e);return fail(t.message,t.status);}
 }
