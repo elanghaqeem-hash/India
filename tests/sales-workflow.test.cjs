@@ -57,9 +57,12 @@ test('Won requires explicit customer approval, not merely filled PO fields',()=>
 test('authenticated D1 Sales and AI URLs are allowlisted; legacy demo APIs remain blocked',()=>{
  const fs=require('node:fs'),path=require('node:path');
  const middleware=fs.readFileSync(path.join(__dirname,'../src/middleware.ts'),'utf8');
- assert.match(middleware,/path==='\/api\/sales'/);
- assert.match(middleware,/path\.startsWith\('\/api\/sales\/'\)/);
- assert.match(middleware,/path==='\/api\/ai\/assist'/);
+ assert.match(middleware, /'\/api\/sales'/);
+ assert.match(middleware, /path\.startsWith\('\/api\/sales\/'\)/);
+ assert.match(middleware, /'\/api\/ai\/assist'/);
+ assert.match(middleware, /'\/api\/partners'/);
+ assert.match(middleware, /'\/api\/reports'/);
+ assert.match(middleware, /'\/api\/admin\/system'/);
  assert.match(middleware,/API demo nonpersisten dinonaktifkan/);
 });
 test('quotation export requires approved D1 BoQ linked to same account and opportunity',()=>{
