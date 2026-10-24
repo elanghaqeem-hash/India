@@ -41,7 +41,13 @@ export async function GET(req:Request){
    }
    return {...c,...progress};
   });
-  return reply({success:true,role,campaigns});
+  // Owners are limited to currently active INDIA members. Do not expose the
+  // member directory to Sales: only Marketing/Admin can assign Campaign owners.
+  const owners=canEditCampaign(role)
+   ?(await db.prepare("SELECT email,role FROM india_members WHERE active=1 AND role IN ('admin','marketing','sales') ORDER BY CASE role WHEN 'marketing' THEN 0 WHEN 'sales' THEN 1 ELSE 2 END,email LIMIT 200")
+      .all<{email:string;role:string}>()).results
+   :[];
+  return reply({success:true,role,email,owners,campaigns});
  }catch{return fail('Master Campaign belum tersedia. Jalankan migrasi 0009 dan 0010 sebelum aktivasi.',503);}
 }
 export async function POST(req:Request){
@@ -61,7 +67,7 @@ export async function POST(req:Request){
   const owner=await db.prepare('SELECT role,active FROM india_members WHERE email=?').bind(v.owner_email)
    .first<{role:string;active:number}>();
   if(!owner||owner.active!==1||!roles.includes(owner.role))
-   return fail('Campaign owner harus anggota aktif Marketing, Sales atau Admin',422);
+   return fail('Owner tidak terdaftar atau tidak aktif. Pilih email dari daftar anggota aktif (Marketing, Sales, atau Admin). Hubungi Admin bila email belum tersedia.',422);
   const id=crypto.randomUUID();
   // Unique DB constraint prevents duplicates even across concurrent Admin/Marketing requests.
   // Retry only collisions of auto-generated codes, not arbitrary legacy manual codes.
@@ -113,7 +119,7 @@ export async function PATCH(req:Request){
    const assigned=await db.prepare('SELECT role,active FROM india_members WHERE email=?')
     .bind(v.owner_email).first<{role:string;active:number}>();
    if(!assigned||assigned.active!==1||!roles.includes(assigned.role))
-    return fail('Campaign owner baru harus anggota aktif',422);
+    return fail('Owner baru tidak aktif atau belum terdaftar. Pilih email dari daftar anggota aktif.',422);
   }
   if(!canSelectCampaign(v.status)&&!['planned','paused','completed','cancelled'].includes(v.status))
    return fail('Status campaign tidak valid');
