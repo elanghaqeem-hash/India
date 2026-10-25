@@ -17,6 +17,19 @@ test('DOCX parser preserves paragraphs and decodes XML entities', async () => {
   assert.equal(extractWordXmlText(xml), '30 API & 12 roles\nGrey-Box');
 });
 
+test('mobile file selection accepts real DOCX filenames independent of reported MIME', async () => {
+  const { isSupportedScopingFileName } = await import(pathToFileURL(join(root, 'src/lib/scoping-file-types.ts')).href);
+  for (const filename of ['RKS Klien.docx', 'KAK FINAL.DOCX', 'RKS.pdf', 'dokumen.TXT']) {
+    assert.equal(isSupportedScopingFileName(filename), true, filename);
+  }
+  for (const filename of ['RKS.doc', 'KAK.docx.zip', 'file.exe', 'no-extension']) {
+    assert.equal(isSupportedScopingFileName(filename), false, filename);
+  }
+  const page = source('src/app/scoping/page.tsx');
+  assert.match(page, /isSupportedScopingFileName\(file\.name\)/);
+  assert.ok(page.includes('const api = numberFrom(/(\\d+)\\s*api'), 'numeric extraction must use digit/whitespace regex classes');
+});
+
 test('TXT upload returns real user text without storage', async () => {
   const { extractScopingDocument } = await scoping();
   const result = await extractScopingDocument(new File(['RKS VAPT\n30 API endpoints'], 'requirements.txt', { type: 'text/plain' }));
@@ -34,6 +47,9 @@ test('DOCX upload extracts source paragraphs', async () => {
   const result = await extractScopingDocument(new File([bytes], 'KAK.docx'));
   assert.equal(result.format, 'DOCX');
   assert.equal(result.text, '25 servers');
+  const mobileResult = await extractScopingDocument(new File([bytes], 'KAK FINAL.DOCX', { type: 'application/octet-stream' }));
+  assert.equal(mobileResult.format, 'DOCX');
+  assert.equal(mobileResult.text, '25 servers');
 });
 
 test('invalid extension, fake PDF and too-large uploads fail closed', async () => {
