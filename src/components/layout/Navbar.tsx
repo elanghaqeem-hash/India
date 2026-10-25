@@ -17,6 +17,9 @@ import {
   Bot,
   RotateCcw,
   Zap,
+  Menu,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
 import { selectConversationHistory, activeChatTopic, type AIConversationTurn } from '@/lib/ai-conversation';
@@ -31,12 +34,18 @@ interface NavbarProps {
   role: string | null;
   email: string | null;
   pendingApprovalsCount?: number|null;
+  desktopMenuOpen: boolean;
+  mobileMenuOpen: boolean;
+  onToggleMenu: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   role,
   email,
   pendingApprovalsCount = null,
+  desktopMenuOpen,
+  mobileMenuOpen,
+  onToggleMenu,
 }) => {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
@@ -191,6 +200,26 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </Link>
+
+            {/* Right-side navigation is available even when the panel is collapsed. */}
+            {role&&(
+              <>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-right-sidebar-desktop" aria-expanded={desktopMenuOpen}
+                  aria-label={desktopMenuOpen?'Sembunyikan menu kanan INDIA':'Tampilkan menu kanan INDIA'}
+                  title={desktopMenuOpen?'Sembunyikan menu kanan':'Tampilkan menu kanan'}
+                  className="hidden h-9 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:flex">
+                  {desktopMenuOpen?<PanelRightClose className="h-4 w-4" aria-hidden="true"/>:<PanelRightOpen className="h-4 w-4" aria-hidden="true"/>}
+                  <span>Menu</span>
+                </button>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-right-sidebar-mobile" aria-expanded={mobileMenuOpen}
+                  aria-label={mobileMenuOpen?'Tutup menu kanan INDIA':'Buka menu kanan INDIA'}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:hidden">
+                  {mobileMenuOpen?<X className="h-4 w-4" aria-hidden="true"/>:<Menu className="h-4 w-4" aria-hidden="true"/>}
+                </button>
+              </>
+            )}
 
             {/* Read-only server-verified identity: no selectable demo roles. */}
             <div className="flex min-w-0 max-w-[110px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
