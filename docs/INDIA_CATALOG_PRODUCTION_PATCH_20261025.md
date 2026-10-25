@@ -31,3 +31,14 @@ Deploy this branch's pinned commit through the existing Cloudflare build trigger
 On a release health regression, redeploy checkpoint version `30253763-11da-4171-a53f-9a842e990f00` through the Worker deployments API and verify the restored version. No database rollback is needed for this code-only patch because no remote schema/data write is performed by the release.
 
 The user explicitly authorized all repository pushes and production deployment in this conversation. Signed real-user Access transaction UAT is reported separately and must not be inferred from the synthetic tests above.
+
+## Production outcome
+
+- Cloudflare build `8a63935a-9453-4384-ab6a-a7d6aa5366cd`: success.
+- Deployed source commit: `97ac143de5a1694d4ae9235e8ba566371d314086`.
+- Deployment ID: `7ea0dcb2-f1b6-44aa-bfc8-73a9aa65a020`.
+- Active Worker version: `1b686467-7df5-44ac-a8c1-f71a8b371d3a`, serving 100% traffic.
+- Post-deploy checks passed: original D1 binding, original Access audience/team values, existing secret binding names, quick_check=ok, no foreign-key violations, schema ledger still 12 versions with max=12.
+- All verification SQL operations reported zero rows written.
+- Browser navigation to the production Lead page reached the expected Cloudflare Access sign-in page after deployment. No authenticated transaction or physical-device UAT is claimed.
+- Rollback checkpoint remains `30253763-11da-4171-a53f-9a842e990f00`. No rollback was necessary.
