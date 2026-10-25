@@ -73,7 +73,7 @@ export const PROCUREMENT_PROCESSES=[
  'Permintaan Penawaran / RFQ','Permintaan Proposal / RFP',
  'Tender Terbuka / Lelang Umum','Tender Terbatas / Undangan',
  'Seleksi Konsultan','Beauty Contest / Pitching',
- 'E-Purchasing / E-Katalog','E-Tendering / E-Procurement',
+ 'E-Purchasing / E-Katalog','Tender Elektronik / E-Procurement',
  'Pembelian Melalui Partner / Distributor','Kontrak Payung / Framework Agreement',
  'Perpanjangan Kontrak / Renewal','Addendum / Perubahan Kontrak','Lainnya'
 ] as const;
