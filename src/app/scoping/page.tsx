@@ -36,10 +36,13 @@ export default function SmartScopingPage() {
   const [isFinancial, setIsFinancial] = useState<boolean>(true);
   const [webComplexity, setWebComplexity] = useState<'simple' | 'medium' | 'complex' | 'critical'>('medium');
   const [apiEndpoints, setApiEndpoints] = useState<number>(15);
+  const [apiHasDocs,setApiHasDocs] = useState(false);
   const [userRoles, setUserRoles] = useState<number>(4);
   const [mobilePlatform, setMobilePlatform] = useState<'android' | 'ios' | 'both'>('both');
   const [mobileScreens, setMobileScreens] = useState<number>(18);
   const [infraHosts, setInfraHosts] = useState<number>(20);
+  const [infraExternalIps,setInfraExternalIps] = useState<number>(0);
+  const [infraHasAD,setInfraHasAD] = useState(false);
   const [redteamScope, setRedteamScope] = useState<'assumed_breach' | 'limited' | 'standard' | 'full_apt'>('standard');
 
   // SOC Form State
@@ -60,10 +63,14 @@ export default function SmartScopingPage() {
     is_financial_compliance: isFinancial,
     web_complexity: webComplexity,
     web_n_api_endpoints: apiEndpoints,
+    api_n_endpoints: apiEndpoints,
+    api_has_docs: apiHasDocs,
     web_n_roles: userRoles,
     mobile_platform: mobilePlatform,
     mobile_n_screens: mobileScreens,
     net_n_internal_host: infraHosts,
+    net_n_external_ip: infraExternalIps,
+    net_has_ad: infraHasAD,
     redteam_scope: redteamScope,
   });
 
@@ -539,6 +546,21 @@ export default function SmartScopingPage() {
                   </div>
                 )}
 
+                {vaptType === 'api' && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block text-xs font-semibold text-slate-700">Jumlah API Endpoint
+                      <input type="number" min="1" max="100000" value={apiEndpoints}
+                        onChange={e=>setApiEndpoints(Math.max(1,Number(e.target.value)||1))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <input type="checkbox" checked={apiHasDocs} onChange={e=>setApiHasDocs(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"/>
+                      Swagger / OpenAPI / Postman tersedia
+                    </label>
+                  </div>
+                )}
+
                 {vaptType === 'mobile_app' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -566,16 +588,22 @@ export default function SmartScopingPage() {
                 )}
 
                 {vaptType === 'network_infra' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-600 block mb-1">Jumlah Internal Host / IP</label>
-                      <input
-                        type="number"
-                        value={infraHosts}
-                        onChange={e => setInfraHosts(Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                      />
-                    </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-medium text-slate-600">Jumlah Internal Host / IP
+                      <input type="number" min="0" max="100000" value={infraHosts}
+                        onChange={e=>setInfraHosts(Math.max(0,Number(e.target.value)||0))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="text-xs font-medium text-slate-600">Jumlah External IP
+                      <input type="number" min="0" max="100000" value={infraExternalIps}
+                        onChange={e=>setInfraExternalIps(Math.max(0,Number(e.target.value)||0))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 sm:col-span-2">
+                      <input type="checkbox" checked={infraHasAD} onChange={e=>setInfraHasAD(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"/>
+                      Termasuk Active Directory
+                    </label>
                   </div>
                 )}
 
@@ -681,6 +709,14 @@ export default function SmartScopingPage() {
                     <span>Proactive Threat Hunting</span>
                   </label>
                 </div>
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input type="checkbox" checked={hasAD} onChange={e=>setHasAD(e.target.checked)} className="h-4 w-4"/>
+                  Active Directory sebagai log source
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input type="checkbox" checked={hasIR} onChange={e=>setHasIR(e.target.checked)} className="h-4 w-4"/>
+                  IR Retainer
+                </label>
               </div>
             </div>
           ) : (
