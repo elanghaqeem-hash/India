@@ -75,8 +75,16 @@ test('Admin sees encryption readiness without seeing secrets and gets actionable
 });
 test('AI action does not overlay Admin API key controls on mobile',()=>{
  const component=text('src/components/ai/AIWorkbench.tsx');
+ const shell=text('src/components/layout/AppShell.tsx');
+ const trigger=component.slice(component.indexOf("{pathname!=='/settings/ai'"),component.indexOf('</button>}'));
  assert.match(component,/pathname!=='\/settings\/ai'/);
- assert.match(component,/bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
- assert.match(component,/hidden sm:inline/);
+ // Mobile action belongs to document flow, before the form. Desktop can float.
+ const classes=trigger.match(/className="([^"]+)"/)[1].split(/\s+/);
+ assert.ok(classes.includes('inline-flex'));
+ assert.ok(classes.includes('min-h-11'));
+ assert.ok(classes.includes('lg:fixed'));
+ assert.ok(!classes.includes('fixed')&&!classes.includes('absolute'));
+ assert.ok(!classes.some(c=>/^(?:sm:|md:)?(?:fixed|absolute)$/.test(c)));
+ assert.match(shell,/<main[^>]*>\s*{role&&<AIWorkbench\/>}\s*{children}/);
  assert.match(component,/aria-label="Buka opsi AI untuk drafting dan analisis"/);
 });
