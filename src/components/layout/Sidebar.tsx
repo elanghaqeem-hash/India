@@ -6,7 +6,7 @@ import {usePathname} from 'next/navigation';
 import {
   BriefcaseBusiness, Calculator, ChartNoAxesCombined, ChevronDown, ClipboardCheck,
   Handshake, LayoutDashboard, Megaphone, PanelRightClose, Search, Settings2,
-  ShieldCheck, UsersRound, WalletCards, X,
+  ShieldCheck, UsersRound, WalletCards,
   type LucideIcon,
 } from 'lucide-react';
 import {navigationForRole} from '@/lib/enterprise-navigation';
@@ -61,7 +61,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
               <p className="text-[11px] text-slate-300">Menu lengkap sesuai hak akses</p>
             </div>
           </div>
-          <button type="button" onClick={onClose}
+          <button type="button" onClick={onClose} autoFocus={mobile}
             aria-label="Sembunyikan sidebar kanan" title="Sembunyikan sidebar kanan"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
             <PanelRightClose className="h-4 w-4" aria-hidden="true"/>
@@ -78,7 +78,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true"/>
           <input id={mobile?'india-menu-search-mobile':'india-menu-search-desktop'} type="search"
-            autoFocus={mobile} value={query} onChange={event=>setQuery(event.target.value)}
+            value={query} onChange={event=>setQuery(event.target.value)}
             placeholder="Cari modul atau fitur…" autoComplete="off"
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"/>
         </div>
