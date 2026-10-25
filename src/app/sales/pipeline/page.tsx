@@ -9,7 +9,7 @@ import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
- type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
+ type SalesAccount,type SalesDeal,type SalesFields,type SalesStage,synchronizeBillingAddress,updateCustomerAddressFields } from '@/lib/sales-workflow';
 
 type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_number:string;status:string;project_name:string}[];
  poCheck:{verified_by:string;verified_at:string}|null;checklist:{registration:string[];project:string[]};
@@ -18,6 +18,7 @@ type Detail={deal:SalesDeal;account:SalesAccount;boqs:{id:string;quotation_numbe
  activities:{kind:string;subject:string;detail:string;created_at:string}[];journey:JourneyGate[];role:string;identityEmail:string};
 const money=(v:number)=>'Rp '+Number(v||0).toLocaleString('id-ID');
 const inputClass='mt-1.5 min-h-11 w-full min-w-0 scroll-mt-28 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-base font-normal text-slate-900 outline-none transition-shadow placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-500 sm:text-sm';
+const billingAddressKeys=new Set(['billing_address','billing_province','billing_postal']);
 const headquartersKeys=new Set(['hq_province','hq_postal','hq_province_code','hq_regency','hq_regency_code','hq_district','hq_district_code','hq_village','hq_village_code','hq_village_kind']);
 const areaKeys=new Set(['technical_scope','technical_specifications','deliverables','asset_profile','discovery_notes','client_need','procurement_process','negotiation_notes','scope_reconciliation','opportunity_notes','payment_milestones','lost_notes','hq_address','billing_address','project_site']);
 const listSelect:Record<string,string[]>={
@@ -34,7 +35,7 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly,compactLabels=false
  fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;onPatch?:(patch:SalesFields)=>void;readOnly?:(k:string)=>boolean;compactLabels?:boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=>(
+ {fields.filter(([key])=>!headquartersKeys.has(key)&&!(values.billing_same_as_hq==='ya'&&billingAddressKeys.has(key))).map(([key,label])=>(
   key==='client_tier'||key==='industry'||key==='business_type'
    ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
@@ -44,7 +45,15 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly,compactLabels=false
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
   <input aria-label={label} className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('phone')?'tel':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key.endsWith('_phone')?'Contoh: +62 812 3456 7890':key.endsWith('_email')?'nama@perusahaan.co.id':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
- </label>{key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>
+ </label>{key==='billing_same_as_hq'&&values.billing_same_as_hq==='ya'&&
+  <div className="sm:col-span-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-3" role="status" aria-live="polite">
+   <p className="text-xs font-semibold text-emerald-900">Alamat penagihan otomatis mengikuti kantor pusat.</p>
+   <p className="mt-1 whitespace-pre-wrap break-words text-xs text-emerald-800">
+    {[values.hq_address,values.hq_village,values.hq_district,values.hq_regency,values.hq_province,values.hq_postal].filter(Boolean).join(', ')||'Lengkapi alamat kantor pusat di atas.'}
+   </p>
+   <p className="mt-1 text-xs text-emerald-700">Alamat, provinsi, dan kode pos penagihan tidak perlu diisi kembali.</p>
+  </div>}
+  {key==='hq_address'&&<PostalAddressFields values={values} onChange={patch=>{if(onPatch)onPatch(patch);else for(const [k,v] of Object.entries(patch))onUpdate(k,v);}} disabled={readOnly?.('hq_address')}/>}</React.Fragment>
  ))}
  </div>;
 }
@@ -56,10 +65,10 @@ const CUSTOMER_SECTIONS=[
  {id:'team',title:'Tim internal',description:'Penanggung jawab pembuatan, pemeriksaan, dan pelaksanaan.',icon:UserCheck,keys:['maker','reviewer','executor']},
 ] as const;
 function AccountFieldSections(props:Omit<React.ComponentProps<typeof FormFields>,'fields'|'compactLabels'>){
- const {values}=props;
+ const values=synchronizeBillingAddress(props.values);
  return <div className="space-y-3">{CUSTOMER_SECTIONS.map(section=>{
   const fields=ACCOUNT_FIELDS.filter(([key])=>(section.keys as readonly string[]).includes(key));
-  const visible=fields.filter(([key])=>!headquartersKeys.has(key));
+  const visible=fields.filter(([key])=>!headquartersKeys.has(key)&&!(values.billing_same_as_hq==='ya'&&billingAddressKeys.has(key)));
   const count=visible.filter(([key])=>!!values[key]?.trim()).length;
   const Icon=section.icon;
   return <details key={section.id} open={section.id==='identity'||section.id==='contacts'?true:undefined} className="group min-w-0 rounded-2xl border border-slate-200 bg-white" data-customer-section={section.id}>
@@ -79,7 +88,7 @@ function AccountFieldSections(props:Omit<React.ComponentProps<typeof FormFields>
      <fieldset key={prefix} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
       <legend className="px-1 text-xs font-bold text-blue-800">{title}</legend>
       <FormFields {...props} compactLabels fields={fields.filter(([key])=>key.startsWith(prefix+'_'))}/>
-     </fieldset>)}</div>:<FormFields {...props} fields={fields}/>}
+     </fieldset>)}</div>:<FormFields {...props} values={values} fields={fields}/>}
    </div>
   </details>;
  })}</div>;
@@ -175,9 +184,9 @@ export default function SalesPipelinePage(){
  };
  const newAccount=()=>{setAccountName('');setAccountFields({});setTab('account');};
  const newDeal=()=>{setCustomerId(accounts[0]?.id||'');setDealTitle('');setAmount('');setDealFields({});setTab('newdeal');};
- const saveAccount=()=>void run(()=>request('POST','/api/sales',{entity:'account',legal_name:accountName,fields:accountFields}),'Customer Account tersimpan di D1.');
+ const saveAccount=()=>void run(()=>request('POST','/api/sales',{entity:'account',legal_name:accountName,fields:synchronizeBillingAddress(accountFields)}),'Customer Account tersimpan di D1.');
  const saveDeal=()=>void run(()=>request('POST','/api/sales',{entity:'deal',company_id:customerId,title:dealTitle,estimated_value:Number(amount),fields:dealFields}),'Opportunity terdaftar pada pipeline.');
- const updateAccount=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'account',id:detail.account.id,legal_name:accountName,fields:accountFields}),'Registrasi pelanggan diperbarui.',selectedId);
+ const updateAccount=()=>detail&&void run(()=>request('PATCH','/api/sales',{entity:'account',id:detail.account.id,legal_name:accountName,fields:synchronizeBillingAddress(accountFields)}),'Registrasi pelanggan diperbarui.',selectedId);
  const updateDeal=()=>{if(!detail)return;
   // Presales submits only modified technical fields; never quote/PO/commercial fields.
   const changes=Object.fromEntries(Object.entries(dealFields).filter(([k,v])=>v!==(detail.deal.fields[k]||'')));
@@ -239,7 +248,7 @@ export default function SalesPipelinePage(){
   <h2 className="font-bold">Customer Registration • Master Data</h2>
   <p className="text-xs text-slate-500">Customer ID diterbitkan otomatis. Field kosong harus dilengkapi sebelum tahap Qualified dan sebelum dokumen final.</p>
   <label className="block text-xs font-bold">Nama badan usaha resmi *<input className={inputClass} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-  <AccountFieldSections values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
+  <AccountFieldSections values={accountFields} onUpdate={(k,v)=>setAccountFields(f=>updateCustomerAddressFields(f,{[k]:v}))} onPatch={patch=>setAccountFields(f=>updateCustomerAddressFields(f,patch))}/>
   <div className="border-t border-slate-100 pt-4"><button disabled={busy||!isMaker} onClick={saveAccount} className="min-h-11 w-full rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50 sm:w-auto">{busy?'Menyimpan…':'Simpan Customer Account'}</button></div>
  </section>}
  {tab==='newdeal'&&<section className="space-y-4 rounded-xl border bg-white p-4">
@@ -300,7 +309,7 @@ export default function SalesPipelinePage(){
   <section className="rounded-xl border bg-white p-4">
    <details><summary className="cursor-pointer text-sm font-bold">Data Customer • klik untuk memperbarui</summary>
     <div className="mt-3 space-y-4"><label className="block text-xs font-semibold">Legal Name<input className={inputClass} disabled={!mayEditAccount} value={accountName} onChange={e=>setAccountName(e.target.value)}/></label>
-    <AccountFieldSections values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>({...f,[k]:v}))} onPatch={patch=>setAccountFields(f=>({...f,...patch}))}/>
+    <AccountFieldSections values={accountFields} readOnly={()=>!mayEditAccount} onUpdate={(k,v)=>setAccountFields(f=>updateCustomerAddressFields(f,{[k]:v}))} onPatch={patch=>setAccountFields(f=>updateCustomerAddressFields(f,patch))}/>
     <button disabled={busy||!mayEditAccount} onClick={updateAccount} className="min-h-11 w-full rounded-xl bg-blue-700 px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50 sm:w-auto">{busy?'Menyimpan…':'Simpan Customer'}</button></div>
    </details>
   </section>
