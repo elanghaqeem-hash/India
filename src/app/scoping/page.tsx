@@ -20,6 +20,7 @@ import {
 import { calculateVaptMandays, calculateSocSizing } from '@/lib/scoping-calculator';
 import { VaptType, BoxMethod, ServiceType } from '@/lib/types';
 import { formatIDR } from '@/lib/formatters';
+import { isSupportedScopingFileName } from '@/lib/scoping-file-types';
 
 export default function SmartScopingPage() {
   const router = useRouter();
@@ -102,7 +103,7 @@ export default function SmartScopingPage() {
     setUploadError('');
     setUploadedDocument(null);
     setAiDocText('');
-    if (!/\\.(pdf|docx|txt)$/i.test(file.name)) {
+    if (!isSupportedScopingFileName(file.name)) {
       setUploadError('Format tidak didukung. Pilih PDF, DOCX, atau TXT.');
       return;
     }
@@ -210,11 +211,11 @@ export default function SmartScopingPage() {
       }
       return null;
     };
-    const api = numberFrom(/(\\d+)\\s*api[ -]?endpoints?/i, /api[ -]?endpoints?\\s*[:=]?\\s*(\\d+)/i);
-    const hosts = numberFrom(/(\\d+)\\s*hosts?/i, /hosts?\\s*[:=]?\\s*(\\d+)/i);
-    const servers = numberFrom(/(\\d+)\\s*servers?/i, /servers?\\s*[:=]?\\s*(\\d+)/i);
-    const screens = numberFrom(/(\\d+)\\s*(?:layar|screens?)/i, /(?:layar|screens?)\\s*[:=]?\\s*(\\d+)/i);
-    const roles = numberFrom(/(\\d+)\\s*(?:user[ -]?roles?|hak akses)/i, /(?:user[ -]?roles?|hak akses)\\s*[:=]?\\s*(\\d+)/i);
+    const api = numberFrom(/(\d+)\s*api[ -]?endpoints?/i, /api[ -]?endpoints?\s*[:=]?\s*(\d+)/i);
+    const hosts = numberFrom(/(\d+)\s*hosts?/i, /hosts?\s*[:=]?\s*(\d+)/i);
+    const servers = numberFrom(/(\d+)\s*servers?/i, /servers?\s*[:=]?\s*(\d+)/i);
+    const screens = numberFrom(/(\d+)\s*(?:layar|screens?)/i, /(?:layar|screens?)\s*[:=]?\s*(\d+)/i);
+    const roles = numberFrom(/(\d+)\s*(?:user[ -]?roles?|hak akses)/i, /(?:user[ -]?roles?|hak akses)\s*[:=]?\s*(\d+)/i);
     if (api !== null) setApiEndpoints(api);
     if (hosts !== null) setInfraHosts(hosts);
     if (servers !== null) setNServers(servers);
