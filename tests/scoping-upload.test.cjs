@@ -27,7 +27,7 @@ test('mobile file selection accepts real DOCX filenames independent of reported 
   }
   const page = source('src/app/scoping/page.tsx');
   assert.match(page, /isSupportedScopingFileName\(file\.name\)/);
-  assert.match(page, /const api = numberFrom\(\/\(\\d\+\)\\s\*api/);
+  assert.ok(page.includes('const api = numberFrom(/(\\d+)\\s*api'), 'numeric extraction must use digit/whitespace regex classes');
 });
 
 test('TXT upload returns real user text without storage', async () => {
