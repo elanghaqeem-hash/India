@@ -109,7 +109,7 @@ test('postcode suggestion search fails closed when reference not ready',async()=
 test('postal customer UI exposes searchable picker while retaining village validation',()=>{
  const ui=fs.readFileSync('src/components/sales/PostalAddressFields.tsx','utf8');
  assert.match(ui,/Pilih kode pos terstandar/);
- assert.match(ui,/api\\/reference\\/postal\\?q=/);
+ assert.ok(ui.includes('/api/reference/postal?q='));
  assert.match(ui,/hq_postal:option.postal_code/);
  assert.match(ui,/villageSelect/);
 });
