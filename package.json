@@ -22,7 +22,7 @@
     "test:ai": "node --experimental-strip-types --test tests/ai-config-security.test.cjs tests/ai-conversation.test.cjs tests/mistral-migration.test.cjs tests/india-prod-ai-release-gate.test.cjs",
     "test:boq-workflow": "node --test tests/boq-workflow.test.cjs",
     "test:sales": "node --experimental-strip-types --test tests/customer-classification.test.cjs tests/sales-stage-filter.test.cjs tests/sales-workflow.test.cjs tests/sales-post-po-integration.test.cjs tests/sales-loss-report.test.cjs tests/sales-multirole-simulation.test.cjs tests/sales-journey.test.cjs tests/sales-procurement.test.cjs tests/sales-submission.test.cjs tests/sales-award.test.cjs",
-    "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs",
+    "test:scoping-upload": "node --experimental-strip-types --test tests/scoping-upload.test.cjs tests/scoping-by-service.test.cjs",
     "test:marketing": "node --experimental-strip-types --test tests/marketing-lead-flow.test.cjs tests/marketing-d1-migration.test.cjs tests/marketing-idempotency.test.cjs tests/marketing-campaigns.test.cjs && npm run test:lead-intelligence",
     "test:india-negative": "node --experimental-strip-types --test tests/india-negative-uat.test.cjs tests/india-negative-api.test.cjs",
     "test:browser-http-uat": "node --test tests/browser-http-uat.test.cjs tests/sales-lifecycle-browser.cjs",

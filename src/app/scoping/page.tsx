@@ -18,12 +18,17 @@ import {
   AlertCircle,
 } from 'lucide-react';
 import { calculateVaptMandays, calculateSocSizing } from '@/lib/scoping-calculator';
-import { VaptType, BoxMethod, ServiceType } from '@/lib/types';
+import { VaptType, BoxMethod } from '@/lib/types';
+import {SCOPING_SERVICE_TYPES, SCOPING_DEFINITIONS,validateServiceScope,summarizeServiceScope,type ScopingService} from '@/lib/scoping-service-options';
 import { formatIDR } from '@/lib/formatters';
 
 export default function SmartScopingPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<'VAPT' | 'SOC'>('VAPT');
+  const [activeTab, setActiveTab] = useState<ScopingService>('VAPT');
+  const [scopeInputs,setScopeInputs] = useState<Partial<Record<ScopingService,Record<string,string>>>>({});
+  const serviceValues=scopeInputs[activeTab] || {};
+  const missingScope=validateServiceScope(activeTab,serviceValues);
+  const changeScope=(key:string,value:string)=>setScopeInputs(p=>({...p,[activeTab]:{...p[activeTab],[key]:value}}));
 
   // VAPT Form State
   const [vaptType, setVaptType] = useState<VaptType>('web_app');
@@ -31,10 +36,13 @@ export default function SmartScopingPage() {
   const [isFinancial, setIsFinancial] = useState<boolean>(true);
   const [webComplexity, setWebComplexity] = useState<'simple' | 'medium' | 'complex' | 'critical'>('medium');
   const [apiEndpoints, setApiEndpoints] = useState<number>(15);
+  const [apiHasDocs,setApiHasDocs] = useState(false);
   const [userRoles, setUserRoles] = useState<number>(4);
   const [mobilePlatform, setMobilePlatform] = useState<'android' | 'ios' | 'both'>('both');
   const [mobileScreens, setMobileScreens] = useState<number>(18);
   const [infraHosts, setInfraHosts] = useState<number>(20);
+  const [infraExternalIps,setInfraExternalIps] = useState<number>(0);
+  const [infraHasAD,setInfraHasAD] = useState(false);
   const [redteamScope, setRedteamScope] = useState<'assumed_breach' | 'limited' | 'standard' | 'full_apt'>('standard');
 
   // SOC Form State
@@ -55,10 +63,14 @@ export default function SmartScopingPage() {
     is_financial_compliance: isFinancial,
     web_complexity: webComplexity,
     web_n_api_endpoints: apiEndpoints,
+    api_n_endpoints: apiEndpoints,
+    api_has_docs: apiHasDocs,
     web_n_roles: userRoles,
     mobile_platform: mobilePlatform,
     mobile_n_screens: mobileScreens,
     net_n_internal_host: infraHosts,
+    net_n_external_ip: infraExternalIps,
+    net_has_ad: infraHasAD,
     redteam_scope: redteamScope,
   });
 
@@ -75,10 +87,24 @@ export default function SmartScopingPage() {
   });
 
   const handleProceedToPricing = () => {
-    if (activeTab === 'VAPT') {
-      router.push(`/pricing?service=VAPT&md=${calculatedMD}&type=${vaptType}`);
-    } else {
-      router.push(`/pricing?service=SOC&eps=${socResult.calculated_eps}&mrc=${socResult.recommended_mrc}`);
+    // Transfer only an unsaved, non-priced scope draft to the authenticated BoQ form.
+    // BoQ remains responsible for customer linkage, manual pricing, role checks and D1 saving.
+    if (missingScope.length > 0) return;
+    const description=activeTab==='VAPT'
+      ? `VAPT ${vaptType.replaceAll('_',' ')}; ${boxMethod.replaceAll('_',' ')}; ${calculatedMD} MD; regulasi: ${isFinancial?'ya':'tidak'}`
+      :activeTab==='SOC'
+      ? `SOC/MDR: ${socResult.calculated_eps} EPS; SLA ${serviceLevel}; servers ${nServers}; network ${nNetwork}; endpoints ${nEndpoints}; cloud ${nCloud}`
+      :summarizeServiceScope(activeTab,serviceValues);
+    const unit=activeTab==='VAPT'?'MD':SCOPING_DEFINITIONS[activeTab].outputUnit;
+    try {
+      sessionStorage.setItem('india_scoping_boq_draft_v1',JSON.stringify({
+        version:1,createdAt:Date.now(),service_type:activeTab,
+        description:description.slice(0,900),quantity:activeTab==='VAPT'?calculatedMD:1,unit,
+      }));
+      router.push('/boq?from=scoping');
+    } catch {
+      // The draft is not stored remotely and must not claim a successful transfer.
+      alert('Penyimpanan draft sesi tidak tersedia. Aktifkan session storage browser untuk melanjutkan ke BoQ.');
     }
   };
 
@@ -150,7 +176,7 @@ export default function SmartScopingPage() {
         body: JSON.stringify({
           task_type: 'scoping_analysis',
           prompt: `Ekstrak spesifikasi teknis dan parameter scoping dari dokumen RKS/TOR/RFP berikut:\n\n${aiDocText.slice(0, 11000)}\n\nTentukan:
-1. Rekomendasi Service (VAPT Web, Mobile, API, Network, atau SOC MDR).
+1. Rekomendasi kategori layanan dari VAPT, SOC/MDR, CTI, ISO, PDP, Hardening, IR, GRC, DFIR, Technology, Training atau Lainnya.
 2. Metodologi (Black Box / Grey Box / White Box).
 3. Estimasi kompleksitas, jumlah endpoint/host/servers.
 4. Kebutuhan kepatuhan (POJK/BSSN/ISO27001).
@@ -176,7 +202,25 @@ export default function SmartScopingPage() {
   const handleApplyAiScoping = () => {
         // Heuristic auto-adjust
         const lower = aiDocText.toLowerCase();
-        if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
+        if (/\b(dpia|ropa|pdp|privacy|perlindungan data pribadi|dpo)\b/.test(lower)) {
+          setActiveTab('PDP');
+        } else if (/\b(iso ?27001|iso ?27701|iso ?22301|sertifikasi)\b/.test(lower)) {
+          setActiveTab('ISO');
+        } else if (/\b(digital forensic|forensik|dfir|chain of custody)\b/.test(lower)) {
+          setActiveTab('DFIR');
+        } else if (/\b(cti|threat intelligence|dark web|brand monitoring)\b/.test(lower)) {
+          setActiveTab('CTI');
+        } else if (/\b(grc|rcsa|risk assessment|business continuity|cobit|governance)\b/.test(lower)) {
+          setActiveTab('GRC');
+        } else if (/\b(hardening|cis benchmark|secure configuration)\b/.test(lower)) {
+          setActiveTab('Hardening');
+        } else if (/\b(incident response|ir retainer|response readiness)\b/.test(lower)) {
+          setActiveTab('IR');
+        } else if (/\b(training|pelatihan|workshop|awareness|tabletop)\b/.test(lower)) {
+          setActiveTab('TRAINING');
+        } else if (/\b(pam|edr|xdr|waf|iam|firewall license|security technology)\b/.test(lower)) {
+          setActiveTab('TECHNOLOGY');
+        } else if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
           setVaptType('mobile_app');
           setActiveTab('VAPT');
         } else if (lower.includes('api') || lower.includes('microservice')) {
@@ -375,31 +419,21 @@ export default function SmartScopingPage() {
         </div>
       )}
 
-      {/* Service Type Selection Tabs */}
-      <div className="flex rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xs max-w-md">
-        <button
-          onClick={() => setActiveTab('VAPT')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'VAPT'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-          }`}
-        >
-          <Layers className="h-3.5 w-3.5" />
-          <span>VAPT / Pentest Scoping</span>
-        </button>
-        <button
-          onClick={() => setActiveTab('SOC')}
-          className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${
-            activeTab === 'SOC'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
-          }`}
-        >
-          <Server className="h-3.5 w-3.5" />
-          <span>SOC / MDR Sizing</span>
-        </button>
-      </div>
+      {/* All service categories come from the same type set accepted by BoQ. */}
+      <section aria-label="Pilih jenis layanan" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div className="mb-3 px-1">
+          <h2 className="text-sm font-bold text-slate-900">Pilih Jenis Layanan untuk Scoping</h2>
+          <p className="text-xs text-slate-500">Parameter, satuan dan output otomatis menyesuaikan kategori layanan Technotama.</p>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
+          {SCOPING_SERVICE_TYPES.map(service=><button key={service} type="button" onClick={()=>setActiveTab(service)}
+            aria-pressed={activeTab===service}
+            className={`flex min-h-12 min-w-0 items-center gap-2 rounded-xl border px-3 py-3 text-left text-xs font-semibold transition-colors ${activeTab===service?'border-blue-700 bg-blue-600 text-white shadow-sm':'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-blue-50'}`}>
+            {service==='VAPT'?<Layers className="h-4 w-4 shrink-0"/>:service==='SOC'?<Server className="h-4 w-4 shrink-0"/>:<FileSearch className="h-4 w-4 shrink-0"/>}
+            <span className="min-w-0 break-words">{SCOPING_DEFINITIONS[service].label}</span>
+          </button>)}
+        </div>
+      </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Input Form (Col 2) */}
@@ -512,6 +546,21 @@ export default function SmartScopingPage() {
                   </div>
                 )}
 
+                {vaptType === 'api' && (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="block text-xs font-semibold text-slate-700">Jumlah API Endpoint
+                      <input type="number" min="1" max="100000" value={apiEndpoints}
+                        onChange={e=>setApiEndpoints(Math.max(1,Number(e.target.value)||1))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
+                      <input type="checkbox" checked={apiHasDocs} onChange={e=>setApiHasDocs(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"/>
+                      Swagger / OpenAPI / Postman tersedia
+                    </label>
+                  </div>
+                )}
+
                 {vaptType === 'mobile_app' && (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
@@ -539,16 +588,22 @@ export default function SmartScopingPage() {
                 )}
 
                 {vaptType === 'network_infra' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-600 block mb-1">Jumlah Internal Host / IP</label>
-                      <input
-                        type="number"
-                        value={infraHosts}
-                        onChange={e => setInfraHosts(Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                      />
-                    </div>
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    <label className="text-xs font-medium text-slate-600">Jumlah Internal Host / IP
+                      <input type="number" min="0" max="100000" value={infraHosts}
+                        onChange={e=>setInfraHosts(Math.max(0,Number(e.target.value)||0))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="text-xs font-medium text-slate-600">Jumlah External IP
+                      <input type="number" min="0" max="100000" value={infraExternalIps}
+                        onChange={e=>setInfraExternalIps(Math.max(0,Number(e.target.value)||0))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
+                    </label>
+                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 sm:col-span-2">
+                      <input type="checkbox" checked={infraHasAD} onChange={e=>setInfraHasAD(e.target.checked)}
+                        className="h-4 w-4 rounded border-slate-300"/>
+                      Termasuk Active Directory
+                    </label>
                   </div>
                 )}
 
@@ -569,7 +624,7 @@ export default function SmartScopingPage() {
                 )}
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'SOC' ? (
             /* SOC Sizing Form */
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-5">
               <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
@@ -654,8 +709,42 @@ export default function SmartScopingPage() {
                     <span>Proactive Threat Hunting</span>
                   </label>
                 </div>
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input type="checkbox" checked={hasAD} onChange={e=>setHasAD(e.target.checked)} className="h-4 w-4"/>
+                  Active Directory sebagai log source
+                </label>
+                <label className="flex items-center gap-2 text-xs font-medium text-slate-700">
+                  <input type="checkbox" checked={hasIR} onChange={e=>setHasIR(e.target.checked)} className="h-4 w-4"/>
+                  IR Retainer
+                </label>
               </div>
             </div>
+          ) : (
+            <section className="space-y-5 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div>
+                <h2 className="text-sm font-bold text-slate-900">Parameter Teknis {SCOPING_DEFINITIONS[activeTab].label}</h2>
+                <p className="mt-1 text-xs leading-relaxed text-slate-500">{SCOPING_DEFINITIONS[activeTab].subtitle}</p>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                {SCOPING_DEFINITIONS[activeTab].fields.map(field=><label key={field.key} className="block min-w-0 text-xs font-semibold text-slate-700">
+                  <span>{field.label}{field.required?' (wajib)':''}</span>
+                  {field.kind==='select'
+                    ?<select className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs"
+                      value={serviceValues[field.key]||''} onChange={e=>changeScope(field.key,e.target.value)}>
+                      <option value="">Pilih {field.label}</option>
+                      {field.options?.map(option=><option key={option} value={option}>{option}</option>)}
+                    </select>
+                    :<input type={field.kind==='number'?'number':'text'} min={field.kind==='number'?1:undefined}
+                      max={field.kind==='number'?100000:undefined} step={field.kind==='number'?1:undefined}
+                      maxLength={field.kind==='text'?350:undefined}
+                      className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-200 px-3 py-2.5 text-xs"
+                      placeholder={field.kind==='number'?`Jumlah (${field.unit||'unit'})`:'Isi sesuai kebutuhan pelanggan'}
+                      value={serviceValues[field.key]||''} onChange={e=>changeScope(field.key,e.target.value)}/>}
+                  {field.help&&<span className="mt-1 block font-normal text-slate-500">{field.help}</span>}
+                </label>)}
+              </div>
+              <p className="border-t pt-4 text-xs text-slate-500">Lengkapi parameter dari discovery / RKS. Kebutuhan delivery, effort dan harga final ditentukan Presales dan Finance melalui BoQ approval.</p>
+            </section>
           )}
         </div>
 
@@ -691,7 +780,7 @@ export default function SmartScopingPage() {
                   </div>
                 </div>
               </div>
-            ) : (
+            ) : activeTab === 'SOC' ? (
               <div className="space-y-3">
                 <div>
                   <div className="text-xs text-slate-500 font-medium">Estimasi Kapasitas EPS:</div>
@@ -714,14 +803,31 @@ export default function SmartScopingPage() {
                   </div>
                 </div>
               </div>
+            ) : (
+              <div className="space-y-3">
+                <p className="text-sm font-bold text-slate-900">{SCOPING_DEFINITIONS[activeTab].label}</p>
+                <div className="border-t border-blue-100 pt-3 text-xs text-slate-600">
+                  {SCOPING_DEFINITIONS[activeTab].fields.map(field=><div key={field.key} className="mb-2">
+                    <span className="text-slate-500">{field.label}: </span>
+                    <span className="break-words font-semibold text-slate-800">{serviceValues[field.key]||'Belum diisi'}{serviceValues[field.key]&&field.unit?' '+field.unit:''}</span>
+                  </div>)}
+                </div>
+                {missingScope.length?<p role="status" className="rounded-lg bg-amber-50 p-3 text-xs font-medium text-amber-800">
+                  Lengkapi {missingScope.length} parameter wajib sebelum transfer ke BoQ.
+                </p>:<p className="rounded-lg bg-emerald-50 p-3 text-xs font-medium text-emerald-800">
+                  Parameter lengkap; siap direview Presales di BoQ.
+                </p>}
+                <p className="text-[11px] text-slate-500">Belum ada estimasi mandays atau harga otomatis untuk kategori ini.</p>
+              </div>
             )}
 
             {/* Transfer to Pricing Button */}
             <button
               onClick={handleProceedToPricing}
-              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 transition-all mt-4"
+              disabled={missingScope.length>0}
+              className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 transition-all mt-4"
             >
-              <span>Transfer ke Dynamic Pricing</span>
+              <span>Transfer Draft Scoping ke BoQ</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -732,7 +838,7 @@ export default function SmartScopingPage() {
               <span>Ketentuan Kalkulasi</span>
             </div>
             <p className="text-[11px] leading-relaxed">
-              Hasil kalkulasi scoping ini menjadi dasar pembentukan BoQ Komponen A (HR Staffing). Estimasi final tetap dapat disesuaikan oleh Pre-Sales Engineer sebelum diajukan ke otorisasi DoA.
+              Untuk VAPT dan SOC, hasil estimasi mengikuti kalkulator yang tersedia. Kategori lain menggunakan parameter standar tanpa harga/effort otomatis. Transfer ke BoQ tidak menyimpan transaksi ke D1: Presales harus melengkapi penawaran, Finance memeriksa costing, dan approval tetap berlaku.
             </p>
           </div>
         </div>
