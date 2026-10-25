@@ -1,7 +1,7 @@
 'use client';
 import {useEffect,useMemo,useState} from 'react';
 import {Search} from 'lucide-react';
-import {POSTAL_FIELDS,type PostalArea,fieldPatch} from '@/lib/indonesia-postal';
+import {POSTAL_FIELDS,type PostalArea,type PostalSuggestion,validPostalSearchQuery,fieldPatch} from '@/lib/indonesia-postal';
 
 type Props={
  values:Record<string,string>;
@@ -18,6 +18,31 @@ export function PostalAddressFields({values,onChange,disabled=false}:Props){
  const [status,setStatus]=useState<'idle'|'loading'|'ready'|'empty'|'error'>('idle');
  const [error,setError]=useState('');
  const [loadedPostal,setLoadedPostal]=useState('');
+ const [lookup,setLookup]=useState('');
+ const [suggestions,setSuggestions]=useState<PostalSuggestion[]>([]);
+ const [lookupStatus,setLookupStatus]=useState<'idle'|'loading'|'ready'|'error'>('idle');
+ const [lookupError,setLookupError]=useState('');
+ useEffect(()=>{
+  if(!validPostalSearchQuery(lookup)){setSuggestions([]);setLookupStatus('idle');setLookupError('');return;}
+  const controller=new AbortController();
+  setLookupStatus('loading');setLookupError('');
+  const timer=setTimeout(()=>{
+   fetch('/api/reference/postal?q='+encodeURIComponent(lookup.trim()),{
+    credentials:'same-origin',cache:'no-store',signal:controller.signal
+   }).then(async response=>{
+    const data=await response.json();
+    if(!response.ok||!data.success)throw Error(data.message||'Pencarian kode pos gagal.');
+    if(!Array.isArray(data.suggestions))throw Error('Daftar kode pos tidak valid.');
+    if(!controller.signal.aborted){setSuggestions(data.suggestions);setLookupStatus('ready');}
+   }).catch(e=>{
+    if(!controller.signal.aborted){
+     setSuggestions([]);setLookupStatus('error');
+     setLookupError(e instanceof Error?e.message:'Pencarian gagal.');
+    }
+   });
+  },250);
+  return ()=>{clearTimeout(timer);controller.abort();};
+ },[lookup]);
  useEffect(()=>{
   if(!/^[0-9]{5}$/.test(postal)){setAreas([]);setStatus('idle');setError('');setLoadedPostal('');return;}
   const controller=new AbortController();
@@ -58,9 +83,33 @@ export function PostalAddressFields({values,onChange,disabled=false}:Props){
  };
  return <div className="min-w-0 space-y-3 rounded-xl border border-blue-100 bg-blue-50/40 p-3 sm:col-span-2 sm:p-4">
   <div><h3 className="text-sm font-bold text-slate-900">Wilayah kantor pusat berdasarkan kode pos</h3>
-   <p className="mt-1 text-xs text-slate-600">Ketik 5 digit kode pos, lalu pilih provinsi → kabupaten/kota → kecamatan → kelurahan/desa. Satu kode pos dapat memiliki beberapa wilayah.</p></div>
+   <p className="mt-1 text-xs text-slate-600">Cari dan pilih kode pos berdasarkan nomor atau nama wilayah. Provinsi, kabupaten/kota, kecamatan, dan desa/kelurahan diambil dari master nasional.</p></div>
   <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
-   <label className="min-w-0 text-xs font-semibold text-slate-700">Kode pos
+   <div className="min-w-0 sm:col-span-2">
+    <label htmlFor="india-postal-search" className="block text-xs font-semibold text-slate-700">Pilih kode pos terstandar</label>
+    <div className="relative mt-1">
+     <input id="india-postal-search" className={input+' mt-0 pr-10'} type="search" autoComplete="off"
+      aria-label="Cari kode pos atau nama wilayah" disabled={disabled} value={lookup}
+      onChange={e=>setLookup(e.target.value)}
+      placeholder="Cari kode pos, kelurahan, kecamatan, kota atau provinsi"/>
+     <Search size={18} aria-hidden="true" className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400"/>
+    </div>
+    <p role="status" aria-live="polite" className="mt-1.5 text-xs text-slate-600">
+     {lookupStatus==='loading'?'Mencari pilihan dari database nasional…':
+      lookupStatus==='error'?lookupError:
+      lookupStatus==='ready'?(suggestions.length?'Pilih satu kode pos dari hasil pencarian.':'Tidak ditemukan. Coba nama wilayah lain.'):
+      'Ketik minimal 2 digit kode pos atau 3 huruf nama wilayah.'}
+    </p>
+    {lookupStatus==='ready'&&suggestions.length>0&&<div className="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 bg-white p-1" aria-label="Hasil pencarian kode pos">
+     {suggestions.map(option=><button key={option.postal_code} type="button" disabled={disabled}
+       className="flex w-full min-w-0 items-start gap-3 rounded-md px-3 py-2.5 text-left hover:bg-blue-50 focus:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+       onClick={()=>{onChange({...empty(),hq_postal:option.postal_code});setLookup('');}}>
+       <span className="shrink-0 rounded bg-blue-100 px-2 py-1 text-sm font-bold text-blue-800">{option.postal_code}</span>
+       <span className="min-w-0 break-words text-xs text-slate-700">{option.description}</span>
+      </button>)}
+    </div>}
+   </div>
+   <label className="min-w-0 text-xs font-semibold text-slate-700">Kode pos terpilih (atau masukkan 5 digit)
     <span className="relative block">
      <input className={input+' pr-10'} aria-label="Kode pos kantor pusat" inputMode="numeric" pattern="[0-9]{5}" maxLength={5} autoComplete="postal-code" placeholder="Masukkan 5 digit kode pos" disabled={disabled}
       value={postal} onChange={e=>onChange({...empty(),hq_postal:e.target.value.replace(/[^0-9]/g,'').slice(0,5)})}/>
