@@ -23,15 +23,29 @@ export default function BoQPage(){
      const raw=sessionStorage.getItem('india_scoping_boq_draft_v1');
      if(!raw)throw Error('Draft scoping tidak ditemukan pada sesi browser ini.');
      const draft=JSON.parse(raw);
-     if(draft.version!==1||!Number.isFinite(draft.createdAt)||Date.now()-draft.createdAt>900000
-       ||!SCOPING_SERVICE_TYPES.includes(draft.service_type)
-       ||typeof draft.description!=='string'||!draft.description.trim()||draft.description.length>900
-       ||typeof draft.unit!=='string'||!['MD','Bulan','Paket'].includes(draft.unit)
-       ||typeof draft.quantity!=='number'||!Number.isFinite(draft.quantity)
-       ||draft.quantity<=0||draft.quantity>100000)throw Error('Draft scoping tidak valid atau sudah kedaluwarsa.');
-     setForm(f=>({...f,service_type:draft.service_type,line_items:[{
-       description:draft.description,quantity:draft.quantity,unit:draft.unit,unit_price:0,service_type:draft.service_type,
-     }]}));
+     if(!Number.isFinite(draft.createdAt)||draft.createdAt>Date.now()+60000
+       ||Date.now()-draft.createdAt>900000
+       ||!SCOPING_SERVICE_TYPES.includes(draft.service_type))
+       throw Error('Draft scoping tidak valid atau sudah kedaluwarsa.');
+     // Version 1 scopes are still supported; v2 transfers independent VAPT asset rows.
+     const rawItems = draft.version===1
+       ? [{description:draft.description,quantity:draft.quantity,unit:draft.unit,service_type:draft.service_type}]
+       : draft.version===2 && draft.service_type==='VAPT' ? draft.items : null;
+     if(!Array.isArray(rawItems)||rawItems.length<1||rawItems.length>30)
+       throw Error('Draft scoping tidak memiliki daftar aset yang valid.');
+     const items:Item[]=rawItems.map(item=>{
+       if(!item||typeof item.description!=='string'||!item.description.trim()||item.description.length>900
+         ||typeof item.unit!=='string'||!['MD','Bulan','Paket'].includes(item.unit)
+         ||!SCOPING_SERVICE_TYPES.includes(item.service_type)
+         ||item.service_type!==draft.service_type
+         ||(draft.version===2&&(item.unit!=='MD'||item.service_type!=='VAPT'))
+         ||typeof item.quantity!=='number'||!Number.isFinite(item.quantity)
+         ||item.quantity<=0||item.quantity>100000
+         ||Math.round(item.quantity*1000)/1000!==item.quantity)
+         throw Error('Terdapat baris aset yang tidak valid.');
+       return {description:item.description,quantity:item.quantity,unit:item.unit,unit_price:0,service_type:item.service_type};
+     });
+     setForm(f=>({...f,service_type:draft.service_type,line_items:items}));
      setMsg('Draft scoping berhasil dimuat. Isi opportunity, harga dan data quotation lalu simpan ke D1. Belum ada data tersimpan.');
      sessionStorage.removeItem('india_scoping_boq_draft_v1');
     }catch(e){setMsg(e instanceof Error?e.message:'Draft scoping tidak dapat diimpor.');}
