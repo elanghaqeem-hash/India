@@ -17,8 +17,10 @@ import {
   FileText,
   AlertCircle,
 } from 'lucide-react';
-import { calculateVaptMandays, calculateSocSizing } from '@/lib/scoping-calculator';
-import { VaptType, BoxMethod } from '@/lib/types';
+import { calculateSocSizing } from '@/lib/scoping-calculator';
+import type { VaptType } from '@/lib/types';
+import VaptMultiAssetScope from '@/components/VaptMultiAssetScope';
+import { createVaptAsset, calculateVaptPortfolio, validateVaptAssets, vaptAssetBoqLines, type VaptAsset } from '@/lib/vapt-multi-asset';
 import {SCOPING_SERVICE_TYPES, SCOPING_DEFINITIONS,validateServiceScope,summarizeServiceScope,type ScopingService} from '@/lib/scoping-service-options';
 import { formatIDR } from '@/lib/formatters';
 import { isSupportedScopingFileName } from '@/lib/scoping-file-types';
@@ -31,20 +33,24 @@ export default function SmartScopingPage() {
   const missingScope=validateServiceScope(activeTab,serviceValues);
   const changeScope=(key:string,value:string)=>setScopeInputs(p=>({...p,[activeTab]:{...p[activeTab],[key]:value}}));
 
-  // VAPT Form State
-  const [vaptType, setVaptType] = useState<VaptType>('web_app');
-  const [boxMethod, setBoxMethod] = useState<BoxMethod>('grey_box');
-  const [isFinancial, setIsFinancial] = useState<boolean>(true);
-  const [webComplexity, setWebComplexity] = useState<'simple' | 'medium' | 'complex' | 'critical'>('medium');
-  const [apiEndpoints, setApiEndpoints] = useState<number>(15);
-  const [apiHasDocs,setApiHasDocs] = useState(false);
-  const [userRoles, setUserRoles] = useState<number>(4);
-  const [mobilePlatform, setMobilePlatform] = useState<'android' | 'ios' | 'both'>('both');
-  const [mobileScreens, setMobileScreens] = useState<number>(18);
-  const [infraHosts, setInfraHosts] = useState<number>(20);
-  const [infraExternalIps,setInfraExternalIps] = useState<number>(0);
-  const [infraHasAD,setInfraHasAD] = useState(false);
-  const [redteamScope, setRedteamScope] = useState<'assumed_breach' | 'limited' | 'standard' | 'full_apt'>('standard');
+  // Each VAPT row owns its category, methodology, parameters and MD estimate.
+  const [vaptAssets, setVaptAssets] = useState<VaptAsset[]>([createVaptAsset('initial-vapt')]);
+  const updateVaptAsset = (id: string, patch: Partial<VaptAsset>) =>
+    setVaptAssets(current => current.map(asset => asset.id === id ? {...asset, ...patch} : asset));
+  const addVaptAsset = () => setVaptAssets(current =>
+    current.length >= 30 ? current : [...current, createVaptAsset('vapt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9))]);
+  const duplicateVaptAsset = (id: string) => setVaptAssets(current => {
+    if (current.length >= 30) return current;
+    const original = current.find(asset => asset.id === id);
+    if (!original) return current;
+    const copy = {...original, id: 'vapt-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9), name: original.name.slice(0, 108) + ' (salinan)'};
+    const pos = current.findIndex(asset => asset.id === id);
+    return [...current.slice(0, pos + 1), copy, ...current.slice(pos + 1)];
+  });
+  const removeVaptAsset = (id: string) => setVaptAssets(current =>
+    current.length <= 1 ? current : current.filter(asset => asset.id !== id));
+  const patchPrimaryVapt = (patch: Partial<VaptAsset>) =>
+    setVaptAssets(current => current.map((asset, index) => index === 0 ? {...asset, ...patch} : asset));
 
   // SOC Form State
   const [nServers, setNServers] = useState<number>(25);
@@ -57,23 +63,9 @@ export default function SmartScopingPage() {
   const [hasThreatHunting, setHasThreatHunting] = useState<boolean>(true);
   const [hasIR, setHasIR] = useState<boolean>(false);
 
-  // Live Calculations
-  const calculatedMD = calculateVaptMandays({
-    vapt_type: vaptType,
-    box_method: boxMethod,
-    is_financial_compliance: isFinancial,
-    web_complexity: webComplexity,
-    web_n_api_endpoints: apiEndpoints,
-    api_n_endpoints: apiEndpoints,
-    api_has_docs: apiHasDocs,
-    web_n_roles: userRoles,
-    mobile_platform: mobilePlatform,
-    mobile_n_screens: mobileScreens,
-    net_n_internal_host: infraHosts,
-    net_n_external_ip: infraExternalIps,
-    net_has_ad: infraHasAD,
-    redteam_scope: redteamScope,
-  });
+  // The portfolio is calculated from the same single-asset VAPT rule engine.
+  const vaptPortfolio = calculateVaptPortfolio(vaptAssets);
+  const vaptIssues = validateVaptAssets(vaptAssets);
 
   const socResult = calculateSocSizing({
     n_servers: nServers,
@@ -88,23 +80,22 @@ export default function SmartScopingPage() {
   });
 
   const handleProceedToPricing = () => {
-    // Transfer only an unsaved, non-priced scope draft to the authenticated BoQ form.
-    // BoQ remains responsible for customer linkage, manual pricing, role checks and D1 saving.
-    if (missingScope.length > 0) return;
-    const description=activeTab==='VAPT'
-      ? `VAPT ${vaptType.replaceAll('_',' ')}; ${boxMethod.replaceAll('_',' ')}; ${calculatedMD} MD; regulasi: ${isFinancial?'ya':'tidak'}`
-      :activeTab==='SOC'
-      ? `SOC/MDR: ${socResult.calculated_eps} EPS; SLA ${serviceLevel}; servers ${nServers}; network ${nNetwork}; endpoints ${nEndpoints}; cloud ${nCloud}`
-      :summarizeServiceScope(activeTab,serviceValues);
-    const unit=activeTab==='VAPT'?'MD':SCOPING_DEFINITIONS[activeTab].outputUnit;
+    // Transfer remains an unsaved draft. BoQ enforces all D1, role and approval rules.
+    if (missingScope.length || (activeTab === 'VAPT' && vaptIssues.length)) return;
+    const description = activeTab === 'SOC'
+      ? 'SOC/MDR: ' + socResult.calculated_eps + ' EPS; SLA ' + serviceLevel +
+        '; servers ' + nServers + '; network ' + nNetwork +
+        '; endpoints ' + nEndpoints + '; cloud ' + nCloud
+      : summarizeServiceScope(activeTab, serviceValues);
+    const draft = activeTab === 'VAPT'
+      ? {version: 2, createdAt: Date.now(), service_type: 'VAPT', items: vaptAssetBoqLines(vaptAssets)}
+      : {version: 1, createdAt: Date.now(), service_type: activeTab,
+          description: description.slice(0, 900), quantity: 1,
+          unit: activeTab === 'SOC' ? 'Bulan' : SCOPING_DEFINITIONS[activeTab].outputUnit};
     try {
-      sessionStorage.setItem('india_scoping_boq_draft_v1',JSON.stringify({
-        version:1,createdAt:Date.now(),service_type:activeTab,
-        description:description.slice(0,900),quantity:activeTab==='VAPT'?calculatedMD:1,unit,
-      }));
+      sessionStorage.setItem('india_scoping_boq_draft_v1', JSON.stringify(draft));
       router.push('/boq?from=scoping');
     } catch {
-      // The draft is not stored remotely and must not claim a successful transfer.
       alert('Penyimpanan draft sesi tidak tersedia. Aktifkan session storage browser untuk melanjutkan ke BoQ.');
     }
   };
@@ -222,27 +213,27 @@ export default function SmartScopingPage() {
         } else if (/\b(pam|edr|xdr|waf|iam|firewall license|security technology)\b/.test(lower)) {
           setActiveTab('TECHNOLOGY');
         } else if (lower.includes('mobile') || lower.includes('android') || lower.includes('ios')) {
-          setVaptType('mobile_app');
+          patchPrimaryVapt({vapt_type:'mobile_app'});
           setActiveTab('VAPT');
         } else if (lower.includes('api') || lower.includes('microservice')) {
-          setVaptType('api');
+          patchPrimaryVapt({vapt_type:'api'});
           setActiveTab('VAPT');
         } else if (lower.includes('soc') || lower.includes('siem') || lower.includes('monitoring') || lower.includes('mdr')) {
           setActiveTab('SOC');
         } else if (lower.includes('network') || lower.includes('firewall') || lower.includes('server')) {
-          setVaptType('network_infra');
+          patchPrimaryVapt({vapt_type:'network_infra'});
           setActiveTab('VAPT');
         } else if (lower.includes('red team') || lower.includes('apt')) {
-          setVaptType('red_team');
+          patchPrimaryVapt({vapt_type:'red_team'});
           setActiveTab('VAPT');
         }
 
-        if (lower.includes('white box') || lower.includes('whitebox')) setBoxMethod('white_box');
-        else if (lower.includes('black box') || lower.includes('blackbox')) setBoxMethod('black_box');
-        else setBoxMethod('grey_box');
+        if (lower.includes('white box') || lower.includes('whitebox')) setVaptAssets(items=>items.map(asset=>({...asset,box_method:'white_box'})));
+        else if (lower.includes('black box') || lower.includes('blackbox')) setVaptAssets(items=>items.map(asset=>({...asset,box_method:'black_box'})));
+        else setVaptAssets(items=>items.map(asset=>({...asset,box_method:'grey_box'})));
 
         if (lower.includes('bank') || lower.includes('ojk') || lower.includes('fintech') || lower.includes('keuangan')) {
-          setIsFinancial(true);
+          setVaptAssets(items=>items.map(asset=>({...asset,is_financial_compliance:true})));
         }
     // Only counts explicitly identified in source text are transferred to the form.
     const numberFrom = (...patterns: RegExp[]) => {
@@ -260,11 +251,39 @@ export default function SmartScopingPage() {
     const servers = numberFrom(/(\d+)\s*servers?/i, /servers?\s*[:=]?\s*(\d+)/i);
     const screens = numberFrom(/(\d+)\s*(?:layar|screens?)/i, /(?:layar|screens?)\s*[:=]?\s*(\d+)/i);
     const roles = numberFrom(/(\d+)\s*(?:user[ -]?roles?|hak akses)/i, /(?:user[ -]?roles?|hak akses)\s*[:=]?\s*(\d+)/i);
-    if (api !== null) setApiEndpoints(api);
-    if (hosts !== null) setInfraHosts(hosts);
+    if (api !== null) setVaptAssets(items=>items.map(asset=>({...asset,...(asset.vapt_type==='api'?{api_n_endpoints:api}:asset.vapt_type==='web_app'?{web_n_api_endpoints:api}:{})})));
+    if (hosts !== null) setVaptAssets(items=>items.map(asset=>asset.vapt_type==='network_infra'?{...asset,net_n_internal_host:hosts}:asset));
     if (servers !== null) setNServers(servers);
-    if (screens !== null) setMobileScreens(screens);
-    if (roles !== null) setUserRoles(roles);
+    if (screens !== null) setVaptAssets(items=>items.map(asset=>asset.vapt_type==='mobile_app'?{...asset,mobile_n_screens:screens}:asset));
+    if (roles !== null) setVaptAssets(items=>items.map(asset=>asset.vapt_type==='web_app'?{...asset,web_n_roles:roles}:asset));
+    // Explicitly identified multiple VAPT categories become independent asset rows.
+    // The user can rename each asset and verify overlaps before quotation.
+    const categories: VaptType[] = [];
+    if (/\b(web app|website|web application|portal)\b/i.test(aiDocText)) categories.push('web_app');
+    if (/\b(mobile|android|ios)\b/i.test(aiDocText)) categories.push('mobile_app');
+    if (/\b(api|microservice|endpoint)\b/i.test(aiDocText)) categories.push('api');
+    if (/\b(network|firewall|server|host)\b/i.test(aiDocText)) categories.push('network_infra');
+    if (/\b(red team|adversary|apt)\b/i.test(aiDocText)) categories.push('red_team');
+    if (/\b(source code review|secure code review|sast)\b/i.test(aiDocText)) categories.push('source_code');
+    if (categories.length > 1) {
+      setActiveTab('VAPT');
+      setVaptAssets(current => {
+        const next = [...current];
+        for (const type of categories) {
+          if (next.length >= 30) break;
+          if (!next.some(asset => asset.vapt_type === type)) {
+            const asset = createVaptAsset('from-rks-' + type + '-' + Date.now(), type);
+            if (api !== null && type === 'api') asset.api_n_endpoints = api;
+            if (api !== null && type === 'web_app') asset.web_n_api_endpoints = api;
+            if (screens !== null && type === 'mobile_app') asset.mobile_n_screens = screens;
+            if (hosts !== null && type === 'network_infra') asset.net_n_internal_host = hosts;
+            if (roles !== null && type === 'web_app') asset.web_n_roles = roles;
+            next.push(asset);
+          }
+        }
+        return next;
+      });
+    }
     setShowAiModal(false);
   };
 
@@ -440,191 +459,11 @@ export default function SmartScopingPage() {
         {/* Main Input Form (Col 2) */}
         <div className="lg:col-span-2 space-y-5">
           {activeTab === 'VAPT' ? (
-            <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-5">
-              <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <span>Parameter Teknis VAPT</span>
-                <span className="text-[10px] bg-blue-50 text-blue-700 px-2 py-0.5 rounded border border-blue-200 font-semibold">
-                  Rule-based Estimation
-                </span>
-              </h2>
-
-              {/* VAPT Type Grid */}
-              <div>
-                <label className="text-xs font-semibold text-slate-700 block mb-2">Pilar / Kategori Asset</label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {[
-                    { id: 'web_app', label: 'Web Application' },
-                    { id: 'mobile_app', label: 'Mobile App (Android/iOS)' },
-                    { id: 'api', label: 'API / Microservices' },
-                    { id: 'network_infra', label: 'Network & Infra' },
-                    { id: 'red_team', label: 'Red Team Simulation' },
-                    { id: 'source_code', label: 'Source Code Review' },
-                  ].map(t => (
-                    <button
-                      key={t.id}
-                      type="button"
-                      onClick={() => setVaptType(t.id as VaptType)}
-                      className={`p-2.5 rounded-lg border text-xs font-semibold text-left transition-all ${
-                        vaptType === t.id
-                          ? 'border-blue-600 bg-blue-50/50 text-blue-900 font-bold ring-1 ring-blue-600'
-                          : 'border-slate-200 text-slate-700 hover:border-slate-300'
-                      }`}
-                    >
-                      {t.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Box Methodology & Financial Trigger */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Metodologi Uji</label>
-                  <select
-                    value={boxMethod}
-                    onChange={e => setBoxMethod(e.target.value as BoxMethod)}
-                    className="w-full rounded-lg border border-slate-200 bg-white p-2.5 text-xs text-slate-800 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-                  >
-                    <option value="black_box">Black-Box (Faktor 0.9x)</option>
-                    <option value="grey_box">Grey-Box (Standard 1.0x)</option>
-                    <option value="white_box">White-Box / Source Code (Faktor 1.3x)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="text-xs font-semibold text-slate-700 block mb-1.5">Sektor Keuangan / Regulasi</label>
-                  <div className="flex items-center gap-3 pt-2">
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={isFinancial}
-                        onChange={e => setIsFinancial(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                      />
-                      <span>Pemenuhan POJK / SEOJK / PCI-DSS (+2 MD)</span>
-                    </label>
-                  </div>
-                </div>
-              </div>
-
-              {/* Conditional Dynamic Inputs per Asset */}
-              <div className="border-t border-slate-100 pt-4 space-y-4">
-                {vaptType === 'web_app' && (
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 block mb-1">Kompleksitas Aplikasi</label>
-                        <select
-                          value={webComplexity}
-                          onChange={e => setWebComplexity(e.target.value as any)}
-                          className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                        >
-                          <option value="simple">Simple (3 MD base)</option>
-                          <option value="medium">Medium (5 MD base)</option>
-                          <option value="complex">Complex (8 MD base)</option>
-                          <option value="critical">Critical / Core Banking (12 MD base)</option>
-                        </select>
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 block mb-1">Jumlah Endpoint API</label>
-                        <input
-                          type="number"
-                          value={apiEndpoints}
-                          onChange={e => setApiEndpoints(Number(e.target.value))}
-                          className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 block mb-1">Jumlah Role Hak Akses</label>
-                        <input
-                          type="number"
-                          value={userRoles}
-                          onChange={e => setUserRoles(Number(e.target.value))}
-                          className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {vaptType === 'api' && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="block text-xs font-semibold text-slate-700">Jumlah API Endpoint
-                      <input type="number" min="1" max="100000" value={apiEndpoints}
-                        onChange={e=>setApiEndpoints(Math.max(1,Number(e.target.value)||1))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
-                    </label>
-                    <label className="flex items-center gap-2 text-xs font-semibold text-slate-700">
-                      <input type="checkbox" checked={apiHasDocs} onChange={e=>setApiHasDocs(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300"/>
-                      Swagger / OpenAPI / Postman tersedia
-                    </label>
-                  </div>
-                )}
-
-                {vaptType === 'mobile_app' && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div>
-                      <label className="text-xs font-medium text-slate-600 block mb-1">Platform</label>
-                      <select
-                        value={mobilePlatform}
-                        onChange={e => setMobilePlatform(e.target.value as any)}
-                        className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                      >
-                        <option value="android">Android Only (1.0x)</option>
-                        <option value="ios">iOS Only (1.0x)</option>
-                        <option value="both">Both Android & iOS (1.7x)</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-slate-600 block mb-1">Estimasi Jumlah Layar (Screens)</label>
-                      <input
-                        type="number"
-                        value={mobileScreens}
-                        onChange={e => setMobileScreens(Number(e.target.value))}
-                        className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {vaptType === 'network_infra' && (
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <label className="text-xs font-medium text-slate-600">Jumlah Internal Host / IP
-                      <input type="number" min="0" max="100000" value={infraHosts}
-                        onChange={e=>setInfraHosts(Math.max(0,Number(e.target.value)||0))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
-                    </label>
-                    <label className="text-xs font-medium text-slate-600">Jumlah External IP
-                      <input type="number" min="0" max="100000" value={infraExternalIps}
-                        onChange={e=>setInfraExternalIps(Math.max(0,Number(e.target.value)||0))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 p-2 text-xs"/>
-                    </label>
-                    <label className="flex items-center gap-2 text-xs font-medium text-slate-700 sm:col-span-2">
-                      <input type="checkbox" checked={infraHasAD} onChange={e=>setInfraHasAD(e.target.checked)}
-                        className="h-4 w-4 rounded border-slate-300"/>
-                      Termasuk Active Directory
-                    </label>
-                  </div>
-                )}
-
-                {vaptType === 'red_team' && (
-                  <div>
-                    <label className="text-xs font-medium text-slate-600 block mb-1">Skenario Simulasi Red Team</label>
-                    <select
-                      value={redteamScope}
-                      onChange={e => setRedteamScope(e.target.value as any)}
-                      className="w-full rounded-lg border border-slate-200 p-2 text-xs"
-                    >
-                      <option value="assumed_breach">Assumed Breach (15 MD)</option>
-                      <option value="limited">Limited Adversary Simulation (20 MD)</option>
-                      <option value="standard">Standard Adversary Attack Simulation (30 MD)</option>
-                      <option value="full_apt">Full-Scope Advanced Persistent Threat (45 MD)</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
+            <VaptMultiAssetScope assets={vaptAssets}
+              onAdd={addVaptAsset}
+              onDuplicate={duplicateVaptAsset}
+              onRemove={removeVaptAsset}
+              onChange={updateVaptAsset}/>
           ) : activeTab === 'SOC' ? (
             /* SOC Sizing Form */
             <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-2xs space-y-5">
@@ -760,26 +599,32 @@ export default function SmartScopingPage() {
             {activeTab === 'VAPT' ? (
               <div className="space-y-3">
                 <div>
-                  <div className="text-xs text-slate-500 font-medium">Estimasi Engineering Effort:</div>
-                  <div className="text-3xl font-black text-slate-900 mt-0.5">
-                    {calculatedMD} <span className="text-sm font-bold text-blue-700">Man-Days (MD)</span>
+                  <div className="text-xs font-medium text-slate-500">Total Estimasi Engineering Effort</div>
+                  <div className="mt-1 text-3xl font-black text-slate-900">{vaptPortfolio.total_md}
+                    <span className="ml-1 text-sm font-bold text-blue-700">MD</span>
                   </div>
+                  <p className="mt-1 text-xs text-slate-500">
+                    {vaptAssets.length} baris scope · {vaptAssets.reduce((sum, asset) => sum + (Number.isInteger(asset.asset_count) ? asset.asset_count : 0), 0)} aset
+                  </p>
                 </div>
-
-                <div className="space-y-1.5 text-xs text-slate-600 border-t border-blue-100 pt-3">
-                  <div className="flex justify-between">
-                    <span>Metodologi:</span>
-                    <span className="font-semibold text-slate-900 capitalize">{boxMethod.replace('_', ' ')}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Kepatuhan Finansial:</span>
-                    <span className="font-semibold text-slate-900">{isFinancial ? '+2 MD' : 'Standard'}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Baseline Alokasi Tim:</span>
-                    <span className="font-semibold text-slate-900">Lead + Senior + Junior</span>
-                  </div>
+                <div className="space-y-2 border-t border-blue-100 pt-3">
+                  {vaptPortfolio.rows.map((row, index) => (
+                    <div key={row.id} className="flex items-start justify-between gap-3 text-xs">
+                      <span className="min-w-0 break-words text-slate-600">{index + 1}. {row.name} ({row.asset_count} aset)</span>
+                      <strong className="shrink-0 tabular-nums text-slate-900">{row.md} MD</strong>
+                    </div>
+                  ))}
                 </div>
+                {vaptIssues.length > 0 && (
+                  <div role="alert" className="space-y-1 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
+                    <p className="font-bold">Lengkapi scope sebelum transfer:</p>
+                    {vaptIssues.map(issue => <p key={issue}>{issue}</p>)}
+                  </div>
+                )}
+                <p className="text-[11px] leading-relaxed text-slate-500">
+                  Estimasi per aset sudah termasuk metodologi dan regulasi tiap baris.
+                  Nilai quotation dan pembagian resource menunggu review Presales / Finance.
+                </p>
               </div>
             ) : activeTab === 'SOC' ? (
               <div className="space-y-3">
@@ -825,7 +670,7 @@ export default function SmartScopingPage() {
             {/* Transfer to Pricing Button */}
             <button
               onClick={handleProceedToPricing}
-              disabled={missingScope.length>0}
+              disabled={missingScope.length>0 || (activeTab==='VAPT' && vaptIssues.length>0)}
               className="w-full flex items-center justify-center gap-2 rounded-lg bg-blue-600 py-3 text-xs font-bold text-white shadow-md shadow-blue-600/20 hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 transition-all mt-4"
             >
               <span>Transfer Draft Scoping ke BoQ</span>
