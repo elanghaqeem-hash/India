@@ -1,6 +1,6 @@
 'use client';
 
-import React,{useEffect,useState} from 'react';
+import React,{useCallback,useEffect,useState} from 'react';
 import {Navbar} from './Navbar';
 import {Sidebar} from './Sidebar';
 import {MobileNav} from './MobileNav';
@@ -16,6 +16,31 @@ type Session={status:'checking'|'ready'|'denied';identity:Identity|null};
 export const AppShell:React.FC<AppShellProps> = ({children})=>{
   const [session,setSession]=useState<Session>({status:'checking',identity:null});
   const [pendingApprovalsCount,setPendingApprovalsCount]=useState<number|null>(null);
+  const [desktopMenuOpen,setDesktopMenuOpen]=useState(true);
+  const [mobileMenuOpen,setMobileMenuOpen]=useState(false);
+  const [menuPreferenceLoaded,setMenuPreferenceLoaded]=useState(false);
+
+  useEffect(()=>{
+    try {
+      const saved=window.localStorage.getItem('india:right-navigation-open');
+      if(saved==='true'||saved==='false')setDesktopMenuOpen(saved==='true');
+    } catch {/* Local storage is optional, including in privacy mode. */}
+    setMenuPreferenceLoaded(true);
+  },[]);
+  useEffect(()=>{
+    if(!menuPreferenceLoaded)return;
+    try {window.localStorage.setItem('india:right-navigation-open',String(desktopMenuOpen));}
+    catch {/* Keep the menu usable when storage is unavailable. */}
+  },[desktopMenuOpen,menuPreferenceLoaded]);
+
+  const onToggleMenu=useCallback(()=>{
+    if(window.matchMedia('(min-width: 1024px)').matches)setDesktopMenuOpen(value=>!value);
+    else setMobileMenuOpen(value=>!value);
+  },[]);
+  const onCloseMenu=useCallback(()=>{
+    if(window.matchMedia('(min-width: 1024px)').matches)setDesktopMenuOpen(false);
+    else setMobileMenuOpen(false);
+  },[]);
   useEffect(()=>{
     const controller=new AbortController();
     fetch('/api/sales/identity',{method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal})
@@ -49,18 +74,18 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
   const role=session.status==='ready'?session.identity?.role??null:null;
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
-      <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount}/>
+      <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount} onToggleMenu={onToggleMenu} desktopMenuOpen={desktopMenuOpen} mobileMenuOpen={mobileMenuOpen}/>
       <div role="status" className="no-print border-b border-slate-200 bg-slate-100 px-4 py-2 text-center text-xs font-medium text-slate-700">
         {session.status==='checking'?'Memverifikasi sesi Cloudflare Access…':
          session.status==='ready'? `Sesi terverifikasi · Role: ${role}`:
          'Sesi belum terverifikasi. Fitur transaksi memerlukan Cloudflare Access dan skema D1 yang sesuai.'}
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
-        {role&&<Sidebar role={role}/>}
         <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto px-3 pb-28 pt-4 sm:p-6 lg:p-8 print:max-w-none print:overflow-visible print:p-0">
           {role&&<AIWorkbench/>}
           {children}
         </main>
+        {role&&<Sidebar role={role} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen} onClose={onCloseMenu}/>}
       </div>
       {role&&<MobileNav role={role}/>}
     </div>
