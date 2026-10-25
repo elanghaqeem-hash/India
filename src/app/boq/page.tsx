@@ -1,5 +1,6 @@
 'use client';
 import React,{useEffect,useState} from 'react';
+import {SCOPING_SERVICE_TYPES} from '@/lib/scoping-service-options';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
 type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;cost_items?:{code:string;amount:number}[]};
@@ -14,10 +15,31 @@ export default function BoQPage(){
  const canCreate=['finance','admin','presales','sales'].includes(role);
  const canEdit=canCreate&&(!selected||selected.status==='draft');
  const load=async()=>{try{const r=await fetch('/api/boq',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message);setList(d.boqs||[]);setRole(d.role);}catch(e){setMsg(String(e));}};
- useEffect(()=>{void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
+ useEffect(()=>{
+   // Import a deliberately unsaved scope from this browser session.
+   // D1 save, opportunity checks, manual price and approval remain mandatory.
+   if(new URLSearchParams(window.location.search).get('from')==='scoping'){
+    try{
+     const raw=sessionStorage.getItem('india_scoping_boq_draft_v1');
+     if(!raw)throw Error('Draft scoping tidak ditemukan pada sesi browser ini.');
+     const draft=JSON.parse(raw);
+     if(draft.version!==1||!Number.isFinite(draft.createdAt)||Date.now()-draft.createdAt>900000
+       ||!SCOPING_SERVICE_TYPES.includes(draft.service_type)
+       ||typeof draft.description!=='string'||!draft.description.trim()||draft.description.length>900
+       ||typeof draft.unit!=='string'||!['MD','Bulan','Paket'].includes(draft.unit)
+       ||typeof draft.quantity!=='number'||!Number.isFinite(draft.quantity)
+       ||draft.quantity<=0||draft.quantity>100000)throw Error('Draft scoping tidak valid atau sudah kedaluwarsa.');
+     setForm(f=>({...f,service_type:draft.service_type,line_items:[{
+       description:draft.description,quantity:draft.quantity,unit:draft.unit,unit_price:0,service_type:draft.service_type,
+     }]}));
+     setMsg('Draft scoping berhasil dimuat. Isi opportunity, harga dan data quotation lalu simpan ke D1. Belum ada data tersimpan.');
+     sessionStorage.removeItem('india_scoping_boq_draft_v1');
+    }catch(e){setMsg(e instanceof Error?e.message:'Draft scoping tidak dapat diimpor.');}
+   }
+   void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
   if(id)fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store'}).then(r=>r.json()).then(j=>{
    if(j.success){setForm(f=>({...f,opportunity_id:id,customer_name:j.account.legal_name,project_name:j.deal.title,
-    service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
+    service_type:new URLSearchParams(window.location.search).get('from')==='scoping'?f.service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
   }).catch(()=>{});
   void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
  const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d,opportunity_id:d.opportunity_id||''});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
@@ -75,7 +97,7 @@ export default function BoQPage(){
     </select><span className="mt-1 block text-[11px] font-normal text-slate-500">BoQ harus terhubung ke opportunity dan approved untuk digunakan sebagai dasar Closed Won.</span></label>{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']
     ] as const).map(([k,l])=><label key={k} className="text-xs">{l}<input disabled={!canEdit} value={form[k]} onChange={e=>change(k,e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}
-    <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>change('service_type',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['VAPT','SOC','CTI','ISO','PDP','Hardening','IR','GRC','DFIR','TECHNOLOGY','TRAINING','Lainnya'].map(x=><option key={x}>{x}</option>)}</select></label>
+    <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>change('service_type',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{SCOPING_SERVICE_TYPES.map(x=><option key={x}>{x}</option>)}</select></label>
     <label className="text-xs">PPN (%)<input disabled={!canEdit} type="number" min="0" max="100" value={form.vat_rate*100} onChange={e=>change('vat_rate',Number(e.target.value)/100)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>
     <label className="text-xs">Termin<select disabled={!canEdit} value={form.payment_terms} onChange={e=>change('payment_terms',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['30-50-20','30-60-10','50-50','100'].map(x=><option key={x}>{x}</option>)}</select></label></div>
    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
