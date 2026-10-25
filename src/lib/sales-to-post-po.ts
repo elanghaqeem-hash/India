@@ -1,5 +1,5 @@
-import {newPostPoPacket,type PostPoPacket,type Pic,type PaymentMilestone,type ServiceFamily} from './post-po-documents';
-import type {SalesAccount,SalesDeal} from './sales-workflow';
+import {newPostPoPacket,type PostPoPacket,type Pic,type PaymentMilestone} from './post-po-documents';
+import {isServiceFamily,type SalesAccount,type SalesDeal} from './sales-workflow';
 const pic=(f:Record<string,string>,prefix:string):Pic=>({
  name:f[prefix+'_name']||'',mobile:f[prefix+'_phone']||'',email:f[prefix+'_email']||''
 });
@@ -28,8 +28,7 @@ export function prefillFromSales(a:SalesAccount,d:SalesDeal,poVerified:boolean,q
   // KTP data and documentary evidence must be supplied explicitly in protected Post-PO form.
   primaryKtpNumber:'',npwpAttachmentConfirmed:false,ktpAttachmentConfirmed:false,
  };
- const family=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']
- .includes(p.service_family)?p.service_family as ServiceFamily:'Other';
+ const family=isServiceFamily(p.service_family)?p.service_family:'Other';
  data.project={
   ...data.project,poNumber:p.po_number||'',poDate:p.po_date||'',poVerified,
   quotationNumber:p.quotation_number||'',quotationAmountBeforeVat:quotationAmount,

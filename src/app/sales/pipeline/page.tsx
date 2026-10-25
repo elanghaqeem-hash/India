@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { PRESALES_FIELDS } from '@/lib/sales-access';
 import { StageFilter } from '@/components/sales/StageFilter';
 import type { StageFilterValue } from '@/lib/sales-stage-filter';
+import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -30,7 +31,7 @@ function FormFields({fields,values,onUpdate,readOnly}:{
  fields:readonly (readonly [string,string])[];values:SalesFields;onUpdate:(k:string,v:string)=>void;readOnly?:(k:string)=>boolean;
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
- {fields.map(([key,label])=><label key={key} className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
+ {fields.map(([key,label])=>key==='lead_source'?<LeadSourceChoice key={key} label={label} value={values[key]||''} disabled={readOnly?.(key)} onChange={value=>onUpdate(key,value)}/>:<label key={key} className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
   {label}
   {listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
     <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:

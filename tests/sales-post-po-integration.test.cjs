@@ -12,6 +12,7 @@ function load(name){
  const module={exports:{}};
  cache.set(name,module.exports);
  new Function('require','module','exports',js)(specifier=>{
+  if(specifier==='./sales-workflow')return load('sales-workflow');
   if(specifier==='./post-po-documents')return load('post-po-documents');
   throw Error('Unexpected dependency '+specifier);
  },module,module.exports);

@@ -16,7 +16,7 @@ type ServiceExample = {
   deadline: string;
   timeline: string;
 };
-const SERVICE_EXAMPLES: Record<ServiceFamily, ServiceExample> = {
+const SERVICE_EXAMPLES: Partial<Record<ServiceFamily, ServiceExample>> = {
   'VAPT': {
     description: 'SIMULASI: Vulnerability Assessment & Penetration Testing Aplikasi',
     quantity: '2 aplikasi web + 1 API gateway (contoh)',
@@ -142,7 +142,7 @@ function fillMilestones(current:PaymentMilestone[],fee:number):PaymentMilestone[
 export function fillEmptyPostPoWithDummy(source:PostPoPacket):PostPoPacket {
   const base:PostPoPacket=structuredClone(source);
   const r=base.registration, p=base.project;
-  const example=SERVICE_EXAMPLES[p.serviceFamily]||SERVICE_EXAMPLES.VAPT;
+  const example=SERVICE_EXAMPLES[p.serviceFamily]||SERVICE_EXAMPLES.Other!;
   r.customerId=useIfEmpty(r.customerId,'DEMO-CUST-0001');
   r.customerName=useIfEmpty(r.customerName,'PT SIMULASI SIBER NUSANTARA (DUMMY)');
   r.businessType=useIfEmpty(r.businessType,'Layanan Teknologi Informasi');

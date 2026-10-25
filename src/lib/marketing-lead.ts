@@ -1,4 +1,4 @@
-import {dateValid,emailValid,phoneValid, type SalesFields} from './sales-workflow';
+import {SERVICE_FAMILIES,dateValid,emailValid,phoneValid, type SalesFields} from './sales-workflow';
 
 export type LeadStatus='new'|'assigned'|'qualified'|'disqualified'|'converted';
 export type LeadQualification={
@@ -15,7 +15,7 @@ export type LeadInput={
  contact_name:string;contact_email:string;assigned_sales_email:string;
  estimated_value_idr:number;expected_closing_date:string;qualification:Record<string,string>;
 };
-const allowedService=new Set(['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']);
+const allowedService=new Set<string>(SERVICE_FAMILIES);
 const safe=(s:unknown,max=240)=>typeof s==='string'?s.trim().slice(0,max):'';
 export function validateLead(input:unknown):LeadInput{
  if(!input||typeof input!=='object'||Array.isArray(input))throw Error('Lead harus object');

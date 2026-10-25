@@ -10,16 +10,7 @@ import {
 import { createDemoPostPoPacket, fillEmptyPostPoWithDummy, DUMMY_DATA_NOTICE } from '@/lib/post-po-dummy';
 import { downloadOfficialPostPoDocx } from '@/lib/post-po-official-layout';
 import { prefillFromSales } from '@/lib/sales-to-post-po';
-
-const SERVICE_GUIDANCE: Record<ServiceFamily,string> = {
-  'VAPT':'Cantumkan objek aplikasi/web/API/mobile/jaringan, jumlah target, metode black/grey/white box, testing window, retest, dan deliverables yang tercantum PO/SOW.',
-  'SOC/MDR':'Cantumkan periode, jam layanan, platform/SIEM, log sources, EPS, retensi, lisensi, SLA, skema tenaga shared/dedicated hanya jika disebut PO/SOW.',
-  'CTI':'Cantumkan paket intelijen, monitored assets, domain/IP/brand, jenis intelligence report, periode, kanal eskalasi, dan frekuensi deliverables.',
-  'Cybersecurity Governance':'Cantumkan framework ISO/POJK/UU PDP yang dikontrak, jumlah workshop/assessment, entitas/unit, kebijakan, SOP dan deliverables.',
-  'Incident Response/DFIR':'Cantumkan perangkat/sumber bukti, batas otorisasi, chain of custody, jenis analisis, SLA, pemulihan, dan laporan forensik.',
-  'Cybersecurity Technology':'Cantumkan nama OEM/SKU, jumlah lisensi/appliance, masa subscription, support, implementasi, integrasi, dan serah terima.',
-  'Other':'Cantumkan setiap produk/layanan, kuantitas-satuan, objek lingkup, batas pekerjaan, hasil kerja, dan SLA jika disepakati.'
-};
+import {SERVICE_CATALOG,SERVICE_GROUPS,serviceDefinition} from '@/lib/sales-workflow';
 
 function Field({label,value,onChange,type='text',help,required=true,placeholder}:{
   label:string;value:string|number;onChange:(s:string)=>void;type?:string;help?:string;required?:boolean;placeholder?:string
@@ -58,7 +49,7 @@ function PicFields({title,value,onChange}:{title:string;value:Pic;onChange:(v:Pi
   </div>
  </div>;
 }
-const serviceTypes:ServiceFamily[]=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'];
+
 
 export default function PostPoPage(){
  const [data,setData]=useState<PostPoPacket>(()=>newPostPoPacket());
@@ -140,7 +131,7 @@ export default function PostPoPage(){
         Skenario Layanan DefendIT360
         <select value={exampleService} onChange={e=>setExampleService(e.target.value as ServiceFamily)}
           className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900">
-          {serviceTypes.map(service=><option value={service} key={service}>{service}</option>)}
+          {SERVICE_CATALOG.map(({name:service})=><option value={service} key={service}>{service}</option>)}
         </select>
       </label>
       <button type="button" onClick={()=>{
@@ -282,12 +273,12 @@ export default function PostPoPage(){
      <label className="block text-xs font-semibold text-slate-700">Jenis Layanan / Produk *
       <select value={p.serviceFamily} onChange={e=>proj('serviceFamily',e.target.value as ServiceFamily)}
        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm">
-       {serviceTypes.map(service=><option value={service} key={service}>{service}</option>)}
+       {SERVICE_GROUPS.map(group=><optgroup key={group} label={group}>{SERVICE_CATALOG.filter(x=>x.group===group).map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</optgroup>)}
       </select>
      </label>
     </div>
     <div className="mt-3 space-y-3">
-     <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-900">{SERVICE_GUIDANCE[p.serviceFamily]}</div>
+     <div className="rounded-lg border border-blue-100 bg-blue-50 p-3 text-xs leading-relaxed text-blue-900">{serviceDefinition(p.serviceFamily).guidance}</div>
      <Field label="Nama Paket / Uraian Produk & Jasa" value={p.serviceDescription} onChange={v=>proj('serviceDescription',v)}/>
      <Field label="Kuantitas & Satuan (mis. 2 aplikasi / 12 bulan)" value={p.quantityAndUnit} onChange={v=>proj('quantityAndUnit',v)}/>
      <Textarea label="Scope of Work Sesuai PO/SOW" value={p.scope} onChange={v=>proj('scope',v)}/>
