@@ -74,6 +74,7 @@ function route(file,role,email,db,additional={}){
  };
  const mod={exports:{}};
  new Function('require','module','exports',js)(specifier=>{
+  if(specifier==='@/lib/ai-workspace-identity')return compiledDomain('ai-workspace-identity');
   if(!(specifier in mocks))throw Error('Unmocked module '+specifier);
   return mocks[specifier];
  },mod,mod.exports);
