@@ -2,10 +2,11 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,CheckCircle2,ClipboardList,Megaphone,Plus,Search,UserRoundCheck} from 'lucide-react';
-import {SERVICE_FAMILIES} from '@/lib/sales-workflow';
+import {SERVICE_CATALOG,SERVICE_GROUPS} from '@/lib/sales-workflow';
 import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
+import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
@@ -194,13 +195,13 @@ export default function MarketingLeads(){
      ['account_name','Perusahaan / Prospek *'],['source','Sumber Lead *'],['campaign','Kampanye / Event'],
      ['contact_name','Nama PIC'],['contact_email','Email PIC'],['assigned_sales_email','Sales Owner (email aktif) *'],
      ['estimated_value_idr','Estimasi nilai IDR'],['expected_closing_date','Target closing']
-    ] as const).map(([key,label])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
+    ] as const).map(([key,label])=>key==='source'?<LeadSourceChoice key={key} label={label} required disabled={busy} value={form.source} onChange={source=>setForm(s=>({...s,source}))}/>:<label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
       <input className={'mt-1 '+cls} disabled={key==='campaign'&&!!form.campaign_id}
        type={key==='contact_email'||key==='assigned_sales_email'?'email':key==='expected_closing_date'?'date':key==='estimated_value_idr'?'number':'text'}
        value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/></label>)}
     <label className="text-xs font-semibold text-slate-700">Jenis produk / layanan *
      <select className={'mt-1 '+cls} value={form.service_family} onChange={e=>setForm(s=>({...s,service_family:e.target.value}))}>
-      {SERVICE_FAMILIES.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+      {SERVICE_GROUPS.map(group=><optgroup key={group} label={group}>{SERVICE_CATALOG.filter(x=>x.group===group).map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</optgroup>)}</select></label>
     </div>
     <button disabled={busy||!form.account_name.trim()||!form.source.trim()||!form.assigned_sales_email.trim()} onClick={create}
      className="mt-4 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">Simpan Lead</button>

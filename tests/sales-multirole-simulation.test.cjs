@@ -9,6 +9,7 @@ function load(name){
  const js=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;
  const mod={exports:{}};cache.set(name,mod.exports);
  new Function('require','module','exports',js)(x=>{
+  if(x==='./sales-workflow')return load('sales-workflow');
   if(x==='./boq-domain')return load('boq-domain');
   if(x==='./post-po-documents')return load('post-po-documents');
   if(x==='jszip')return require('jszip');

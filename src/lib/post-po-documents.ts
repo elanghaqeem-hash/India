@@ -2,9 +2,8 @@
 // No customer identifiers, signatories or financial figures are invented as fallbacks.
 export type Pic = { name: string; mobile: string; email: string };
 export type EmployeeBand = '' | '<100' | '100-500' | '>500';
-export type ServiceFamily =
-  | 'VAPT' | 'SOC/MDR' | 'CTI' | 'Cybersecurity Governance'
-  | 'Incident Response/DFIR' | 'Cybersecurity Technology' | 'Other';
+import type {ServiceFamily} from './sales-workflow';
+export type {ServiceFamily} from './sales-workflow';
 export interface RegistrationData {
   customerId: string;
   customerName: string;

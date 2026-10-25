@@ -6,6 +6,7 @@ import { StageFilter } from '@/components/sales/StageFilter';
 import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
+import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -34,7 +35,9 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
 }){
  return <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
  {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=>(
-  key==='client_tier'||key==='industry'||key==='business_type'
+  key==='lead_source'
+   ? <LeadSourceChoice key={key} label={label} value={values[key]||''} disabled={readOnly?.(key)} onChange={value=>onUpdate(key,value)}/>
+   : key==='client_tier'||key==='industry'||key==='business_type'
    ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
    : <React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)?'sm:col-span-2':'')}>
