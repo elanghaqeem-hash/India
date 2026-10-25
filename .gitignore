@@ -37,3 +37,9 @@ Desktop.ini
 
 # Generated local browser verification artifacts
 artifacts/
+
+# Python rehearsal bytecode
+__pycache__/
+
+# Incremental TypeScript cache is not source evidence
+*.tsbuildinfo

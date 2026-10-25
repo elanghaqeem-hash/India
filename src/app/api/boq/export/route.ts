@@ -37,6 +37,6 @@ export async function GET(req:Request){
   const safeName=row.quotation_number.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,50);
   return new Response(Buffer.from(bytes),{status:200,headers:{...privateHeaders,
     'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition':'attachment; filename="DefendIT360_BoQ_'+format+'_'+safeName+'.xlsx"'}});
+    'Content-Disposition':'attachment; filename="Technotama_BoQ_'+format+'_'+safeName+'.xlsx"'}});
  }catch{return Response.json({success:false,message:'Ekspor XLSX gagal'},{status:500,headers:privateHeaders});}
 }

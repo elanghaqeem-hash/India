@@ -258,7 +258,7 @@ function generateLocalExpertResponse(prompt: string): string {
   if (lower.includes('tender') || lower.includes('bid') || lower.includes('hps') || lower.includes('lpse')) {
     return `### Rekomendasi Evaluasi Tender & Kepatuhan:
 1. **Bid / No-Bid Decision Scorecard**:
-   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment DefendIT360).
+   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment Technotama).
    - Kepatuhan Legalitas: Terdaftar LK SMPI BSSN, sertifikasi ISO 27001 aktif.
    - Rekomendasi: **GO (Lanjutkan Pengajuan Penawaran)**.
 2. **Persyaratan Wajib (Mandatory Checklist)**:
@@ -287,7 +287,7 @@ export async function executeAIPrompt(
     .sort((a, b) => a.priority - b.priority);
 
   const sysPrompt = context?.systemPrompt ||
-    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for ICOP CyberBusiness 360 (PT Data Enkripsi Informasi Teknologi / DefendIT360). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.';
+    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for ICOP CyberBusiness 360 (Technotama / Technotama). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.';
 
   // Attempt each provider in priority order
   for (const provider of activeChain) {

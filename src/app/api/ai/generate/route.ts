@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import {readBoundedJSON,RequestBodyError} from '@/lib/bounded-json';
+import {reserveAIRequest} from '@/lib/ai-request-budget';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { runPriorityChain } from '@/lib/ai-credential-vault';
 import { parseConversationHistory, isIndonesianLanguagePreference, languagePreferenceAcknowledgment,
@@ -10,7 +12,7 @@ export const dynamic='force-dynamic';
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 
 const ICOP_CHAT_INSTRUCTION = [
- 'Anda adalah ICOP AI Business Assistant untuk DefendIT360, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
+ 'Anda adalah ICOP AI Business Assistant untuk Technotama, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
  'WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia (kecuali nama merek, istilah teknis, dan kode), dengan profesional dan relevan terhadap pertanyaan terakhir.',
  'Instruksi gaya, bahasa, dan format adalah PREFERENSI sepanjang sesi, bukan penggantian topik. Konfirmasi secara singkat sambil mempertahankan konteks sebelumnya; jangan menjawab sebagai percakapan baru.',
  'Jangan menanyakan kembali topik yang sudah dibahas atau memberikan pembuka generik setelah instruksi gaya. Lanjutkan substansi topik sebelumnya.',
@@ -34,10 +36,8 @@ export async function POST(req:Request){
 
  let payload:{prompt?:unknown;history?:unknown;task_type?:unknown;topic_hint?:unknown}|null;
  try{
-  const raw=await req.text();
-  if(raw.length>25000)return json({success:false,message:'Riwayat percakapan terlalu panjang.'},413);
-  payload=JSON.parse(raw) as typeof payload;
- }catch{return json({success:false,message:'Format permintaan tidak valid.'},400);}
+  payload=await readBoundedJSON(req,25000);
+ }catch(e){return json({success:false,message:'Format atau ukuran permintaan tidak valid.'},e instanceof RequestBodyError?e.status:400);}
 
  const prompt=payload?.prompt;
  const maxChars=payload?.task_type==='scoping_analysis'?12000:2000;
@@ -62,6 +62,7 @@ export async function POST(req:Request){
   messages:[...history,{role:'user',content:prompt.trim()}],
  };
  try{
+  if(!await reserveAIRequest(auth.identity.db,auth.identity.email,'chat'))return json({success:false,message:'Batas maksimal 20 permintaan AI per jam per pengguna.'},429);
   let result=await runPriorityChain(auth.identity.db,conversation);
   // Guard a narrow, observable failure mode: consumer products suggested in
   // a VAPT costing follow-up. Retry only once; never echo irrelevant content.

@@ -9,7 +9,7 @@ const ACCOUNT='208155f241d4da84e1a6a9b44b7a8d28';
 const CLONE='5b9b58de-be29-48bb-9023-018c7f15f68b';
 const PRODUCTION='8395dd84-1b7d-4eaf-9990-1d8e75a42cb5';
 const LEGACY_UAT='eaed652e-7322-4950-a304-dd50baa5de02';
-const MANDATORY_ROLES={admin:1,sales:2,presales:1,finance:1,approver:1,legal:1};
+const MANDATORY_ROLES={admin:1,marketing:1,sales:2,presales:1,finance:1,approver:1,legal:1,viewer:1};
 const env=process.env;
 function check(value,message){if(!value)throw Error(message);}
 function validate(){
@@ -81,7 +81,7 @@ async function run(){
  const policies=await api('/access/apps/'+env.INDIA_GATE_ACCESS_APP_ID+'/policies');
  const emails=[...new Set((policies||[]).filter(p=>p.decision==='allow')
   .flatMap(p=>(p.include||[]).map(z=>z.email?.email?.toLowerCase()).filter(Boolean)))];
- check(emails.length>=7,'At least 7 distinct Access humans incl Legal required');
+ check(emails.length>=9,'At least 9 distinct Access humans for all eight roles and Sales A/B required');
  const roles={};
  for(const email of emails){
   const rows=await query('SELECT role,active FROM india_members WHERE lower(email)=?',[email]);

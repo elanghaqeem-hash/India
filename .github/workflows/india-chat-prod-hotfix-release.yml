@@ -1,6 +1,12 @@
 name: INDIA production AI context rollout - fail closed
 
 on:
+  workflow_dispatch:
+    inputs:
+      evidence_run_id:
+        description: 'Run ID containing the independently signed production evidence bundle'
+        required: true
+        type: string
   push:
     branches: [main]
     paths:
@@ -8,6 +14,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: india-production-hotfix-release
@@ -15,6 +22,7 @@ concurrency:
 
 jobs:
   guarded-production-ui-hotfix:
+    environment: production
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
@@ -22,6 +30,8 @@ jobs:
       CLOUDFLARE_ACCOUNT_ID: 208155f241d4da84e1a6a9b44b7a8d28
       NEXT_TELEMETRY_DISABLED: '1'
       CI: 'true'
+      INDIA_RELEASE_EVIDENCE_PATH: artifacts/production-release/receipt.json
+      INDIA_RELEASE_AUTHORITY_PUBLIC_KEY: ${{ vars.INDIA_RELEASE_AUTHORITY_PUBLIC_KEY }}
       INDIA_PROD_VERIFIED_BACKUP_SHA256: ${{ secrets.INDIA_PROD_VERIFIED_BACKUP_SHA256 }}
       INDIA_PROD_SIGNED_ACCESS_UAT: ${{ vars.INDIA_PROD_SIGNED_ACCESS_UAT }}
       INDIA_PROD_FINANCE_SECURITY_SIGNOFF: ${{ vars.INDIA_PROD_FINANCE_SECURITY_SIGNOFF }}
@@ -46,7 +56,7 @@ jobs:
             exit 2
           fi
       - name: Install dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Layout, conversation and security regression tests
         run: npm run test:layout && npm run test:ai && npm run test:runtime-compat
       - name: TypeScript check
@@ -57,6 +67,18 @@ jobs:
         run: npx opennextjs-cloudflare build
       - name: Validate release gate script syntax
         run: node --check scripts/india-prod-ai-schema-preflight.mjs
+      - name: Retrieve independently signed release evidence
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/download-artifact@v4
+        with:
+          name: india-production-release-evidence
+          path: artifacts/production-release
+          run-id: ${{ inputs.evidence_run_id }}
+          github-token: ${{ github.token }}
+      - name: Require signed production evidence bundle
+        run: |
+          test -f "$INDIA_RELEASE_EVIDENCE_PATH" || { echo 'BLOCKED: protected signed release evidence bundle is missing.'; exit 2; }
+          test -n "$INDIA_RELEASE_AUTHORITY_PUBLIC_KEY" || { echo 'BLOCKED: release authority verification key is missing.'; exit 2; }
       - name: Preflight production D1 / Access / backup / signoffs and checkpoint
         id: checkpoint
         run: node scripts/india-prod-ai-schema-preflight.mjs before

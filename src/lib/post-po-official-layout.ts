@@ -1,5 +1,5 @@
 /**
- * Preserve the user's unmodified official DefendIT360 V.042026 Word layout
+ * Preserve the user's unmodified official Technotama V.042026 Word layout
  * by filling its OOXML tables in-place. No reflowed synthetic Word tables.
  *
  * This operates entirely in the browser: original templates and sensitive
@@ -223,7 +223,7 @@ export async function createOfficialPostPoDocxFromTemplate(
     project:'d3b60f3debe5c2d952cd88a922fb6685f5dd2f5eedf53f5cdfe758e9cab056e3'
   };
   if(sha256!==approvedHashes[kind]){
-    throw new Error('Template berbeda dari dokumen kosong DefendIT360 V.042026 yang disetujui. Unduh dan gunakan template kosong asli, bukan dokumen pelanggan yang sudah diisi.');
+    throw new Error('Template berbeda dari dokumen kosong Technotama V.042026 yang disetujui. Unduh dan gunakan template kosong asli, bukan dokumen pelanggan yang sudah diisi.');
   }
   const zip=await JSZip.loadAsync(templateBytes);
   const file=zip.file('word/document.xml');
@@ -256,7 +256,7 @@ export async function downloadOfficialPostPoDocx(
   const safe=(kind==='registration'?packet.registration.customerId:packet.project.poNumber)
     .replace(/[^a-z0-9_-]/gi,'-').slice(0,45);
   a.href=url;
-  a.download='INDIA_DefendIT360_'+(packet.isDemo?'DEMO_':'')+
+  a.download='INDIA_Technotama_'+(packet.isDemo?'DEMO_':'')+
     (kind==='registration'?'Registrasi_Resmi_Layout_':'Project_Resmi_Layout_')+safe+'.docx';
   document.body.appendChild(a);a.click();a.remove();
   window.setTimeout(()=>URL.revokeObjectURL(url),2000);

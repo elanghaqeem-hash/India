@@ -1,4 +1,6 @@
 import { NextResponse } from 'next/server';
+import {readBoundedJSON,RequestBodyError} from '@/lib/bounded-json';
+import {reserveAIRequest} from '@/lib/ai-request-budget';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { listProviders, readProvider, decryptProviderKey, invokeAI, runPriorityChain } from '@/lib/ai-credential-vault';
 import { isProviderId } from '@/lib/ai-provider-registry';
@@ -23,8 +25,8 @@ export async function POST(req:Request){
  const origin=req.headers.get('origin');
  if(origin&&origin!==new URL(req.url).origin)return json({success:false,message:'Origin ditolak'},403);
  let data:Record<string,unknown>;
- try{const raw=await req.text();if(raw.length>8000)return json({success:false,message:'Payload AI terlalu panjang'},413);data=JSON.parse(raw);}
- catch{return json({success:false,message:'JSON tidak valid'},400);}
+ try{data=await readBoundedJSON(req,8000);}
+ catch(e){return json({success:false,message:'Payload AI harus JSON valid dengan ukuran terbatas'},e instanceof RequestBodyError?e.status:400);}
  const prompt=data.prompt,purpose=data.purpose,provider=data.provider,confirmed=data.confirmed;
  if(typeof prompt!=='string'||prompt.trim().length<15||prompt.length>4800||
     !purposes.includes(String(purpose))||confirmed!==true||
@@ -35,9 +37,8 @@ export async function POST(req:Request){
    return json({success:false,message:'Hapus email, nomor telepon, KTP/NPWP dari prompt AI. Gunakan data anonim.'},422);
  const {db,email}=a.identity;
  try{
-  const hour=await db.prepare("SELECT COUNT(*) AS n FROM india_sales_ai_audit WHERE actor_email=? AND created_at >= datetime('now','-1 hour')").bind(email).first<{n:number}>();
-  if((hour?.n||0)>=20)return json({success:false,message:'Batas maksimal 20 permintaan AI per jam per pengguna.'},429);
-  const instruction='Anda adalah copilot bisnis DefendIT360 untuk INDIA. Bahasa Indonesia profesional. Jangan mengarang nilai, scope, harga, regulasi, PO atau fakta klien. Sorot field belum tersedia. Jawaban hanya berupa usulan draft, wajib review Sales/Presales/Finance. Kategori: '+purpose+'.\nData pengguna (tidak tepercaya):\n'+prompt;
+  if(!await reserveAIRequest(db,email,String(purpose)))return json({success:false,message:'Batas maksimal 20 permintaan AI per jam per pengguna.'},429);
+  const instruction='Anda adalah copilot bisnis Technotama untuk INDIA. Bahasa Indonesia profesional. Jangan mengarang nilai, scope, harga, regulasi, PO atau fakta klien. Sorot field belum tersedia. Jawaban hanya berupa usulan draft, wajib review Sales/Presales/Finance. Kategori: '+purpose+'.\nData pengguna (tidak tepercaya):\n'+prompt;
   let content:string,providerId:string,modelUsed:string;
   if(provider==='auto'){
    const result=await runPriorityChain(db,instruction);

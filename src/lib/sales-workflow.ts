@@ -37,12 +37,12 @@ export const ACCOUNT_FIELDS=[
  ['billing_name','PIC penagihan - nama'],['billing_phone','PIC penagihan - telepon'],['billing_email','PIC penagihan - email'],
  ['tax_name','PIC pajak - nama'],['tax_phone','PIC pajak - telepon'],['tax_email','PIC pajak - email'],
  ['customer_signatory','Penandatangan pelanggan'],['customer_signatory_title','Jabatan penandatangan pelanggan'],
- ['defender_signatory','Penandatangan DefendIT360'],['defender_signatory_title','Jabatan penandatangan DefendIT360'],
+ ['defender_signatory','Penandatangan Technotama'],['defender_signatory_title','Jabatan penandatangan Technotama'],
  ['maker','Pembuat'],['reviewer','Pemeriksa'],['executor','Pelaksana'],
 ] as const;
 export const DEAL_FIELDS=[
  ['lead_source','Sumber lead'],['sales_owner','Sales owner'],['expected_closing_date','Target closing'],
- ['service_family','Jenis layanan DefendIT360'],['contract_model','One-Time / Recurring'],['client_need','Kebutuhan / pain point'],
+ ['service_family','Jenis layanan Technotama'],['contract_model','One-Time / Recurring'],['client_need','Kebutuhan / pain point'],
  ['budget_status','Status/batas budget'],['decision_maker','Pengambil keputusan'],
  ['procurement_process','Proses procurement / tender'],['discovery_notes','Hasil discovery'],
  ['technical_scope','Scope pekerjaan'],['technical_specifications','Spesifikasi teknis'],
