@@ -7,11 +7,13 @@ import { parseConversationHistory, isIndonesianLanguagePreference, languagePrefe
  contextualConversationAnchor, isClearlyOffTopicChatAnswer, topicalClarification,
  type AIConversationRequest } from '@/lib/ai-conversation';
 import { containsPersonalIdentifier } from '@/lib/ai-data-policy';
+import { AI_WORKSPACE_IDENTITY } from '@/lib/ai-workspace-identity';
 
 export const dynamic='force-dynamic';
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 
 const ICOP_CHAT_INSTRUCTION = [
+ AI_WORKSPACE_IDENTITY,
  'Anda adalah ICOP AI Business Assistant untuk Technotama, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
  'WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia (kecuali nama merek, istilah teknis, dan kode), dengan profesional dan relevan terhadap pertanyaan terakhir.',
  'Instruksi gaya, bahasa, dan format adalah PREFERENSI sepanjang sesi, bukan penggantian topik. Konfirmasi secara singkat sambil mempertahankan konteks sebelumnya; jangan menjawab sebagai percakapan baru.',
