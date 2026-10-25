@@ -39,6 +39,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
     item('Communication Timeline','/sales/communications',['admin','sales','approver','legal']),
   ]},
   {id:'presales',label:'04 · Presales, Tender & Solution',items:[
+    item('Smart Scoping & Sizing','/scoping',['admin','presales']),
     item('Tender Compliance','/sales/compliance',PRESALES),
     item('Bid Readiness','/sales/bid-readiness',PRESALES),
     item('Resource & Solution Feasibility','/sales/feasibility',PRESALES),
