@@ -23,3 +23,13 @@ Pilihan awal kosong. Nilai historis yang belum termasuk daftar tetap ditampilkan
 Validasi: seluruh 15 nilai diuji melalui API registrasi/qualification/konversi pada adapter SQLite/D1 terisolasi dan tetap sama pada Opportunity. Pemeriksaan TypeScript lulus; 192 eksekusi pengujian pada baseline produksi dan build Next.js/OpenNext lulus. Pada implementasi kanonis, 56 pengujian Sales lulus. Render React memastikan 15 opsi, pilihan aktif, field disabled, dan pelestarian nilai historis. Pengujian ini tidak menggantikan UAT transaksi dengan sesi Cloudflare Access asli.
 
 Produksi menggunakan patch lanjutan pada branch release/india-catalog-prod-20261025, mempertahankan pembaruan katalog sebelumnya. Versi Worker sebelum rilis adalah 1b686467-7df5-44ac-a8c1-f71a8b371d3a sebagai titik rollback. Worker, binding D1, Access, kredensial, dan skema tidak diubah oleh patch ini. Hasil deployment dicatat setelah verifikasi.
+
+## Hasil rilis produksi
+
+- Commit produksi: c780cc23350f504837a44b9d620e95d8bdcd5679.
+- Cloudflare build a9f469e9-4dda-4137-beab-0eb445a8714a: success.
+- Worker version aktif: 09736696-116c-422f-93f9-9fb61ecb1374, 100% trafik.
+- Deployment: 2d5e52d4-cecc-4217-92cd-39deb9cf8081.
+- Verifikasi pascarilis: binding D1, audience/team Access dan secret AI tetap sesuai; quick_check=ok; foreign_key_check kosong; ledger migrasi tetap 12; seluruh SQL verifikasi mencatat nol rows_written.
+- Pemeriksaan regresi memastikan semua pilihan Tender, RFQ dan RFP tetap memicu gate Bid/No-Bid yang sudah ada. Kandidat build awal dihentikan sebelum deployment untuk menyelaraskan label Tender Elektronik.
+- Pengujian transaksi dengan login pengguna asli belum dijalankan; tidak ada data produksi yang dibuat untuk UAT.
