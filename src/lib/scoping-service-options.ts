@@ -115,9 +115,10 @@ export const SCOPING_DEFINITIONS:Record<ScopingService,ScopingDefinition> = {
 
 export function validateServiceScope(service:ScopingService,values:Record<string,string>):string[]{
   return SCOPING_DEFINITIONS[service].fields.filter(f=>{
-    if(!f.required)return false;
     const value=values[f.key]?.trim()||'';
-    return !value||(f.kind==='number'&&(!Number.isSafeInteger(Number(value))||Number(value)<=0));
+    if(!value)return !!f.required;
+    if(f.kind==='select')return !f.options?.includes(value);
+    return f.kind==='number'&&(!Number.isSafeInteger(Number(value))||Number(value)<=0||Number(value)>100000);
   }).map(f=>f.label);
 }
 
