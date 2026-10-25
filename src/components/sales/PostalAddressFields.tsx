@@ -53,7 +53,8 @@ export function PostalAddressFields({values,onChange,disabled=false}:Props){
    const data=await response.json();
    if(!response.ok||!data.success)throw Error(data.message||'Gagal memuat referensi wilayah.');
    if(!Array.isArray(data.areas))throw Error('Respons referensi wilayah tidak valid.');
-   if(!controller.signal.aborted){setAreas(data.areas);setLoadedPostal(postal);setStatus(data.areas.length?'ready':'empty');}
+   if(!controller.signal.aborted){setAreas(data.areas);setLoadedPostal(postal);setStatus(data.areas.length?'ready':'empty');
+    if(data.areas.length===1&&values.hq_village_code!==data.areas[0].region_code)onChange(fieldPatch(data.areas[0]));}
   }).catch(e=>{if(!controller.signal.aborted){setStatus('error');setError(e instanceof Error?e.message:'Pencarian kode pos gagal.');}});
   return ()=>controller.abort();
  },[postal]);
