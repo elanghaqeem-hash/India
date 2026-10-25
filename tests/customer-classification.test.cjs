@@ -4,7 +4,7 @@ const {readFileSync}=require('node:fs');
 const {join}=require('node:path');
 const root=join(__dirname,'..');
 const file=p=>readFileSync(join(root,p),'utf8');
-const {CUSTOMER_SEGMENTS,CUSTOMER_INDUSTRIES,POPULAR_BUSINESS_TYPES,businessTypeOptions}=require('../src/lib/customer-classification.ts');
+const {CUSTOMER_SEGMENTS,CUSTOMER_INDUSTRIES,POPULAR_BUSINESS_TYPES,STANDARD_BUSINESS_TYPES,businessTypeOptions}=require('../src/lib/customer-classification.ts');
 const {ACCOUNT_KEYS,cleanFields}=require('../src/lib/sales-workflow.ts');
 
 test('standard segments include existing Corporate without inventing defaults',()=>{
@@ -21,7 +21,8 @@ test('all standard sectors have relevant, nonempty activity suggestions',()=>{
  }
  assert.deepEqual(businessTypeOptions('Banking').slice(0,2),['Bank Umum Konvensional','Bank Umum Syariah']);
  assert.ok(businessTypeOptions('Teknologi Informasi').includes('Layanan Teknologi Informasi'));
- assert.deepEqual(businessTypeOptions(''),[...POPULAR_BUSINESS_TYPES]);
+ assert.deepEqual(businessTypeOptions(''),STANDARD_BUSINESS_TYPES);
+ for(const popular of POPULAR_BUSINESS_TYPES)assert.ok(STANDARD_BUSINESS_TYPES.includes(popular));
 });
 test('legacy segment and custom business activity remain valid D1 account strings',()=>{
  const v=cleanFields({client_tier:'Corporate',industry:'Teknologi Informasi',business_type:'Aktivitas usaha historis'},ACCOUNT_KEYS);

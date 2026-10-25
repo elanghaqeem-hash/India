@@ -6,6 +6,7 @@ test('each catalog service persists through Lead registration, conversion, BoQ v
  try{
   h.sql.prepare("INSERT INTO india_members(email,role,active) VALUES(?,'sales',1)").run(users.sales);
   const catalog=h.load('src/lib/sales-workflow.ts');
+  const classification=h.load('src/lib/customer-classification.ts');
   const lead=h.load('src/lib/marketing-lead.ts');
   const boq=h.load('src/lib/boq-domain.ts');
   const link=h.load('src/lib/sales-boq-link.ts');
@@ -13,6 +14,8 @@ test('each catalog service persists through Lead registration, conversion, BoQ v
   const q={need:'Synthetic scoped need',budget_status:'Approved',decision_maker:'Synthetic sponsor',procurement_process:'Direct purchase'};
   assert.equal(catalog.SERVICE_CATALOG.length,new Set(catalog.SERVICE_FAMILIES).size);
   for(const [index,service] of catalog.SERVICE_CATALOG.entries()){
+   const industry=classification.CUSTOMER_INDUSTRIES[index%classification.CUSTOMER_INDUSTRIES.length];
+   const business=classification.businessTypeOptions(industry)[0];
    const qualification={...q,procurement_process:catalog.PROCUREMENT_PROCESSES[index%catalog.PROCUREMENT_PROCESSES.length]};
    assert.ok(service.name.length<=60);
    assert.ok(service.guidance.length>20);
@@ -25,7 +28,7 @@ test('each catalog service persists through Lead registration, conversion, BoQ v
    const validated=lead.validateLead(input);
    await expect(h.call('marketing/leads','PATCH','sales',{id:stored.id,version:stored.version,status:'qualified',qualification}),200);
    const qualified=h.sql.prepare('SELECT version FROM india_marketing_leads WHERE id=?').get(stored.id);
-   const converted=await expect(h.call('marketing/leads','POST','sales',{entity:'convert',id:stored.id,version:qualified.version,opportunity_title:'Synthetic service '+index},'',{'x-india-lead-action':'convert'}),201);
+   const converted=await expect(h.call('marketing/leads','POST','sales',{entity:'convert',id:stored.id,version:qualified.version,opportunity_title:'Synthetic service '+index,customer_fields:{industry,business_type:business}},'',{'x-india-lead-action':'convert'}),201);
    const row=h.sql.prepare('SELECT * FROM india_sales_opportunities WHERE id=?').get(converted.body.opportunity_id);
    const acct=h.sql.prepare('SELECT * FROM india_sales_accounts WHERE id=?').get(converted.body.customer_id);
    const fields=JSON.parse(row.data_json);
@@ -36,6 +39,9 @@ test('each catalog service persists through Lead registration, conversion, BoQ v
    const account={...acct,fields:JSON.parse(acct.data_json)};
    const deal={...row,fields};
    const packet=post.prefillFromSales(account,deal,false);
+   assert.equal(account.fields.business_type,business);
+   assert.equal(account.fields.industry,industry);
+   assert.equal(packet.registration.businessType,business);
    assert.equal(packet.project.serviceFamily,service.name);
    for(const type of service.boq){
     const payload=boq.validateBoQ({customer_name:account.legal_name,project_name:deal.title,quotation_number:'SYNTHETIC-'+index,service_type:type,vat_rate:0,payment_terms:'100',opportunity_id:deal.id,line_items:[{description:service.name,quantity:1,unit:'Paket',unit_price:1000000,service_type:type}]});

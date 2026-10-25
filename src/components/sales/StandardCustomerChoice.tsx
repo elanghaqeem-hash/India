@@ -38,7 +38,7 @@ export function StandardCustomerChoice({field,label,value,industry='',disabled=f
     value={value} onChange={e=>onChange(e.target.value)}/>
   </div>}
   {field==='business_type'&&<p className="mt-1 text-[11px] font-normal leading-relaxed text-slate-500">
-   {industry?'Pilihan disesuaikan dengan Sektor industri.':'Pilih Sektor industri untuk rekomendasi yang lebih spesifik.'}
+   {industry?'Pilihan disesuaikan dengan Sektor industri.':'Pilih bidang usaha utama pelanggan.'}
    {' '}Jika tidak tersedia, gunakan “Lainnya”.
   </p>}
   {field==='industry'&&<p className="mt-1 text-[11px] font-normal text-slate-500">Pilih sektor utama pelanggan untuk rekomendasi bidang usaha.</p>}

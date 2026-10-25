@@ -47,7 +47,9 @@ export const POPULAR_BUSINESS_TYPES = [
  'Rumah Sakit','Perdagangan Ritel','Manufaktur','Jasa Profesional',
 ] as const;
 
+export const STANDARD_BUSINESS_TYPES=[...new Set<string>([...POPULAR_BUSINESS_TYPES,...Object.values(BUSINESS_BY_INDUSTRY).flat()])];
+
 export function businessTypeOptions(industry:string):string[]{
  // Do not include artificial "Lainnya" as a stored value: users provide the real activity.
- return [...new Set(BUSINESS_BY_INDUSTRY[industry]||POPULAR_BUSINESS_TYPES)];
+ return [...new Set(BUSINESS_BY_INDUSTRY[industry]||STANDARD_BUSINESS_TYPES)];
 }
