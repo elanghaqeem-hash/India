@@ -69,3 +69,47 @@ test('corrupt compact postal JSON cannot certify customer address',async()=>{
  }};
  await assert.rejects(()=>findPostalAreasByCode(db,'40111'),/tidak konsisten/);
 });
+
+test('suggestion input accepts postcode prefixes or searchable administrative names safely',()=>{
+ const {validPostalSearchQuery}=mod.exports;
+ for(const q of ['00','40111','Braga','Jakarta Timur'])assert.equal(validPostalSearchQuery(q),true,q);
+ for(const q of ['1','Ja','%x','_xx','a'.repeat(51)])assert.equal(validPostalSearchQuery(q),false,q);
+});
+for(const mode of ['normalized','compact']){
+ test(mode+': autocomplete returns unique canonical postal options by postcode and wilayah',async()=>{
+  const db={prepare(sql){
+   if(sql.includes('india_postal_import_state'))return {first:async()=>({source_version:'uat'})};
+   if(sql.includes('sqlite_master'))return {first:async()=>mode==='compact'?{name:'india_postal_lookup'}:null};
+   if(sql.includes('SELECT 1 AS present FROM india_postal_lookup'))return {first:async()=>({present:1})};
+   if(sql.includes('FROM india_postal_lookup')){
+    return {bind(param){return {all:async()=>({results:param==='401%'||param==='%Braga%'?
+     [{postal_code:'40111',areas_json:JSON.stringify([area])}]:[]})}}};
+   }
+   if(sql.includes('FROM india_postal_areas')){
+    return {bind(...params){return {all:async()=>({results:params[0]==='401%'||params[0]==='%Braga%'?
+     [area,{...area,region_code:'other'}]:[]})}}};
+   }
+   throw Error('Unexpected D1 SQL: '+sql);
+  }};
+  const {searchPostalSuggestions}=mod.exports;
+  for(const q of ['401','Braga']){
+   const options=await searchPostalSuggestions(db,q);
+   assert.deepEqual(options,[{postal_code:'40111',description:'Kelurahan Braga · Sumur Bandung · Kota Bandung · Jawa Barat'}]);
+  }
+ });
+}
+test('postcode suggestion search fails closed when reference not ready',async()=>{
+ const {searchPostalSuggestions}=mod.exports;
+ const db={prepare(sql){
+  if(sql.includes('india_postal_import_state'))return {first:async()=>null};
+  throw Error('Should not search unverified reference');
+ }};
+ await assert.rejects(()=>searchPostalSuggestions(db,'Braga'),/belum siap/);
+});
+test('postal customer UI exposes searchable picker while retaining village validation',()=>{
+ const ui=fs.readFileSync('src/components/sales/PostalAddressFields.tsx','utf8');
+ assert.match(ui,/Pilih kode pos terstandar/);
+ assert.match(ui,/api\\/reference\\/postal\\?q=/);
+ assert.match(ui,/hq_postal:option.postal_code/);
+ assert.match(ui,/villageSelect/);
+});
