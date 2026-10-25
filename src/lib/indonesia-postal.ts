@@ -68,3 +68,52 @@ export async function canonicalPostalFields(db:D1DB,fields:Record<string,string>
  }
  return {...fields,...fieldPatch(area)};
 }
+
+/** Search existing verified national master data without any client-side hardcoded postcode list. */
+export type PostalSuggestion={postal_code:string;description:string};
+export function validPostalSearchQuery(raw:string):boolean{
+ const query=raw.trim().replace(/\s+/g,' ');
+ return query.length<=50 && !/[%_\\]/.test(query) &&
+  (/^[0-9]+$/.test(query)?query.length>=2:/[\p{L}]{3}/u.test(query));
+}
+export async function searchPostalSuggestions(db:D1DB,raw:string):Promise<PostalSuggestion[]>{
+ const query=raw.trim().replace(/\s+/g,' ');
+ if(!validPostalSearchQuery(query))throw new Error('Cari minimal 2 angka atau 3 huruf wilayah (maksimal 50 karakter).');
+ await assertPostalReferenceReady(db);
+ const digits=/^[0-9]+$/.test(query);
+ const table=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='india_postal_lookup'")
+  .first<{name:string}>();
+ const compact=!!table && !!(await db.prepare('SELECT 1 AS present FROM india_postal_lookup LIMIT 1').first<{present:number}>());
+ const suggestions=new Map<string,PostalSuggestion>();
+ const matches=(area:PostalArea)=>[area.village_name,area.district_name,area.regency_name,area.province_name]
+  .some(value=>value.toLocaleLowerCase('id-ID').includes(query.toLocaleLowerCase('id-ID')));
+ const description=(area:PostalArea)=>[area.village_kind+' '+area.village_name,area.district_name,area.regency_name,area.province_name].join(' · ');
+ if(compact){
+  const sql=digits
+   ?'SELECT postal_code,areas_json FROM india_postal_lookup WHERE postal_code LIKE ? ORDER BY postal_code LIMIT 60'
+   :'SELECT postal_code,areas_json FROM india_postal_lookup WHERE areas_json LIKE ? ORDER BY postal_code LIMIT 60';
+  const rows=await db.prepare(sql).bind(digits?query+'%':'%'+query+'%')
+   .all<{postal_code:string;areas_json:string}>();
+  for(const row of rows.results){
+   const areas:unknown=JSON.parse(row.areas_json);
+   if(!Array.isArray(areas)||areas.length===0||
+      areas.some(a=>!a||typeof a!=='object'||(a as PostalArea).postal_code!==row.postal_code))
+    throw new Error('Master kode pos tidak konsisten.');
+   const match=(areas as PostalArea[]).find(a=>!digits&&matches(a))||(areas as PostalArea[])[0];
+   if(match)suggestions.set(row.postal_code,{postal_code:row.postal_code,description:description(match)});
+   if(suggestions.size>=25)break;
+  }
+ }else{
+  const sql=digits
+   ?'SELECT postal_code,province_name,regency_name,district_name,village_name,village_kind FROM india_postal_areas WHERE postal_code LIKE ? ORDER BY postal_code LIMIT 150'
+   :'SELECT postal_code,province_name,regency_name,district_name,village_name,village_kind FROM india_postal_areas WHERE province_name LIKE ? OR regency_name LIKE ? OR district_name LIKE ? OR village_name LIKE ? ORDER BY postal_code LIMIT 150';
+  const args=digits?[query+'%']:Array(4).fill('%'+query+'%');
+  const rows=await db.prepare(sql).bind(...args).all<Pick<PostalArea,'postal_code'|'province_name'|'regency_name'|'district_name'|'village_name'|'village_kind'>>();
+  for(const row of rows.results){
+   if(!suggestions.has(row.postal_code))
+    suggestions.set(row.postal_code,{postal_code:row.postal_code,description:description(row as PostalArea)});
+   if(suggestions.size>=25)break;
+  }
+ }
+ return [...suggestions.values()];
+}
