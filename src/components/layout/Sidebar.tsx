@@ -88,7 +88,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
           const Icon = GROUP_ICONS[group.id] || LayoutDashboard;
           const activeGroup = group.items.some(item=>pathname===item.href || pathname.startsWith(item.href+'/'));
           return (
-            <details key={group.id+':'+(term?'search':'default')} defaultOpen={Boolean(term)||activeGroup||group.id==='workspace'}
+            <details key={group.id+':'+(term?'search':'default')} open={Boolean(term)||activeGroup||group.id==='workspace'}
               className="group rounded-2xl border border-transparent bg-white open:border-slate-100 open:bg-slate-50/80">
               <summary className="flex min-h-12 cursor-pointer list-none items-center gap-3 rounded-xl px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-indigo-500 [&::-webkit-details-marker]:hidden">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-700 group-open:bg-indigo-100">
