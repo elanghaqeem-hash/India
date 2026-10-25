@@ -10,6 +10,7 @@ import {
 import { createDemoPostPoPacket, fillEmptyPostPoWithDummy, DUMMY_DATA_NOTICE } from '@/lib/post-po-dummy';
 import { downloadOfficialPostPoDocx } from '@/lib/post-po-official-layout';
 import { prefillFromSales } from '@/lib/sales-to-post-po';
+import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {SERVICE_CATALOG,SERVICE_GROUPS,serviceDefinition} from '@/lib/sales-workflow';
 
 function Field({label,value,onChange,type='text',help,required=true,placeholder}:{
@@ -200,7 +201,7 @@ export default function PostPoPage(){
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
      {commonInput('Customer ID', 'customerId','Diterbitkan oleh sistem/master data; jangan membuat ID palsu.')}
      {commonInput('Nama Legal Perusahaan', 'customerName')}
-     {commonInput('Jenis Bidang Usaha', 'businessType')}
+     <StandardCustomerChoice field="business_type" label="Jenis Bidang Usaha *" value={r.businessType} onChange={value=>reg('businessType',value)}/>
      <label className="block text-xs font-semibold text-slate-700">Jumlah Pegawai *
       <select value={r.employeeBand} onChange={e=>reg('employeeBand',e.target.value as RegistrationData['employeeBand'])}
        className="mt-1 block w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm">

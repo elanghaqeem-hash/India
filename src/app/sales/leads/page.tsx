@@ -4,6 +4,7 @@ import Link from 'next/link';
 import {ArrowRight,CheckCircle2,ClipboardList,Megaphone,Plus,Search,UserRoundCheck} from 'lucide-react';
 import {SERVICE_CATALOG,SERVICE_GROUPS} from '@/lib/sales-workflow';
 import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
+import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {ProcurementProcessChoice} from '@/components/sales/ProcurementProcessChoice';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
@@ -178,7 +179,7 @@ export default function MarketingLeads(){
      <div className="flex items-center gap-2 text-xs font-bold text-emerald-900"><ClipboardList size={16}/> Konversi menjadi Customer + Opportunity</div>
      <p className="text-xs text-emerald-900">Konversi hanya dapat dilakukan Sales pemilik Lead atau Admin. Data kebutuhan, owner dan sumber Lead akan dipetakan tanpa input ulang.</p>
      <input className={cls} aria-label="Nama proyek" value={title} onChange={e=>setTitle(e.target.value)}/>
-     <details className="rounded-lg border border-emerald-200 bg-white p-3"><summary className="cursor-pointer text-xs font-semibold text-emerald-900">Data Registrasi Customer / Project untuk Form Word</summary><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{customerFields.map(([field,label])=><label key={field} className="text-xs font-medium text-slate-700">{label}<input className={'mt-1 '+cls} type={field.includes('email')?'email':'text'} value={customerProfile[field]} onChange={e=>setCustomerProfile(old=>({...old,[field]:e.target.value}))}/></label>)}</div></details>
+     <details className="rounded-lg border border-emerald-200 bg-white p-3"><summary className="cursor-pointer text-xs font-semibold text-emerald-900">Data Registrasi Customer / Project untuk Form Word</summary><div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">{customerFields.map(([field,label])=>field==='industry'||field==='business_type'?<StandardCustomerChoice key={field} field={field} label={label} value={customerProfile[field]||''} industry={customerProfile.industry||''} disabled={busy} onChange={value=>setCustomerProfile(old=>({...old,[field]:value}))}/>:<label key={field} className="text-xs font-medium text-slate-700">{label}<input className={'mt-1 '+cls} type={field.includes('email')?'email':'text'} value={customerProfile[field]} onChange={e=>setCustomerProfile(old=>({...old,[field]:e.target.value}))}/></label>)}</div></details>
      <button disabled={busy||!title.trim()} onClick={convert} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">Convert Lead → Opportunity</button>
     </div>}
     <div className="border-t pt-3"><h3 className="text-sm font-bold">Aktivitas Marketing</h3>
