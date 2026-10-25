@@ -8,7 +8,7 @@ import {needsTenderGate,procurementGate,type ProcurementBid,type RequirementEvid
 import {submissionMatches,type Submission} from '@/lib/sales-submission';
 import {validAwardForWon,type AwardDoc} from '@/lib/sales-award';
 import { ACCOUNT_KEYS, DEAL_KEYS, TENANT, SALES_STAGES, stageTransition, requiredForStage, dateValid, cleanFields, safeID, documentChecklist,
- type SalesDeal, type SalesAccount, type SalesStage } from '@/lib/sales-workflow';
+ type SalesDeal, type SalesAccount, type SalesStage, synchronizeBillingAddress } from '@/lib/sales-workflow';
 import {atomicSales,currentRelease,dealGuard,salesAudit,transactionError,poSnapshot,type FlowDeal} from '@/lib/sales-transactions';
 import {canonicalPostalFields} from '@/lib/indonesia-postal';
 export const dynamic='force-dynamic';
@@ -20,7 +20,7 @@ type AcctRow={id:string;legal_name:string;customer_number:string|null;data_json:
 type DealRow=FlowDeal & {id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_at:string;created_by:string|null};
 type BoQRow={id:string;opportunity_id:string|null;status:string;quotation_number:string;version:number;customer_name:string;project_name:string;line_items_json:string;vat_rate:number};
 type PoRow={opportunity_id:string;boq_id:string;po_number:string;po_date:string;po_reference:string;po_amount_before_vat:number;quotation_amount_before_vat:number;verified_by:string;verified_at:string;release_id:string|null};
-const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
+const account=(r:AcctRow):SalesAccount=>({id:r.id,legal_name:r.legal_name,customer_number:r.customer_number||'',fields:synchronizeBillingAddress(JSON.parse(r.data_json||'{}')),created_at:r.created_at,created_by:r.created_by||undefined});
 const deal=(r:DealRow,a:SalesAccount):SalesDeal=>({id:r.id,company_id:r.company_id,company_name:a.legal_name,title:r.title,stage:r.stage as SalesStage,estimated_value:r.estimated_value_idr,flow_version:r.flow_version,fields:JSON.parse(r.data_json||'{}'),created_at:r.created_at,created_by:r.created_by||undefined});
 async function getAccount(db:D1DB,id:string):Promise<AcctRow|null>{
  return db.prepare('SELECT * FROM india_sales_accounts WHERE id=? AND tenant_id=?').bind(id,TENANT).first<AcctRow>();
@@ -119,7 +119,7 @@ export async function POST(req:Request){
    const legal_name=String(p.legal_name||'').trim().replace(/\s+/g,' ');
    if(legal_name.length<3||legal_name.length>240)return fail('Nama legal pelanggan wajib (3-240 karakter)');
    let fields;
-   try{fields=await canonicalPostalFields(db,cleanFields(p.fields||{},ACCOUNT_KEYS));}
+   try{fields=synchronizeBillingAddress(await canonicalPostalFields(db,cleanFields(p.fields||{},ACCOUNT_KEYS)));}
    catch(e){return fail(e instanceof Error?e.message:'Wilayah kantor pusat tidak valid',422);}
    const id=crypto.randomUUID(),customer_number='IND-'+new Date().toISOString().slice(0,10).replace(/-/g,'')+'-'+id.slice(0,8).toUpperCase();
    await db.batch([db.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES (?,?,?,?,?,?)')
@@ -220,7 +220,7 @@ export async function PATCH(req:Request){
    const name=p.legal_name===undefined?row.legal_name:String(p.legal_name).trim().replace(/\s+/g,' ');
    if(name.length<3||name.length>240)return fail('Nama legal tidak valid');
    let fields;
-   try{fields=await canonicalPostalFields(db,{...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)});}
+   try{fields=synchronizeBillingAddress(await canonicalPostalFields(db,{...JSON.parse(row.data_json),...cleanFields(p.fields||{},ACCOUNT_KEYS)}));}
    catch(e){return fail(e instanceof Error?e.message:'Wilayah kantor pusat tidak valid',422);}
    await atomicSales(db,'EXISTS(SELECT 1 FROM india_sales_accounts WHERE id=? AND tenant_id=? AND data_json=? AND legal_name=?)',[row.id,TENANT,row.data_json,row.legal_name],[
     db.prepare('UPDATE india_sales_accounts SET legal_name=?,data_json=? WHERE id=? AND tenant_id=?').bind(name,JSON.stringify(fields),row.id,TENANT),
