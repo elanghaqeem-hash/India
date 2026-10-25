@@ -67,6 +67,16 @@ export const LEAD_SOURCES=[
  'Pelanggan Existing / Renewal','Cross-sell / Upsell','Kunjungan / Pertemuan Bisnis',
  'Marketplace / Portal Pengadaan','Lainnya'
 ] as const;
+// CRM choices describe the customer's procurement route, without replacing their procurement policy.
+export const PROCUREMENT_PROCESSES=[
+ 'Pengadaan Langsung','Penunjukan Langsung / Sole Source',
+ 'Permintaan Penawaran / RFQ','Permintaan Proposal / RFP',
+ 'Tender Terbuka / Lelang Umum','Tender Terbatas / Undangan',
+ 'Seleksi Konsultan','Beauty Contest / Pitching',
+ 'E-Purchasing / E-Katalog','E-Tendering / E-Procurement',
+ 'Pembelian Melalui Partner / Distributor','Kontrak Payung / Framework Agreement',
+ 'Perpanjangan Kontrak / Renewal','Addendum / Perubahan Kontrak','Lainnya'
+] as const;
 export type SalesFields=Record<string,string>;
 export type SalesAccount={
  id:string; customer_number:string; legal_name:string; fields:SalesFields;

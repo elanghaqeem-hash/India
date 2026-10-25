@@ -7,6 +7,7 @@ import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
+import {ProcurementProcessChoice} from '@/components/sales/ProcurementProcessChoice';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage } from '@/lib/sales-workflow';
@@ -37,6 +38,7 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly}:{
  {fields.filter(([key])=>!headquartersKeys.has(key)).map(([key,label])=>(
   key==='lead_source'
    ? <LeadSourceChoice key={key} label={label} value={values[key]||''} disabled={readOnly?.(key)} onChange={value=>onUpdate(key,value)}/>
+   : key==='procurement_process'?<ProcurementProcessChoice key={key} label={label} value={values[key]||''} disabled={readOnly?.(key)} onChange={value=>onUpdate(key,value)}/>
    : key==='client_tier'||key==='industry'||key==='business_type'
    ? <StandardCustomerChoice key={key} field={key} label={label} value={values[key]||''}
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>

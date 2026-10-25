@@ -7,6 +7,7 @@ import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
+import {ProcurementProcessChoice} from '@/components/sales/ProcurementProcessChoice';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
@@ -212,7 +213,7 @@ export default function MarketingLeads(){
       className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white"><CheckCircle2 size={15}/> Buka Opportunity <ArrowRight size={13}/></Link>}</div>
     <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-700">Sales Owner: <b>{selected.lead.assigned_sales_email}</b>. Lead Qualified harus memenuhi Need, Budget, Decision Maker dan Procurement. Customer ID diterbitkan saat konversi.</div>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-     {flds.map(([k,label])=><label key={k} className="text-xs font-semibold text-slate-700">{label}
+     {flds.map(([k,label])=>k==='procurement_process'?<ProcurementProcessChoice key={k} label={label} disabled={busy||selected.lead.status==='converted'} value={qualification[k]||''} onChange={value=>setQualification(q=>({...q,[k]:value}))}/>:<label key={k} className="text-xs font-semibold text-slate-700">{label}
        <textarea rows={k==='discovery_notes'?3:2} disabled={selected.lead.status==='converted'}
         value={qualification[k]||''} onChange={e=>setQualification(q=>({...q,[k]:e.target.value}))}
         className={'mt-1 '+cls+' resize-y disabled:bg-slate-100'}/></label>)}
