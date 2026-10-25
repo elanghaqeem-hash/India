@@ -166,7 +166,7 @@ export function fillEmptyPostPoWithDummy(source:PostPoPacket):PostPoPacket {
   r.tax=fillPic(r.tax,examplePic('Danu Simulasi - PIC Pajak',4));
   r.customerSignatory=useIfEmpty(r.customerSignatory,'Direktur Pelanggan (SIMULASI)');
   r.customerSignatoryTitle=useIfEmpty(r.customerSignatoryTitle,'Direktur Utama (contoh)');
-  r.defenderSignatory=useIfEmpty(r.defenderSignatory,'Pejabat DefendIT360 (SIMULASI)');
+  r.defenderSignatory=useIfEmpty(r.defenderSignatory,'Pejabat Technotama (SIMULASI)');
   r.defenderSignatoryTitle=useIfEmpty(r.defenderSignatoryTitle,'Pejabat Berwenang (contoh)');
   r.maker=useIfEmpty(r.maker,'Sales Demo');
   r.reviewer=useIfEmpty(r.reviewer,'Pemeriksa Demo');

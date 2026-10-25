@@ -60,3 +60,23 @@ test('mobile link is reachable, browser does not show saved key values',()=>{
  assert.match(nav,/navigationForRole/);
  assert.match(sidebar,/navigationForRole/);
 });
+
+test('Admin sees encryption readiness without seeing secrets and gets actionable failures',()=>{
+ const route=text('src/app/api/ai/config/route.ts');
+ const ui=text('src/app/settings/ai/page.tsx');
+ assert.match(route,/encryptionReady/);
+ assert.match(route,/encryptionKey\(\)\.then\(\(\)=>true,\(\)=>false\)/);
+ assert.match(route,/AI_ENCRYPTION_NOT_READY/);
+ assert.match(route,/AI_CONFIG_WRITE_FAILED/);
+ assert.match(ui,/encryptionReady===false/);
+ assert.match(ui,/noticeScope===p\.id/);
+ assert.match(ui,/autoCapitalize="off"/);
+ assert.doesNotMatch(route,/INDIA_AI_ENCRYPTION_KEY.*:\s*configured/);
+});
+test('AI action does not overlay Admin API key controls on mobile',()=>{
+ const component=text('src/components/ai/AIWorkbench.tsx');
+ assert.match(component,/pathname!=='\/settings\/ai'/);
+ assert.match(component,/bottom-\[calc\(5rem\+env\(safe-area-inset-bottom\)\)\]/);
+ assert.match(component,/hidden sm:inline/);
+ assert.match(component,/aria-label="Buka opsi AI untuk drafting dan analisis"/);
+});

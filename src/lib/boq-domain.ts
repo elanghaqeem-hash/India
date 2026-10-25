@@ -1,4 +1,4 @@
-// DefendIT360 India - BoQ validation and RBAC rules. No demo data or implicit HPP.
+// Technotama India - BoQ validation and RBAC rules. No demo data or implicit HPP.
 export type BoQRole = 'admin'|'marketing'|'finance'|'presales'|'sales'|'approver'|'legal'|'viewer';
 export type BoQStatus = 'draft'|'submitted'|'approved'|'rejected'|'archived';
 export type BoQLine = {description:string; quantity:number; unit:string; unit_price:number; service_type:string};

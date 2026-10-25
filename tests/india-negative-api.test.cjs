@@ -3,6 +3,11 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const lib=path.join(__dirname,'../src/lib');
 function domain(name){return require(path.join(lib,name+'.ts'));}
+function compiledDomain(name){
+ const src=fs.readFileSync(path.join(lib,name+'.ts'),'utf8');
+ const js=ts.transpileModule(src,{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText;
+ const m={exports:{}};new Function('module','exports',js)(m,m.exports);return m.exports;
+}
 const sales=domain('sales-workflow'),access=domain('sales-access'),aiPolicy=domain('ai-data-policy');
 const boq={boqTotals:()=>({subtotal:1000000})};
 const origin='https://india-uat.invalid';
@@ -55,6 +60,8 @@ function route(file,role,email,db,additional={}){
   '@/lib/sales-submission':{submissionMatches:()=>false},
   '@/lib/sales-award':{validAwardForWon:()=>false},
   '@/lib/quotation-docx':{createQuotationDocx:()=>{throw Error('Unauthorized Word export reached');}},
+  '@/lib/bounded-json':compiledDomain('bounded-json'),
+  '@/lib/ai-request-budget':{reserveAIRequest:async()=>{throw Error('Unauthorized AI request reservation reached');}},
   '@/lib/ai-data-policy':aiPolicy,
   '@/lib/ai-credential-vault':{
    listProviders:async()=>[],readProvider:async()=>null,

@@ -1,5 +1,5 @@
 // ICOP CyberBusiness 360 Smart Scoping Sizing Engine
-// Sourced from icop_pricing_proposal_schema.sql & DefendIT360 VAPT/SOC guidelines
+// Sourced from icop_pricing_proposal_schema.sql & Technotama VAPT/SOC guidelines
 
 import { BoxMethod, VaptScopingInput, SocScopingInput } from './types';
 

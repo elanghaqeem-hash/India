@@ -31,6 +31,7 @@ test('user roles are filtered; Admin alone gets secret-management menu',()=>{
   assert.ok(!routes.includes('/settings/system'),role);
   assert.ok(!routes.includes('/settings/ai'),role);
  }
+ assert.deepEqual(Array.from(navigationForRole('viewer').flatMap(g=>g.items.map(x=>x.href))),['/boq']);
  assert.equal(navigationForRole('made-up-role').length,0);
  assert.equal(navigationForRole(null).length,0);
  assert.ok(!navigationForRole('sales').flatMap(x=>x.items.map(i=>i.href)).includes('/sales/billing'));

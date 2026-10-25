@@ -62,3 +62,18 @@ export function evaluateSchemaReadiness(
   evidence_scope:'Ledger/manifest consistency only. SQL hashes, native backup, restored original documents, Access identities, financial UAT and rollback require independent evidence.',
  };
 }
+
+
+/** A live database ping cannot establish any of these operational proofs. */
+export const MASTER_RELEASE_GATES = [
+ ['source','Source'],['code_quality','Code Quality'],['database','Database'],
+ ['backup','Backup'],['restore','Restore'],['rollback','Rollback'],['access','Access'],
+ ['functional','Functional'],['cross_module','Cross-module'],['document_vault','Document Vault'],
+ ['finance','Finance'],['flexguard','FlexGuard'],['ai','AI'],['ui_ux','UI/UX'],
+ ['security','Security'],['monitoring','Monitoring'],['branding','Branding'],
+ ['signoff','Sign-off'],['deployment','Deployment'],
+] as const;
+export function pendingMasterReleaseGates(){
+ return MASTER_RELEASE_GATES.map(([id,label])=>({id,label,status:'BLOCKED' as const,
+  reason:'Bukti terverifikasi pada exact release SHA dan environment belum tersedia pada health check ini.'}));
+}

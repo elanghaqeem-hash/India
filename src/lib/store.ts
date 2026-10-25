@@ -1,5 +1,5 @@
 // ICOP CyberBusiness 360 In-Memory & File-Persistent Store
-// Seeded with realistic data from BRD v2.0 & DefendIT360 test scenarios.
+// Seeded with realistic data from BRD v2.0 & Technotama test scenarios.
 // Automatically persists state to disk (data/icop_database.json) when running in server environment.
 
 import {

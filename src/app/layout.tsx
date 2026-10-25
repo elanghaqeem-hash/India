@@ -3,7 +3,7 @@ import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
-  title: 'ICOP CyberBusiness 360 — Enterprise Cybersecurity Operating System',
+  title: 'INDIA — Technotama Business Management Platform',
   description: 'Integrated CRM, Tender Intelligence, Scoping Assessment, Dynamic Pricing, DoA Approval, Proposal Generation & Project Delivery.',
 };
 

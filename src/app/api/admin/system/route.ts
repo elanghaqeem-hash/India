@@ -4,7 +4,7 @@ import {TENANT,safeID} from '@/lib/sales-workflow';
 import {atomicSales} from '@/lib/sales-transactions';
 import {operationEvent,txt,jakartaDate,csvText} from '@/lib/operations';
 import {effectiveSetting,validateSetting} from '@/lib/system-settings';
-import {evaluateSchemaReadiness} from '@/lib/release-readiness';
+import {evaluateSchemaReadiness,pendingMasterReleaseGates} from '@/lib/release-readiness';
 export const dynamic='force-dynamic';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders});
 const fail=(message:string,status=422)=>reply({success:false,message},status);
@@ -25,7 +25,7 @@ export async function GET(req:Request){
    return reply({success:true,role,identityEmail:email,checked_at:new Date().toISOString(),
     database:{ok:ping?.ok===1,latency_ms:Date.now()-start},
     migrations:migrations.results,manifest:manifest.results,members:members.results,transaction_guards:guard,latest_events:events.results,
-    release_readiness:{schema,production_gate:'HOLD',
+    release_readiness:{schema,production_gate:'HOLD',master_gates:pendingMasterReleaseGates(),
      required_evidence:[
       'Backup dan restore mandiri + checksum sumber asli',
       'Rekonsiliasi checksum SQL, objek dan data migrasi',

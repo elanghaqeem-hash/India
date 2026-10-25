@@ -34,12 +34,13 @@ def tables(connection):
     ))
 
 
-def snapshot(connection):
+def snapshot(connection, projection=None):
     result = {}
-    for name in tables(connection):
+    for name in (sorted(projection) if projection is not None else tables(connection)):
         safe = '"' + name.replace('"', '""') + '"'
         rows = []
-        for row in connection.execute("SELECT * FROM " + safe):
+        selection = ",".join('"'+c.replace('"', '""')+'"' for c in projection[name]) if projection is not None else "*"
+        for row in connection.execute("SELECT " + selection + " FROM " + safe):
             normalized = [
                 {"blob_sha256": hashlib.sha256(x).hexdigest()} if isinstance(x, bytes) else x for x in row
             ]

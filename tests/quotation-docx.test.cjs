@@ -94,9 +94,10 @@ test('cost item mismatch is visible; malformed amounts are rejected', async () =
 test('DOCX source-aligned letterhead and purple table contain the expected four columns', async () => {
   const api = await exporter();
   const xml = unpack(api.createQuotationDocx(base, 'mobile'), 'word/document.xml');
-  assert.match(xml, /member of XLSMART/);
-  assert.match(xml, /Head Office/);
-  assert.match(xml, /PT\. DATA ENKRIPSI INFORMASI TEKNOLOGI/);
+  assert.match(xml, /TECHNOTAMA/);
+  assert.doesNotMatch(xml, /DefendIT360|DEFENDIT360|member of XLSMART|Sudirman 7\.8|defendit360\.co\.id/);
+  assert.match(xml, /Alamat dan kontak resmi/);
+  assert.match(xml, /wajib dikonfirmasi sebelum penerbitan/);
   assert.match(xml, /Product/);
   assert.match(xml, /Layanan/);
   assert.match(xml, /Qty/);
@@ -113,7 +114,7 @@ test('quotation uses supplied authorized signatory instead of template sample na
   quotationDate:'2026-10-19'
  }),'word/document.xml');
  assert.match(xml,/Pengirim Disetujui/);
- assert.match(xml,/Sales Manager \| DefendIT360/);
+ assert.match(xml,/Sales Manager \| Technotama/);
  assert.match(xml,/Tim Procurement/);
  assert.doesNotMatch(xml,/Maria Hayu Utaminingtyas/);
  const noSign=unpack(api.createQuotationDocx(base,'mobile'),'word/document.xml');

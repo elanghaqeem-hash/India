@@ -83,6 +83,6 @@ export async function GET(req:Request){
   const output=new Uint8Array(bytes.length);output.set(bytes);
   return new Response(output.buffer,{status:200,headers:{...privateHeaders,
    'Content-Type':'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-   'Content-Disposition':'attachment; filename="INDIA_DefendIT360_Quotation_'+clean(boq.quotation_number)+'.docx"'}});
+   'Content-Disposition':'attachment; filename="INDIA_Technotama_Quotation_'+clean(boq.quotation_number)+'.docx"'}});
  }catch{return deny('Gagal membuat DOCX dari data Sales/BoQ. Periksa skema dan field quotation.',503);}
 }

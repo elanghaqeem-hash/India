@@ -1,5 +1,5 @@
 /**
- * DefendIT360 BoQ exports: three XLSX workbooks (internal, onsite, customer).
+ * Technotama BoQ exports: three XLSX workbooks (internal, onsite, customer).
  * Self-contained Office Open XML writer, no additional dependencies.
  *
  * Important: Internal costs are only read from a PricingSession linked to the
@@ -59,7 +59,7 @@ const PRODUCT_CATALOG: ReadonlyArray<readonly [string, string, string]> = [
 
 function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, onsite: boolean): Sheet[] {
   const b: Cell[][] = [
-    ['DEFENDIT360 | BoQ INTERNAL - ' + (onsite ? 'ONSITE' : 'STANDARD')],
+    ['TECHNOTAMA | BoQ INTERNAL - ' + (onsite ? 'ONSITE' : 'STANDARD')],
     ['RAHASIA INTERNAL - tidak untuk pelanggan. HPP tanpa bukti pricing tidak diisi.'],
     ['Klien: ' + safeText(proposal.company_name) + ' | ' + safeText(proposal.opportunity_name)],
     ['No Quotation: ' + safeText(proposal.quotation_number) + ' | Versi ' + proposal.version],
@@ -115,7 +115,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
 
   const gross = f('IF(\'BoQ Internal\'!I' + total + '="","",\'BoQ Internal\'!I' + total + ')');
   const summary: Cell[][] = [
-    ['DEFENDIT360 | RINGKASAN PROFITABILITAS'],
+    ['TECHNOTAMA | RINGKASAN PROFITABILITAS'],
     ['DOKUMEN INTERNAL - RAHASIA'],
     ['Klien: ' + safeText(proposal.company_name)],
     [],
@@ -141,7 +141,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
     proposal.payment_terms === '100' ? [1, 0, 0] :
     proposal.payment_terms === '30-60-10' ? [0.3, 0.6, 0.1] : [0.3, 0.5, 0.2];
   const params: Cell[][] = [
-    ['DEFENDIT360 | PARAMETER & HARGA INTERNAL'],
+    ['TECHNOTAMA | PARAMETER & HARGA INTERNAL'],
     ['Nilai HPP berasal dari linked pricing session jika tersedia; parameter editable di Excel.'],
     [], [], [], [],
     ['Kode', 'Parameter', 'Nilai', 'Catatan'],
@@ -166,7 +166,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
   ];
   const scope: Cell[][] = onsite ?
     [
-      ['DEFENDIT360 | RINCIAN BIAYA ONSITE'], ['Masukkan biaya aktual; biaya ini belum otomatis dibebankan tanpa approval.'],
+      ['TECHNOTAMA | RINCIAN BIAYA ONSITE'], ['Masukkan biaya aktual; biaya ini belum otomatis dibebankan tanpa approval.'],
       [], [], [], [], ['Trip', 'Kegiatan', 'Orang', 'Hari', 'Malam', 'Tiket PP/org', 'Hotel/malam', 'Perdiem/hari', 'Transport/hari', 'HPP'],
       [], [1, 'Kick-off', 0, 0, 0, null, null, null, null, f('C9*(N(F9)+E9*N(G9)+D9*(N(H9)+N(I9)))')],
       [2, 'Pelaksanaan / testing onsite', 0, 0, 0, null, null, null, null, f('C10*(N(F10)+E10*N(G10)+D10*(N(H10)+N(I10)))')],
@@ -176,13 +176,13 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
       ['', 'PERHATIAN: rekonsiliasi biaya perjalanan dengan HPP komponen E; jangan dihitung dua kali.'],
     ] :
     [
-      ['DEFENDIT360 | LINGKUP & SIZING'], ['Lingkup aktual dari proposal, tanpa penambahan jumlah aset/endpoint yang tidak tersedia.'],
+      ['TECHNOTAMA | LINGKUP & SIZING'], ['Lingkup aktual dari proposal, tanpa penambahan jumlah aset/endpoint yang tidak tersedia.'],
       [], [], [], [], ['No', 'Jenis Layanan', 'Uraian', 'Volume', 'Satuan'],
       ...proposal.line_items.slice(0, 100).map((x, i) => [i + 1, x.service_type, safeText(x.description), money(x.quantity), safeText(x.unit)] as Cell[]),
       [], ['Validasi', 'Jumlah EPS, endpoint, kontrak SLA, peran teknis & deliverables harus dicocokkan SOW.'],
     ];
   const allocation: Cell[][] = [
-    ['DEFENDIT360 | JADWAL & ALOKASI BIAYA'], ['Isi alokasi biaya setiap komponen selama 8 minggu. Total harus 100% untuk HPP aktif.'],
+    ['TECHNOTAMA | JADWAL & ALOKASI BIAYA'], ['Isi alokasi biaya setiap komponen selama 8 minggu. Total harus 100% untuk HPP aktif.'],
     [], [], [], [], ['Komponen', 'HPP', ...Array.from({ length: 12 }, (_, i) => 'W' + (i + 1)), 'Total'],
   ];
   for (let i = 0; i < costs.length; i++) {
@@ -193,7 +193,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
   push(allocation, ['Validasi', f('IF(COUNT(B8:B12)<5,"LENGKAPI HPP A-E",IF(SUMPRODUCT(--(B8:B12>0),--(O8:O12<>1))>0,"PERIKSA ALOKASI","SIAP DIHITUNG"))')]);
 
   const flow: Cell[][] = [
-    ['DEFENDIT360 | CASH FLOW PROJECT'], ['Estimasi 12 minggu. Perlu input lengkap HPP A-E dan proporsi alokasi biaya.'],
+    ['TECHNOTAMA | CASH FLOW PROJECT'], ['Estimasi 12 minggu. Perlu input lengkap HPP A-E dan proporsi alokasi biaya.'],
     [], [], [], [], ['Keterangan', ...Array.from({ length: 12 }, (_, i) => 'W' + (i + 1)), 'Total'],
     [], ['Cash-in bruto (excl PPN)'], ['PPh dipotong'], ['HPP mingguan'], ['Kas bersih'], ['Kas kumulatif'],
   ];
@@ -212,7 +212,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
   for (let r = 9; r <= 12; r++) flow[r - 1][13] = f('IF(COUNT(B' + r + ':M' + r + ')=0,"",SUM(B' + r + ':M' + r + '))');
 
   const assumptions: Cell[][] = [
-    ['DEFENDIT360 | CATATAN & KONTROL'], [],
+    ['TECHNOTAMA | CATATAN & KONTROL'], [],
     [], [], [], [], ['Kontrol', 'Isi'],
     ['Sumber utama', 'Data proposal terpilih di India: ' + safeText(proposal.quotation_number)],
     ['HPP', pricing ? 'Dari pricing session dengan opportunity_id yang sama.' : 'Belum ada pricing session terkait; kolom HPP sengaja kosong.'],
@@ -249,7 +249,7 @@ function makeCustomer(proposal: Proposal): Sheet[] {
   const final = 9 + n + 1;
   const optionRow = 9 + n + 8;
   const p: Cell[][] = [
-    ['DEFENDIT360 | CUSTOMER PARAMETERS'], ['Only selling prices and option quantities. No HPP/margin information.'],
+    ['TECHNOTAMA | CUSTOMER PARAMETERS'], ['Only selling prices and option quantities. No HPP/margin information.'],
     [], [], [], ['Kode', 'Produk / Layanan', 'Harga per unit', 'Option 1', 'Option 2', 'Option 3', 'Satuan'],
   ];
   for (const [type, description, unit, unitPrice, quantity] of catalogue) {
@@ -261,7 +261,7 @@ function makeCustomer(proposal: Proposal): Sheet[] {
   push(p, ['PPN', 'Tarif PPN dari proposal', tax]);
   push(p, ['Status', 'Option 1/3 belum diisi; edit harga & qty dengan kewenangan yang tepat.']);
   const b: Cell[][] = [
-    ['DEFENDIT360 | BILL OF QUANTITIES - CUSTOMER'],
+    ['TECHNOTAMA | BILL OF QUANTITIES - CUSTOMER'],
     ['Draft Quotation; tidak memuat HPP, margin dan tarif tenaga ahli internal.'],
     ['Klien: ' + safeText(proposal.company_name) + ' | No: ' + safeText(proposal.quotation_number)],
     [], ['Paket:', f('Summary!D8')], [], [],
@@ -281,9 +281,9 @@ function makeCustomer(proposal: Proposal): Sheet[] {
   push(b, ['', 'GRAND TOTAL', null, null, null, f('F' + final + '+F' + (final + 1))]);
   push(b, ['', 'Catatan: Option 1 / Option 3 belum dikonfigurasi. Jangan terbitkan quotation Rp0.']);
   const s: Cell[][] = [
-    ['DEFENDIT360 | QUOTATION & BILL OF QUANTITIES'],
+    ['TECHNOTAMA | QUOTATION & BILL OF QUANTITIES'],
     ['Draft quotation - validasi harga, pajak, scope dan approval sebelum diterbitkan.'],
-    ['Provider: PT Data Enkripsi Informasi Teknologi (DefendIT360)'],
+    ['Provider: Technotama (Technotama)'],
     ['Client: ' + safeText(proposal.company_name) + ' | Proyek: ' + safeText(proposal.opportunity_name)],
     ['No: ' + safeText(proposal.quotation_number) + ' | Versi ' + proposal.version],
     [],
@@ -443,7 +443,7 @@ export function createProposalBoQ(proposal: Proposal, format: BoQExportFormat, p
 export function downloadProposalBoQ(proposal: Proposal, format: BoQExportFormat, pricing?: PricingSession): void {
   const bytes = createProposalBoQ(proposal, format, pricing);
   const safe = proposal.quotation_number.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 50) || 'draft';
-  const file = 'India_DefendIT360_BoQ_' + format + '_' + safe + '.xlsx';
+  const file = 'India_Technotama_BoQ_' + format + '_' + safe + '.xlsx';
   const out = new Uint8Array(bytes.length);
   out.set(bytes);
   const url = URL.createObjectURL(new Blob([out.buffer], {

@@ -23,6 +23,7 @@ const groups=[
  {name:'Cross-module Transaction & SoD',checks:['test:p1-p2','test:india-negative','test:scoping-upload']},
  {name:'Postal Reference & Import',checks:['test:postal']},
  {name:'Server Runtime & Layout',checks:['test:runtime-compat','test:layout']},
+ {name:'Release evidence & abuse prevention',checks:['test:release-controls']},
  {name:'Integrated Commercial Operations',checks:['test:consolidation','test:sales-transactions','test:service-operations']},
 ];
 const manual=[
@@ -83,7 +84,8 @@ const matrix=groups.map(x=>({
 const ok=structure.status==='PASS'&&matrix.every(x=>x.status==='PASS');
 const artifact={
  name:'INDIA Automated Functional Gate',scope:'source_and_synthetic_transaction_tests_only',
- generated_at:new Date().toISOString(),sha:process.env.GITHUB_SHA||null,
+ generated_at:new Date().toISOString(),sha:spawnSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).stdout.trim(),
+ source_dirty:spawnSync('git',['diff','--quiet','HEAD'],{cwd:root}).status!==0,
  status:ok?'PASS':'FAIL',menu_routes:structure,tests:evidence,
  matrix,user_uat_pending:manual,non_user_infrastructure_pending:infrastructure,
  production_release:'HOLD',notes:'Source test PASS is not remote D1 UAT, manual signoff or production availability.'

@@ -44,7 +44,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
     item('Resource & Solution Feasibility','/sales/feasibility',PRESALES),
   ]},
   {id:'commercial',label:'05 · Commercial, Pricing & Approval',items:[
-    item('BoQ Management','/boq',COMMERCIAL),
+    item('BoQ Management','/boq',[...COMMERCIAL,'viewer']),
     item('Approval Center · Lintas Modul','/approvals',COMMERCIAL),
     item('PO / SPK Verification','/sales/award',['admin','sales','finance','approver','legal']),
     item('Submission & Proposal Evidence','/sales/submission',COMMERCIAL),

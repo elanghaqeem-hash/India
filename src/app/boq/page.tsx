@@ -52,12 +52,12 @@ export default function BoQPage(){
   if(!selected)return;setBusy(true);
   try{const r=await fetch('/api/boq/export?id='+encodeURIComponent(selected.id)+'&format='+format);if(!r.ok){const j=await r.json();throw Error(j.message);}
   const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='DefendIT360_'+format+'_'+selected.quotation_number.replace(/[^a-zA-Z0-9]/g,'-')+'.xlsx';
+  a.href=url;a.download='Technotama_'+format+'_'+selected.quotation_number.replace(/[^a-zA-Z0-9]/g,'-')+'.xlsx';
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
   }catch(e){setMsg(String(e));}finally{setBusy(false);}
  };
  return <main className="min-w-0 space-y-5 pb-24"><header className="flex flex-wrap justify-between gap-3">
-   <div><h1 className="text-xl font-bold text-slate-900">BoQ Management · DefendIT360</h1><p className="text-xs text-slate-500">D1 · Peran {role||'belum terautentikasi'} · Excel</p></div>
+   <div><h1 className="text-xl font-bold text-slate-900">BoQ Management · Technotama</h1><p className="text-xs text-slate-500">D1 · Peran {role||'belum terautentikasi'} · Excel</p></div>
    <div className="flex gap-2">{role==='admin'&&<a href="/boq/users" className="rounded-lg border px-3 py-2 text-xs font-semibold">Atur Role</a>}
    <button className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white" onClick={()=>{setSelected(null);setForm(blank());setCosts({});}}>+ BoQ Baru</button></div>
   </header>{msg&&<p role="status" className="rounded-lg border border-blue-200 p-3 text-xs">{msg}</p>}
@@ -79,7 +79,7 @@ export default function BoQPage(){
     <label className="text-xs">PPN (%)<input disabled={!canEdit} type="number" min="0" max="100" value={form.vat_rate*100} onChange={e=>change('vat_rate',Number(e.target.value)/100)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>
     <label className="text-xs">Termin<select disabled={!canEdit} value={form.payment_terms} onChange={e=>change('payment_terms',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['30-50-20','30-60-10','50-50','100'].map(x=><option key={x}>{x}</option>)}</select></label></div>
    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-     <label className="min-w-0 flex-1 text-xs">Pilih Katalog DefendIT360
+     <label className="min-w-0 flex-1 text-xs">Pilih Katalog Technotama
       <select disabled={!canEdit} aria-label="Pilih katalog layanan" value={sku} onChange={e=>setSku(e.target.value)} className="mt-1 w-full rounded border p-2 text-xs">
        <option value="">-- Pilih SKU / Layanan --</option>{catalog.map(c=><option key={c.sku} value={c.sku}>{c.sku} | {c.description} ({c.license_status})</option>)}
       </select></label>

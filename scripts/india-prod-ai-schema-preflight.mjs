@@ -7,6 +7,7 @@
  * authorizes production based on simulated CI.
  */
 import { appendFileSync, readFileSync } from 'node:fs';
+import { verifyReleaseEvidence } from './india-release-evidence.mjs';
 const env=process.env;
 const ACCOUNT='208155f241d4da84e1a6a9b44b7a8d28';
 const DB='8395dd84-1b7d-4eaf-9990-1d8e75a42cb5';
@@ -75,6 +76,8 @@ async function main(){
   'INDEPENDENT_D1_BACKUP_RESTORE_EVIDENCE_MISSING');
  assert(env.INDIA_PROD_SIGNED_ACCESS_UAT==='PASS','SIGNED_ACCESS_UAT_NOT_VERIFIED');
  assert(env.INDIA_PROD_FINANCE_SECURITY_SIGNOFF==='PASS','SECURITY_FINANCE_SIGNOFF_MISSING');
+ verifyReleaseEvidence({receiptPath:env.INDIA_RELEASE_EVIDENCE_PATH,
+  publicKey:env.INDIA_RELEASE_AUTHORITY_PUBLIC_KEY,sha:env.GITHUB_SHA,phase});
  if(phase==='before'){
   if(env.GITHUB_OUTPUT)appendFileSync(env.GITHUB_OUTPUT,'previous_version='+latest+'\n');
   console.log(JSON.stringify({gate:'PRODUCTION_AI_FULL_WORKER_PREDEPLOY',result:'PASS',

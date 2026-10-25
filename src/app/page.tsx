@@ -24,7 +24,7 @@ export default function IndiaHome(){
   return ()=>controller.abort();
  },[router]);
  return <main className="mx-auto max-w-xl space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" aria-live="polite">
-  <h1 className="text-xl font-bold text-slate-900">INDIA · DefendIT360</h1>
+  <h1 className="text-xl font-bold text-slate-900">INDIA · Technotama</h1>
   {state==='checking'&&<p role="status" className="text-sm text-slate-600">Memverifikasi Cloudflare Access dan keanggotaan D1 untuk membuka workspace sesuai role…</p>}
   {state==='denied'&&<div role="alert" className="space-y-2 text-sm text-rose-800"><p>Workspace tidak dapat dibuka. Sesi Cloudflare Access atau keanggotaan D1 belum terverifikasi. Tidak ada data demo yang ditampilkan.</p><Link href="/settings/system" className="underline">Bantuan Administrator</Link></div>}
   {state==='no-workspace'&&<p role="alert" className="text-sm text-amber-800">Identitas valid, tetapi belum memiliki modul yang diizinkan. Hubungi Administrator untuk memperoleh akses yang sesuai.</p>}

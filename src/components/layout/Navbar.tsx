@@ -151,7 +151,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">360</span>
                 </div>
                 <p className="hidden text-[10px] font-medium text-slate-500 sm:block -mt-1">
-                  DefendIT360 Enterprise OS
+                  Technotama Enterprise OS
                 </p>
               </div>
             </Link>

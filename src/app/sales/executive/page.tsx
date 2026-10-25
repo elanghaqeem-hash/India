@@ -65,7 +65,7 @@ export default function ExecutiveSalesPage(){
  return <main className="mx-auto max-w-7xl min-w-0 space-y-5 pb-24">
   <header className="rounded-2xl bg-slate-900 p-5 text-white sm:p-7">
    <div className="flex flex-wrap items-start justify-between gap-4">
-    <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-cyan-300">INDIA · DefendIT360 · D1 Intelligence</p>
+    <div><p className="text-xs font-semibold uppercase tracking-[.18em] text-cyan-300">INDIA · Technotama · D1 Intelligence</p>
      <h1 className="mt-2 text-2xl font-extrabold tracking-tight sm:text-3xl">Executive Sales Dashboard</h1>
      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-300">Target, realisasi PO terverifikasi, forecast, konversi, aging dan produktivitas dari transaksi Cloudflare D1. Tidak ada data demo.</p></div>
     <div className="rounded-xl border border-white/20 bg-white/10 p-3 text-xs text-slate-200"><Activity className="mb-1 h-5 w-5 text-cyan-300"/>Live D1 · peran {data?.role||'—'}</div>

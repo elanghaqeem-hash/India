@@ -138,7 +138,7 @@ export default function PostPoPage(){
      <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-violet-700"><ClipboardCheck className="h-4 w-4"/> Post-PO Administration</div>
      <h1 className="mt-2 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Form Registrasi &amp; Form Project</h1>
      <p className="mt-2 text-sm leading-relaxed text-slate-600">
-      Pemeriksaan field wajib dari Sales, rekonsiliasi PO/Quotation, lalu ekspor dua formulir Word DefendIT360 sebelum Kick Off Meeting.
+      Pemeriksaan field wajib dari Sales, rekonsiliasi PO/Quotation, lalu ekspor dua formulir Word Technotama sebelum Kick Off Meeting.
      </p>
     </div>
     <span className={'rounded-full px-3 py-1.5 text-xs font-bold '+(ready?'bg-emerald-100 text-emerald-800':'bg-amber-100 text-amber-900')}>
@@ -227,8 +227,8 @@ export default function PostPoPage(){
      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
       {commonInput('Nama Penandatangan Pelanggan','customerSignatory')}
       {commonInput('Jabatan Penandatangan Pelanggan','customerSignatoryTitle')}
-      {commonInput('Nama Penandatangan DefendIT360','defenderSignatory')}
-      {commonInput('Jabatan Penandatangan DefendIT360','defenderSignatoryTitle')}
+      {commonInput('Nama Penandatangan Technotama','defenderSignatory')}
+      {commonInput('Jabatan Penandatangan Technotama','defenderSignatoryTitle')}
       {commonInput('Pembuat / Maker','maker')}
       {commonInput('Pemeriksa / Reviewer','reviewer')}
       {commonInput('Pelaksana / Executor','executor')}
@@ -347,7 +347,7 @@ export default function PostPoPage(){
    <div className="space-y-4">
     <Section title="Unduh Dokumen" description="Generator mempertahankan layout asli Word V.042026, tidak lagi menyusun ulang tabel dua kolom.">
      <div className="mb-4 space-y-3 rounded-xl border border-violet-200 bg-violet-50/50 p-3">
-       <h3 className="text-xs font-bold text-violet-900">Template Word Resmi DefendIT360 V.042026</h3>
+       <h3 className="text-xs font-bold text-violet-900">Template Word Resmi Technotama V.042026</h3>
        <p className="text-[11px] leading-relaxed text-slate-600">Unggah kedua template Word asli dari referensi sebelumnya. File dibaca hanya pada tab browser; logo, tabel, font, footer, klausul bilingual, dan kotak tanda tangan tetap dipertahankan. Template tidak dikirim ke server.</p>
        <label className="block text-xs font-semibold text-slate-700">
          Template Form Registrasi (.docx)

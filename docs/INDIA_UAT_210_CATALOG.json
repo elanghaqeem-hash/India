@@ -1,0 +1,1266 @@
+{
+  "source_library_file_id": "libfile_9ac22582fd288191b431008f3fa003fe",
+  "source_version": "1",
+  "cases": [
+    {
+      "id": "P00-001",
+      "scenario": "Identifikasi SHA kandidat dan branch",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-002",
+      "scenario": "Verifikasi Worker UAT dedicated",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-003",
+      "scenario": "Backup dan restore independen D1",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-004",
+      "scenario": "Rekonsiliasi migrasi hingga 0030",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-005",
+      "scenario": "Uji kontinuitas kunci AI dan Document Vault",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-006",
+      "scenario": "Provision user Access & D1 role",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-007",
+      "scenario": "Daftarkan audit evidence storage",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-008",
+      "scenario": "Siapkan test data sintetis berantai",
+      "role": "Marketing",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-009",
+      "scenario": "Pengujian baseline health dan observability",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "P00-010",
+      "scenario": "Larangan production write sebelum gate",
+      "role": "Viewer",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-001",
+      "scenario": "Admin login OTP valid dan identitas",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-002",
+      "scenario": "Marketing login dan 3 menu marketing",
+      "role": "Marketing",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-003",
+      "scenario": "Sales A dan Sales B login terpisah",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-004",
+      "scenario": "Presales/PM login",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-005",
+      "scenario": "Finance login",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-006",
+      "scenario": "Approver login",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-007",
+      "scenario": "Legal login dan PO review",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-008",
+      "scenario": "Viewer denied menus and mutation",
+      "role": "Viewer",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-009",
+      "scenario": "Expired Access OTP/session",
+      "role": "Sales B",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-010",
+      "scenario": "Sales B tak melihat deal Sales A",
+      "role": "Sales B",
+      "priority": "P0"
+    },
+    {
+      "id": "A01-011",
+      "scenario": "Periksa desktop dan Android menu",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-001",
+      "scenario": "Buat campaign VAPT",
+      "role": "Marketing",
+      "priority": "P0"
+    },
+    {
+      "id": "M02-002",
+      "scenario": "Edit campaign dan audit",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-003",
+      "scenario": "Validasi campaign mandatory",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-004",
+      "scenario": "Lead masuk dari campaign",
+      "role": "Marketing",
+      "priority": "P0"
+    },
+    {
+      "id": "M02-005",
+      "scenario": "Simpan alamat pelanggan dari kode pos",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-006",
+      "scenario": "Alamat invalid dan state kosong",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-007",
+      "scenario": "Lead activity & follow-up",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-008",
+      "scenario": "Lead scoring & nurturing",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-009",
+      "scenario": "Re-score setelah data berubah",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "M02-010",
+      "scenario": "Lead qualification dan assignment",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "M02-011",
+      "scenario": "Konversi atomic Lead ke Customer dan Opportunity",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "M02-012",
+      "scenario": "Konversi duplikat/idempotensi",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "M02-013",
+      "scenario": "Lead gagal kualifikasi → Nurture",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-001",
+      "scenario": "Customer 360 lineage",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "S03-002",
+      "scenario": "Ubah alamat Customer dengan hirarki pos",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-003",
+      "scenario": "Tambah stakeholder / parent relationship",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-004",
+      "scenario": "Pipeline Opportunity detail",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "S03-005",
+      "scenario": "Stage filter 10 tahapan",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-006",
+      "scenario": "Presales hanya boleh edit field teknis",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "S03-007",
+      "scenario": "Communication Timeline email/reference",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-008",
+      "scenario": "Activity SLA dan reminder",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-009",
+      "scenario": "Sales forecast weighted value",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-010",
+      "scenario": "Revenue tidak sama dengan pipeline",
+      "role": "Finance",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-011",
+      "scenario": "Closed Lost + loss report",
+      "role": "Sales B",
+      "priority": "P1"
+    },
+    {
+      "id": "S03-012",
+      "scenario": "Sales owner separation cross-account",
+      "role": "Sales B",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-001",
+      "scenario": "Registrasi tender/RFP pada deal",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-002",
+      "scenario": "Unggah RKS/KAK original ke Vault",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-003",
+      "scenario": "RKS extract dan compliance matrix",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-004",
+      "scenario": "GO/NO-GO independen",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-005",
+      "scenario": "GO/NO-GO self-approval ditolak",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-006",
+      "scenario": "Tender checklist mandatory",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-007",
+      "scenario": "Review dokumen checklist independen",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-008",
+      "scenario": "Tender deadline dan revisi",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "T04-009",
+      "scenario": "Bid Readiness gagal jika gap",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "T04-010",
+      "scenario": "Tender nonresponsive → NO-GO",
+      "role": "Approver",
+      "priority": "P1"
+    },
+    {
+      "id": "T04-011",
+      "scenario": "Periksa file korup setelah review",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-001",
+      "scenario": "Scoping VAPT dua aplikasi",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-002",
+      "scenario": "Scope review tidak boleh kosong",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "F05-003",
+      "scenario": "Daftarkan resource engineer",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-004",
+      "scenario": "Plan sizing person-days VAPT",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-005",
+      "scenario": "Resource capacity calendar",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-006",
+      "scenario": "Double booking engineer ditolak",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-007",
+      "scenario": "Input vendor quote & expired check",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-008",
+      "scenario": "Biaya teknis dan HPP visibility",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-009",
+      "scenario": "Independent feasibility approval",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-010",
+      "scenario": "Revisi plan setelah perubahan scope",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "F05-011",
+      "scenario": "SOC 24x7 feasibility staffing",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "F05-012",
+      "scenario": "GRC/ISO/Teknologi scoping smoke",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-001",
+      "scenario": "Buat BoQ dari opportunity",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-002",
+      "scenario": "BoQ HPP A-E oleh Finance",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-003",
+      "scenario": "Akses HPP ditolak bagi Sales",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-004",
+      "scenario": "Validasi quantity dan negative price",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-005",
+      "scenario": "Nomor quotation auto / numbering policy",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-006",
+      "scenario": "AI Pricing suggestion & no overwrites",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-007",
+      "scenario": "BoQ submit approval",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-008",
+      "scenario": "Approval margin threshold",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-009",
+      "scenario": "Reject dan revise BoQ",
+      "role": "Approver",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-010",
+      "scenario": "Export Excel dari BoQ approved",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-011",
+      "scenario": "Generate quotation DOCX",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-012",
+      "scenario": "Technical proposal / SOW builder",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "C06-013",
+      "scenario": "Proposal version mismatch",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "C06-014",
+      "scenario": "Service family katalog",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "A07-001",
+      "scenario": "Approval Inbox role-filtered",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-002",
+      "scenario": "Approval Inbox error DB bukan empty",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-003",
+      "scenario": "Semua daftar approval bukan global total",
+      "role": "Approver",
+      "priority": "P2"
+    },
+    {
+      "id": "A07-004",
+      "scenario": "Upload NDA & quotation original",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-005",
+      "scenario": "Vault akses download audit",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-006",
+      "scenario": "Vault legal hold/retention",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-007",
+      "scenario": "Vault invalid size/extension",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "A07-008",
+      "scenario": "Evidence submission ke pelanggan",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-009",
+      "scenario": "Reviewer independent submission",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-010",
+      "scenario": "Negotiation + revised offer snapshot",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-011",
+      "scenario": "Customer decision approved original",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "A07-012",
+      "scenario": "Submission tanpa bukti asli ditolak",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-001",
+      "scenario": "Register PO/SPK original",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-002",
+      "scenario": "Finance PO price/terms check",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-003",
+      "scenario": "Legal PO/SPK review",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-004",
+      "scenario": "PO mismatch memblokir Won",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-005",
+      "scenario": "Maker-checker PO negative",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-006",
+      "scenario": "Closed Won full four-original gate",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-007",
+      "scenario": "Closed Won tidak boleh ganda",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-008",
+      "scenario": "Post-PO register customer/project",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "W08-009",
+      "scenario": "Post-PO dokumen dan kelengkapan",
+      "role": "Legal",
+      "priority": "P1"
+    },
+    {
+      "id": "D09-001",
+      "scenario": "Proyek draft terbentuk otomatis",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-002",
+      "scenario": "PM assignment & service dates",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-003",
+      "scenario": "Kickoff evidence gate",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-004",
+      "scenario": "VAPT execution phases",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-005",
+      "scenario": "Gagal complete task tanpa bukti",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-006",
+      "scenario": "SOC/MDR project delivery multi-month",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "D09-007",
+      "scenario": "SOC monthly report evidence",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "D09-008",
+      "scenario": "GRC/Technology delivery parameter",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "D09-009",
+      "scenario": "Milestone based on accepted PO",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-010",
+      "scenario": "BAST acceptance review",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "D09-011",
+      "scenario": "Project completed after evidence",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-001",
+      "scenario": "Create invoice against accepted BAST",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-002",
+      "scenario": "Invoice approval oleh pihak independen",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-003",
+      "scenario": "Invoice di atas milestone ditolak",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-004",
+      "scenario": "Catat pembayaran parsial",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-005",
+      "scenario": "Approve pembayaran parsial",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-006",
+      "scenario": "Catat pelunasan",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-007",
+      "scenario": "Pembayaran > saldo ditolak",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-008",
+      "scenario": "Reversal pembayaran tepat",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-009",
+      "scenario": "Reversal dua kali di luar limit",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-010",
+      "scenario": "Verified Revenue GL linkage",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-011",
+      "scenario": "Approve revenue recognized",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "B10-012",
+      "scenario": "Reconcile DSO, outstanding, cash, margin",
+      "role": "Finance",
+      "priority": "P1"
+    },
+    {
+      "id": "B10-013",
+      "scenario": "Cross-check customer revenue reports",
+      "role": "Finance",
+      "priority": "P1"
+    },
+    {
+      "id": "R11-001",
+      "scenario": "Draft managed-service contract",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "R11-002",
+      "scenario": "Approve contract independent",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "R11-003",
+      "scenario": "Renewal expiring queue",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "R11-004",
+      "scenario": "Update churn risk",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "R11-005",
+      "scenario": "Renewal opportunity linked",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "R11-006",
+      "scenario": "Expansion opportunity linked",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "R11-007",
+      "scenario": "Duplicate renewal ditolak",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "R11-008",
+      "scenario": "Customer 360 installed products",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "R11-009",
+      "scenario": "Revenue MRR vs annual value",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-001",
+      "scenario": "Buat FlexGuard Opportunity dan Closed Won",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-002",
+      "scenario": "Buat kontrak FlexGuard approved",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-003",
+      "scenario": "Invoice FlexGuard fully paid approved",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-004",
+      "scenario": "Registrasi wallet entitlement",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-005",
+      "scenario": "Approve wallet oleh reviewer lain",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-006",
+      "scenario": "ISSUE after full cash",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-007",
+      "scenario": "RESERVE quota deal service",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-008",
+      "scenario": "DEBIT dengan supporting original",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-009",
+      "scenario": "RELEASE unused reserve",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-010",
+      "scenario": "REFUND sebagian consumed",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-011",
+      "scenario": "TOPUP hanya jika invoice kedua eligible",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-012",
+      "scenario": "Double debit dan negative balance",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "G12-013",
+      "scenario": "EXPIRY manual setelah contract end",
+      "role": "Finance",
+      "priority": "P1"
+    },
+    {
+      "id": "G12-014",
+      "scenario": "Update/Delete ledger immutable ditolak",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "V13-001",
+      "scenario": "Buat vendor master",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "V13-002",
+      "scenario": "Tambah OEM/licensing partnership",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "V13-003",
+      "scenario": "Evaluasi vendor performance",
+      "role": "Approver",
+      "priority": "P1"
+    },
+    {
+      "id": "V13-004",
+      "scenario": "Buat supplier quotation",
+      "role": "Presales / PM",
+      "priority": "P0"
+    },
+    {
+      "id": "V13-005",
+      "scenario": "Purchase/procurement tracking",
+      "role": "Finance",
+      "priority": "P1"
+    },
+    {
+      "id": "V13-006",
+      "scenario": "Supplier mismatch/expired deny",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-001",
+      "scenario": "Provider catalog lengkap 7 item",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-002",
+      "scenario": "Admin set AI secret UAT melalui UI",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-003",
+      "scenario": "Provider Test Connection real",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-004",
+      "scenario": "Mistral disabled to enabled",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "I14-005",
+      "scenario": "Priority routing and failover",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "I14-006",
+      "scenario": "AI chat multi-turn VAPT",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-007",
+      "scenario": "AI chat reset/new conversation",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "I14-008",
+      "scenario": "AI data policy/PII safety",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-009",
+      "scenario": "AI pricing no silent approval",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "I14-010",
+      "scenario": "Viewer cannot access API key",
+      "role": "Viewer",
+      "priority": "P0"
+    },
+    {
+      "id": "X15-001",
+      "scenario": "Marketing conversion funnel",
+      "role": "Marketing",
+      "priority": "P1"
+    },
+    {
+      "id": "X15-002",
+      "scenario": "Weighted pipeline and forecast",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "X15-003",
+      "scenario": "Executive dashboard total KPI",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "X15-004",
+      "scenario": "Quota attainment vs sales target",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "X15-005",
+      "scenario": "Revenue, cash, margin distinct",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "X15-006",
+      "scenario": "Report builder and export",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "X15-007",
+      "scenario": "Customer profitability & renewal",
+      "role": "Finance",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-001",
+      "scenario": "Organization hierarchy",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "Z16-002",
+      "scenario": "Role & membership administration",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-003",
+      "scenario": "Additional Access Policy restriction",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-004",
+      "scenario": "Approval matrix dan margin",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-005",
+      "scenario": "Document numbering",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "Z16-006",
+      "scenario": "Text templates",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "Z16-007",
+      "scenario": "Service catalog SKU",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "Z16-008",
+      "scenario": "Integration registry HTTPS and secret binding",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "Z16-009",
+      "scenario": "Audit log / CSV export",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-010",
+      "scenario": "System health and migration status",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "Z16-011",
+      "scenario": "Backup/restore UI tidak memalsukan status",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-001",
+      "scenario": "Role spoofing dari header/body",
+      "role": "Viewer",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-002",
+      "scenario": "Cross-object ID tampering",
+      "role": "Sales B",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-003",
+      "scenario": "SQL injection parameterized inputs",
+      "role": "Marketing",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-004",
+      "scenario": "XSS payload sanitized",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-005",
+      "scenario": "CSRF/session cross-origin",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-006",
+      "scenario": "Request replay duplicate",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-007",
+      "scenario": "Document checksum original mismatch",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-008",
+      "scenario": "File upload unauthorized via direct API",
+      "role": "Viewer",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-009",
+      "scenario": "HPP exfiltration via report/export",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-010",
+      "scenario": "Legal hold race condition",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-011",
+      "scenario": "Wallet concurrent token usage",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-012",
+      "scenario": "DB down returns 503 not success",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-013",
+      "scenario": "AI provider outage no secret leakage",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "N17-014",
+      "scenario": "Cross-device state & refresh",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "N17-015",
+      "scenario": "Audit no dummy production data",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-001",
+      "scenario": "Desktop viewport full workflow",
+      "role": "Sales A",
+      "priority": "P1"
+    },
+    {
+      "id": "O18-002",
+      "scenario": "Physical Android composer/chat",
+      "role": "Sales A",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-003",
+      "scenario": "Physical Android documents upload",
+      "role": "Presales / PM",
+      "priority": "P1"
+    },
+    {
+      "id": "O18-004",
+      "scenario": "API response times thresholds",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "O18-005",
+      "scenario": "Load concurrent users",
+      "role": "Admin",
+      "priority": "P1"
+    },
+    {
+      "id": "O18-006",
+      "scenario": "D1 quota & storage observability",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-007",
+      "scenario": "Encrypted document retention & audit",
+      "role": "Legal",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-008",
+      "scenario": "Independent restore/rollback rehearsal",
+      "role": "Admin",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-009",
+      "scenario": "UAT defect triage & retest",
+      "role": "Approver",
+      "priority": "P0"
+    },
+    {
+      "id": "O18-010",
+      "scenario": "Go/No-Go final & signoff",
+      "role": "Admin",
+      "priority": "P0"
+    }
+  ]
+}

@@ -70,7 +70,7 @@ export function checklistCSV(rows:Checklist[]):string {
  ...rows.map(c=>[c.item_code,c.category,c.label,c.mandatory?'Ya':'Tidak',c.document_name,c.status,c.evidence_reference,c.evidence_sha256,c.source_clause_id||'',c.due_at||'',c.checked_by||'',c.review_notes||''])]);
 }
 export function reportCSV(report:Report,opp:string,title:string):string{
- return safeCSV([['Bid Readiness Report','INDIA / DefendIT360'],['Opportunity',opp],['Nama Paket',title],['Hasil',report.ready?'READY':'NOT READY'],
+ return safeCSV([['Bid Readiness Report','INDIA / Technotama'],['Opportunity',opp],['Nama Paket',title],['Hasil',report.ready?'READY':'NOT READY'],
  ['Skor indikatif (bukan izin submission)',report.score],['RKS/KAK lulus',report.matrix_compliant+'/'+report.matrix_total],
  ['Klausul compliant',report.clause_compliant+'/'+report.clause_total],['Dokumen mandatory lengkap',report.mandatory_ready+'/'+report.mandatory_total],
  ['Status deadline',report.deadline_status],['Deadline (zona waktu eksplisit)',report.deadline_at||'Belum disahkan'],

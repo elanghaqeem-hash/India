@@ -21,26 +21,12 @@ const UNKNOWN = 'Belum diisi - perlu konfirmasi Sales/Pre-Sales dan persetujuan 
 
 function Brand() {
   return <div className="quote-brand">
-    <div className="quote-brand-logo" aria-label="DefendIT360">
-      <svg width="42" height="51" viewBox="0 0 42 51" aria-hidden="true">
-        <defs><linearGradient id="quoteShieldGradient" x1="0" x2="1" y1="0" y2="1"><stop offset="0" stopColor="#9965d4"/><stop offset=".55" stopColor="#4e247b"/><stop offset="1" stopColor="#27154d"/></linearGradient></defs>
-        <path d="M21 2 39 9v13c0 13-7 21-18 27C10 43 3 35 3 22V9Z" fill="url(#quoteShieldGradient)"/>
-        <path d="M21 9 32 13v10c0 9-4 14-11 19-7-5-11-10-11-19V13Z" fill="none" stroke="#ded0f4" strokeWidth="1.4"/>
-        <path d="m21 15 10 17H11Z" fill="#fff" opacity=".93"/>
-      </svg>
-      <div>
-        <div className="quote-logo-text">DEFEND<span>IT360</span></div>
-        <div className="quote-logo-member">member of <b>XL<span>SMART</span></b></div>
-      </div>
+    <div className="quote-brand-logo" aria-label="Technotama">
+      <div><div className="quote-logo-text">TECHNOTAMA</div>
+      <div className="quote-logo-member">INDIA Business Management Platform</div></div>
     </div>
-    <div className="quote-brand-address">
-      <b>PT. DATA ENKRIPSI INFORMASI TEKNOLOGI</b><br/>
-      <b>Head Office</b><br/>
-      Sudirman 7.8, Tower 1, Lt. 27<br/>
-      Jl. Jenderal Sudirman No. 10<br/>
-      Karet Tengsin, Jakarta - 10220<br/>
-      info@defendit360.co.id<br/>
-      www.defendit360.co.id
+    <div className="quote-brand-address"><b>TECHNOTAMA</b><br/>
+      [Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]
     </div>
   </div>;
 }
@@ -98,8 +84,8 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
       </div>
       <div className="quote-subject"><b>Perihal</b><span>:</span><b>Penawaran Harga Pengadaan {p.opportunity_name}</b></div>
       <div className="quote-letter-body">
-        <p>Terima kasih atas kesempatan yang diberikan kepada PT Data Enkripsi Informasi Teknologi
-          (DefendIT360) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
+        <p>Terima kasih atas kesempatan yang diberikan kepada Technotama
+          (Technotama) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
           {' '}{d.endUser || p.company_name}. Sehubungan dengan rencana pekerjaan tersebut, kami
           menyampaikan penawaran sebesar <b>{totalPrice}</b> belum termasuk PPN sesuai rincian harga terlampir.</p>
         <p>Penawaran ini berlaku selama <b>{p.valid_days} hari kalender</b> sejak tanggal surat
@@ -174,7 +160,7 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
           <li>Surat Pesanan (Purchase Order) dan NDA jika dipersyaratkan</li></ul>
       </section>
       <p className="quote-end-note">Terima kasih atas perhatian Anda. Jika memiliki pertanyaan,
-        silakan menghubungi <i>info@defendit360.co.id</i>.</p>
+        silakan menghubungi <i>[Kontak resmi Technotama]</i>.</p>
       <p className="quote-draft-label">DRAFT - Seluruh lingkup dan ketentuan yang belum diisi harus disetujui sebelum quotation diterbitkan.</p>
     </Paper>
   </div>;

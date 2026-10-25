@@ -235,7 +235,7 @@ export default function SmartScopingPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Smart Scoping Assessment Engine</h1>
               <p className="text-xs text-slate-500">
-                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS DefendIT360.
+                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS Technotama.
               </p>
             </div>
           </div>
