@@ -11,7 +11,7 @@ Lead Qualification dan Sales Pipeline menggunakan dropdown yang sama dengan 15 p
 7. Seleksi Konsultan
 8. Beauty Contest / Pitching
 9. E-Purchasing / E-Katalog
-10. E-Tendering / E-Procurement
+10. Tender Elektronik / E-Procurement
 11. Pembelian Melalui Partner / Distributor
 12. Kontrak Payung / Framework Agreement
 13. Perpanjangan Kontrak / Renewal
