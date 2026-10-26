@@ -4,6 +4,7 @@ import {TENANT,safeID} from '@/lib/sales-workflow';
 import {atomicSales} from '@/lib/sales-transactions';
 import {operationEvent,txt,jakartaDate,csvText} from '@/lib/operations';
 import {effectiveSetting,validateSetting} from '@/lib/system-settings';
+import {isValidOrganizationParentLevel} from '@/lib/organization-hierarchy';
 import {evaluateSchemaReadiness,pendingMasterReleaseGates} from '@/lib/release-readiness';
 export const dynamic='force-dynamic';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders});
@@ -45,13 +46,14 @@ export async function GET(req:Request){
    if(u.searchParams.get('format')==='csv')return new Response(csvText(['ID','Area','Entity','Action','Actor','At'],result.results.map((r:Record<string,unknown>)=>[r.id,r.area,r.entity_id,r.action,r.actor_email,r.created_at])),{headers:{...privateHeaders,'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="INDIA_System_Audit.csv"'}});
    return reply({success:true,role,items:result.results,sales:sales.results,page,next_page:result.results.length===limit||sales.results.length===limit?page+1:null});
   }
-  const [settings,effective,catalog,numbers]=await Promise.all([
+  const [settings,effective,catalog,numbers,activeAdminReviewers]=await Promise.all([
    db.prepare('SELECT * FROM india_setting_versions WHERE tenant_id=? ORDER BY created_at DESC,version DESC LIMIT 500').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_effective_settings WHERE tenant_id=? ORDER BY kind,setting_key').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_catalog ORDER BY category,sku LIMIT 500').all(),
-   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all()
+   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all(),
+   db.prepare("SELECT count(*) AS total FROM india_members WHERE role='admin' AND active=1").first<{total:number}>()
   ]);
-  return reply({success:true,role,identityEmail:email,settings:settings.results,effective:effective.results,catalog:catalog.results,numbers:numbers.results,approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
+  return reply({success:true,role,identityEmail:email,settings:settings.results,effective:effective.results,catalog:catalog.results,numbers:numbers.results,active_admin_reviewers:Number(activeAdminReviewers?.total||0),approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
  }catch{return fail('Administrasi belum siap. Verifikasi migrasi 0026.',503);}
 }
 export async function POST(req:Request){
@@ -75,9 +77,16 @@ export async function POST(req:Request){
    let extra='';const args:(string|number|null)[]=[TENANT,row.id,row.version];
    if(p.action==='approve'&&row.kind==='organization'){
     const all=await db.prepare("SELECT setting_key,data_json,version FROM india_effective_settings WHERE tenant_id=? AND kind='organization'").bind(TENANT).all<{setting_key:string;data_json:string;version:number}>();
-    const parents=new Map(all.results.map(x=>[x.setting_key,JSON.parse(x.data_json).parent_key as string|null]));
-    const data=JSON.parse(row.data_json);if(data.parent_key&&!parents.has(data.parent_key))return fail('Parent organisasi aktif diperlukan',409);parents.set(row.setting_key,data.parent_key);
-    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)||null;}}
+    const parents=new Map(all.results.map(x=>{const d=JSON.parse(x.data_json) as {level:string;parent_key:string|null};return [x.setting_key,{level:d.level,parentKey:d.parent_key}] as const;}));
+    const data=JSON.parse(row.data_json) as {level:string;parent_key:string|null};
+    if(data.level==='institution'&&data.parent_key)return fail('Institusi tidak boleh memiliki parent',409);
+    if(data.level!=='institution'){
+     const parent=data.parent_key?parents.get(data.parent_key):null;
+     if(!parent)return fail('Parent organisasi aktif diperlukan',409);
+     if(!isValidOrganizationParentLevel(data.level,parent.level))return fail('Tingkat parent harus lebih tinggi daripada organisasi baru',409);
+    }
+    parents.set(row.setting_key,{level:data.level,parentKey:data.parent_key});
+    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)?.parentKey||null;}}
     // Serialize organizational activations against the complete approved organization version set.
     extra=" AND (SELECT coalesce(sum(version),0) FROM india_effective_settings WHERE tenant_id=? AND kind='organization')=?";
     args.push(TENANT,all.results.reduce((n,x)=>n+x.version,0));
