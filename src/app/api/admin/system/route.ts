@@ -15,17 +15,27 @@ export async function GET(req:Request){
  try{
   if(section==='health'){
    const start=Date.now();const ping=await db.prepare('SELECT 1 AS ok').first<{ok:number}>();
-   const [migrations,manifest,members,guard,events]=await Promise.all([
+   const [migrations,manifest,members,guard,events,providers,optionCount]=await Promise.all([
     db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all<{version:number|string}>(),
     db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all<{path:string}>(),
     db.prepare('SELECT role,count(*) AS active_users FROM india_members WHERE active=1 GROUP BY role').all(),
     db.prepare('SELECT count(*) AS pending FROM india_sales_tx_guards').first(),
-    db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all()
+    db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all(),
+    db.prepare('SELECT enabled,tested_ok,tested_at,key_ciphertext FROM india_ai_providers').all<{enabled:number;tested_ok:number|null;tested_at:string|null;key_ciphertext:string|null}>(),
+    db.prepare('SELECT count(*) AS total FROM india_admin_options WHERE tenant_id=? AND active=1').bind(TENANT).first<{total:number}>()
    ]);
    const schema=evaluateSchemaReadiness(migrations.results,manifest.results);
+   const activeByRole=new Map((members.results as {role:string;active_users:number}[]).map(r=>[r.role,Number(r.active_users)]));
+   const minimumRoles=[{role:'admin',count:2},{role:'sales',count:2},...['marketing','presales','finance','approver','legal','viewer'].map(role=>({role,count:1}))];
+   const roster=minimumRoles.map(r=>({...r,active:activeByRole.get(r.role)||0,pass:(activeByRole.get(r.role)||0)>=r.count}));
+   const enabledProviders=providers.results.filter(p=>p.enabled===1);
+   const testedProviders=enabledProviders.filter(p=>!!p.key_ciphertext&&p.tested_ok===1&&!!p.tested_at);
+   const identityReadiness={roster,minimum_ready:roster.every(r=>r.pass),access_identity_verification:'external_real_jwt_required'};
+   const aiReadiness={configured:providers.results.length,enabled:enabledProviders.length,enabled_with_key:enabledProviders.filter(p=>!!p.key_ciphertext).length,enabled_tested_successfully:testedProviders.length,all_enabled_tested:testedProviders.length===enabledProviders.length,probe_validity:'historical_record_only_not_live_provider_probe'};
    return reply({success:true,role,identityEmail:email,checked_at:new Date().toISOString(),
     database:{ok:ping?.ok===1,latency_ms:Date.now()-start},
     migrations:migrations.results,manifest:manifest.results,members:members.results,transaction_guards:guard,latest_events:events.results,
+    identity_readiness:identityReadiness,ai_readiness:aiReadiness,active_registered_options:Number(optionCount?.total||0),
     release_readiness:{schema,production_gate:'HOLD',master_gates:pendingMasterReleaseGates(),
      required_evidence:[
       'Backup dan restore mandiri + checksum sumber asli',

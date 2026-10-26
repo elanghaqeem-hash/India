@@ -14,6 +14,25 @@ export const SALES_STAGES=[
 ] as const;
 export type SalesStage=(typeof SALES_STAGES)[number][0];
 export const SERVICE_FAMILIES=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'] as const;
+export const LEAD_SOURCES=[
+ 'Website / Formulir Online','Organic Search / SEO','Iklan Digital / SEM',
+ 'LinkedIn','Media Sosial','Email Campaign','WhatsApp / Telepon Masuk',
+ 'Webinar','Seminar / Konferensi','Workshop / Training','Pameran / Expo',
+ 'Referral Pelanggan','Referral Internal','Partner / Distributor / Principal',
+ 'Asosiasi / Komunitas','Outbound Prospecting','Tender / RFP / RFQ',
+ 'Pelanggan Existing / Renewal','Cross-sell / Upsell','Kunjungan / Pertemuan Bisnis',
+ 'Marketplace / Portal Pengadaan','Lainnya'
+] as const;
+// CRM choices describe the customer's procurement route, without replacing their procurement policy.
+export const PROCUREMENT_PROCESSES=[
+ 'Pengadaan Langsung','Penunjukan Langsung / Sole Source',
+ 'Permintaan Penawaran / RFQ','Permintaan Proposal / RFP',
+ 'Tender Terbuka / Lelang Umum','Tender Terbatas / Undangan',
+ 'Seleksi Konsultan','Beauty Contest / Pitching',
+ 'E-Purchasing / E-Katalog','Tender Elektronik / E-Procurement',
+ 'Pembelian Melalui Partner / Distributor','Kontrak Payung / Framework Agreement',
+ 'Perpanjangan Kontrak / Renewal','Addendum / Perubahan Kontrak','Lainnya'
+] as const;
 export type SalesFields=Record<string,string>;
 /** When billing matches headquarters, headquarters is the canonical source. */
 export function synchronizeBillingAddress(fields:SalesFields):SalesFields{

@@ -62,6 +62,7 @@ export default function SmartScopingPage() {
   const [serviceLevel, setServiceLevel] = useState<'8x5' | '12x5' | '24x7'>('24x7');
   const [hasThreatHunting, setHasThreatHunting] = useState<boolean>(true);
   const [hasIR, setHasIR] = useState<boolean>(false);
+  const [sessionDraftMessage,setSessionDraftMessage]=useState('');
 
   // The portfolio is calculated from the same single-asset VAPT rule engine.
   const vaptPortfolio = calculateVaptPortfolio(vaptAssets);
@@ -78,6 +79,55 @@ export default function SmartScopingPage() {
     has_threat_hunting: hasThreatHunting,
     has_ir_retainer: hasIR,
   });
+
+  // Deliberate, session-only draft recovery. Never save document bytes,
+  // extracted RKS/TOR content, provider responses, or AI consent to storage.
+  const scopingSessionKey='india_scoping_form_draft_v1';
+  const saveSessionDraft=()=>{
+    try{
+      const draft={version:1,at:Date.now(),activeTab,scopeInputs,vaptAssets,
+        soc:{nServers,nNetwork,nEndpoints,nCloud,hasAD,trafficIntensity,serviceLevel,hasThreatHunting,hasIR}};
+      const raw=JSON.stringify(draft);
+      if(raw.length>70000)throw Error('Draft terlalu besar untuk sesi browser.');
+      sessionStorage.setItem(scopingSessionKey,raw);
+      setSessionDraftMessage('Draft scoping tersimpan di tab browser ini selama maksimal 30 menit. Belum tersimpan ke D1.');
+    }catch(e){setSessionDraftMessage(e instanceof Error?e.message:'Penyimpanan draft sesi gagal.');}
+  };
+  const restoreSessionDraft=()=>{
+    try{
+      const raw=sessionStorage.getItem(scopingSessionKey);
+      if(!raw||raw.length>70000)throw Error('Draft sesi tidak tersedia atau terlalu besar.');
+      const d=JSON.parse(raw) as {version?:number;at?:number;activeTab?:string;
+        scopeInputs?:Partial<Record<ScopingService,Record<string,string>>>;vaptAssets?:VaptAsset[];
+        soc?:{nServers:number;nNetwork:number;nEndpoints:number;nCloud:number;hasAD:boolean;
+        trafficIntensity:'low'|'medium'|'high';serviceLevel:'8x5'|'12x5'|'24x7';hasThreatHunting:boolean;hasIR:boolean}};
+      if(d.version!==1||!Number.isFinite(d.at)||!d.at||d.at>Date.now()+60000||
+         Date.now()-d.at>30*60*1000||!SCOPING_SERVICE_TYPES.includes(d.activeTab as ScopingService))
+        throw Error('Draft sesi tidak valid atau lebih dari 30 menit.');
+      if(!Array.isArray(d.vaptAssets)||d.vaptAssets.length<1||d.vaptAssets.length>30||
+        d.vaptAssets.some(a=>!a||typeof a.id!=='string'||a.id.length>120||typeof a.name!=='string'||a.name.length>200))
+        throw Error('Daftar aset draft tidak valid.');
+      if(!d.scopeInputs||typeof d.scopeInputs!=='object'||Array.isArray(d.scopeInputs)||
+        Object.entries(d.scopeInputs).some(([k,v])=>!SCOPING_SERVICE_TYPES.includes(k as ScopingService)||
+         !v||typeof v!=='object'||Array.isArray(v)||Object.entries(v).some(([field,value])=>field.length>100||typeof value!=='string'||value.length>2000)))
+        throw Error('Parameter draft tidak valid.');
+      const soc=d.soc;
+      if(!soc||![soc.nServers,soc.nNetwork,soc.nEndpoints,soc.nCloud].every(n=>Number.isSafeInteger(n)&&n>=0&&n<=1000000)||
+        !['low','medium','high'].includes(soc.trafficIntensity)||!['8x5','12x5','24x7'].includes(soc.serviceLevel)||
+        [soc.hasAD,soc.hasThreatHunting,soc.hasIR].some(x=>typeof x!=='boolean'))
+        throw Error('Parameter SOC pada draft tidak valid.');
+      setActiveTab(d.activeTab as ScopingService);setScopeInputs(d.scopeInputs);
+      setVaptAssets(d.vaptAssets);setNServers(soc.nServers);setNNetwork(soc.nNetwork);
+      setNEndpoints(soc.nEndpoints);setNCloud(soc.nCloud);setHasAD(soc.hasAD);
+      setTrafficIntensity(soc.trafficIntensity);setServiceLevel(soc.serviceLevel);
+      setHasThreatHunting(soc.hasThreatHunting);setHasIR(soc.hasIR);
+      setSessionDraftMessage('Draft scoping dipulihkan. Tinjau semua parameter sebelum transfer ke BoQ; belum tersimpan ke D1.');
+    }catch(e){setSessionDraftMessage(e instanceof Error?e.message:'Pemulihan draft sesi gagal.');}
+  };
+  const discardSessionDraft=()=>{
+    try{sessionStorage.removeItem(scopingSessionKey);setSessionDraftMessage('Draft sesi telah dihapus.');}
+    catch{setSessionDraftMessage('Sesi browser tidak mendukung penghapusan draft.');}
+  };
 
   const handleProceedToPricing = () => {
     // Transfer remains an unsaved draft. BoQ enforces all D1, role and approval rules.
@@ -455,6 +505,16 @@ export default function SmartScopingPage() {
         </div>
       </section>
 
+      <section aria-label="Draft scoping sesi" className="rounded-xl border border-blue-200 bg-blue-50 p-4">
+       <h2 className="text-sm font-bold text-blue-950">Pemulihan draft Scoping</h2>
+       <p className="mt-1 text-xs text-blue-900">Simpan manual untuk pemulihan di tab ini (maksimal 30 menit). Tidak menyimpan file RKS/TOR, teks AI, atau API key. Draft sesi bukan transaksi D1 dan tidak melompati persetujuan BoQ.</p>
+       <div className="mt-3 flex flex-wrap gap-2">
+        <button type="button" onClick={saveSessionDraft} className="rounded-lg bg-blue-700 px-3 py-2 text-xs font-semibold text-white">Simpan Draft Sesi</button>
+        <button type="button" onClick={restoreSessionDraft} className="rounded-lg border border-blue-300 bg-white px-3 py-2 text-xs font-semibold text-blue-900">Pulihkan Draft Sesi</button>
+        <button type="button" onClick={discardSessionDraft} className="rounded-lg border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-800">Hapus Draft Sesi</button>
+       </div>
+       {sessionDraftMessage&&<p role="status" className="mt-2 text-xs font-medium text-blue-950">{sessionDraftMessage}</p>}
+      </section>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Input Form (Col 2) */}
         <div className="lg:col-span-2 space-y-5">
