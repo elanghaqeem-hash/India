@@ -71,8 +71,8 @@ export default function SystemSettings({mode='parameters'}:{mode?:'parameters'|'
   ...(editing&&f.key==='setting_key'?{readOnly:true,options:f.type==='select'?[{value:editing.setting_key,label:editing.setting_key}]:f.options}:{})
  }));
  const canModify=(s:Setting)=>{
-  const latest=data?.latestVersions[s.kind+':'+s.setting_key]||0;
-  return s.version===latest&&!JSON.parse(s.data_json).deleted&&(s.status==='draft'?s.created_by.toLowerCase()===data?.identityEmail:s.status==='approved'&&data?.effective.some(x=>x.id===s.id));
+  const newerDraft=data?.settings.some(x=>x.kind===s.kind&&x.setting_key===s.setting_key&&x.version>s.version&&x.status==='draft');
+  return !newerDraft&&!JSON.parse(s.data_json).deleted&&(s.status==='draft'?s.created_by.toLowerCase()===data?.identityEmail:s.status==='approved'&&data?.effective.some(x=>x.id===s.id));
  };
  const requestDelete=async(s:Setting)=>{
   const prompt=s.status==='draft'? 'Hapus draft "'+s.title+'"? Riwayat audit akan disimpan.':'Ajukan hapus "'+s.title+'"? Pengaturan tetap aktif sampai Admin kedua menyetujui.';
@@ -98,14 +98,14 @@ export default function SystemSettings({mode='parameters'}:{mode?:'parameters'|'
  {tab==='health'&&health&&<section aria-label="Release readiness dan kesehatan sistem" className="space-y-4">
   <div className="grid gap-3 sm:grid-cols-3">
    <article className="rounded-xl border bg-white p-5"><h2 className="text-xs font-bold text-slate-500">Database</h2><p className="mt-2 text-sm font-bold">{health.database.ok?'Terhubung':'Gagal'}</p><p className="mt-1 text-xs text-slate-500">Latency {health.database.latency_ms} ms</p></article>
-   <article className="rounded-xl border bg-white p-5"><h2 className="text-xs font-bold text-slate-500">Migrasi kanonis sampai 0030</h2><p className="mt-2 text-sm font-bold">{health.release_readiness.schema.status==='reconciled'?'Ledger & manifest sesuai':'Belum lengkap / tidak selaras'}</p><p className="mt-1 text-xs text-slate-500">Terpasang: {health.release_readiness.schema.latest_applied_version??'tidak diketahui'}</p></article>
+   <article className="rounded-xl border bg-white p-5"><h2 className="text-xs font-bold text-slate-500">Migrasi kanonis sampai 0031</h2><p className="mt-2 text-sm font-bold">{health.release_readiness.schema.status==='reconciled'?'Ledger & manifest sesuai':'Belum lengkap / tidak selaras'}</p><p className="mt-1 text-xs text-slate-500">Terpasang: {health.release_readiness.schema.latest_applied_version??'tidak diketahui'}</p></article>
    <article className="rounded-xl border border-amber-300 bg-amber-50 p-5"><h2 className="text-xs font-bold text-amber-800">Backup & Restore</h2><p className="mt-2 text-sm font-bold text-amber-900">Memerlukan bukti Cloudflare</p><p className="mt-1 text-xs font-semibold text-amber-900">Gate produksi: {health.release_readiness.production_gate}</p><p className="mt-1 text-xs text-amber-900">{health.checked_at}</p></article>
   </div>
   <p className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{health.release_readiness.note} Koneksi database bukan bukti backup, UAT pengguna nyata atau kesiapan deploy.</p>
   <section className="space-y-2 rounded-xl border bg-white p-4" aria-label="Kesenjangan migrasi">
    <h2 className="font-bold">Selisih skema yang harus diselesaikan</h2>
    <p className="text-xs text-slate-600">{health.release_readiness.schema.evidence_scope}</p>
-   <p className="text-sm">Versi ledger belum diterapkan: <strong>{health.release_readiness.schema.missing_versions.join(', ')||'Tidak ada pada rentang wajib 0013–0030'}</strong></p>
+   <p className="text-sm">Versi ledger belum diterapkan: <strong>{health.release_readiness.schema.missing_versions.join(', ')||'Tidak ada pada rentang wajib 0013–0031'}</strong></p>
    {[['Manifest belum terdaftar',health.release_readiness.schema.missing_manifest_paths],['Manifest konflik dengan versi kanonis',health.release_readiness.schema.conflicting_manifest_paths],['Manifest tanpa ledger',health.release_readiness.schema.manifest_without_ledger]].map(([label,values])=><div key={label as string} className="text-xs"><strong>{label as string}:</strong> {(values as string[]).length?<ul className="mt-1 list-disc space-y-1 pl-5">{(values as string[]).map(p=><li key={p} className="break-all">{p}</li>)}</ul>:<span> tidak ada</span>}</div>)}
   </section>
   <section className="overflow-x-auto rounded-xl border bg-white p-4" aria-label="Master release gate">
