@@ -1,34 +1,42 @@
 'use client';
 import React,{useCallback,useEffect,useState} from 'react';
 import AdminNavigation from './AdminNavigation';
+import {isValidOrganizationParentLevel,organizationLevelLabel} from '@/lib/organization-hierarchy';
 import {commercialAPI,EntryForm,inputStyle,buttonStyle,type FormField} from '@/components/sales/CommercialUI';
 type Setting={id:string;kind:string;setting_key:string;title:string;data_json:string;status:string;version:number;created_by:string};
-type Data={role:string;identityEmail:string;settings:Setting[];latestVersions:Record<string,number>;effective:Setting[];catalog:Record<string,unknown>[];numbers:{id:string;number:string;actor_email:string}[]};
+type Data={role:string;identityEmail:string;settings:Setting[];latestVersions:Record<string,number>;effective:Setting[];catalog:Record<string,unknown>[];numbers:{id:string;number:string;actor_email:string}[];active_admin_reviewers?:number};
 type HealthData={database:{ok:boolean;latency_ms:number};checked_at:string;manifest:{path:string}[];release_readiness:{schema:{status:'reconciled'|'incomplete';latest_applied_version:number|null;required_through_version:number;missing_versions:number[];missing_manifest_paths:string[];conflicting_manifest_paths:string[];manifest_without_ledger:string[];evidence_scope:string};production_gate:'HOLD';master_gates:{id:string;label:string;status:string;reason:string}[];required_evidence:string[];note:string}};
 const categories=[['organization','Organisasi'],['approval','Approval Matrix'],['access','Access Policy'],['numbering','Numbering'],['template','Templates'],['integration','API Integrations'],['catalog','Service Catalog'],['audit','Audit Logs'],['health','Monitoring & Backup']] as const;
 const organizationLevels=[['institution','Institusi'],['directorate','Direktorat'],['division','Divisi'],['unit','Unit kerja'],['branch','Cabang']] as const;
 function OrganizationDraftForm({data,disabled,status,editing,onCancel,onSubmit}:{data:Data;disabled:boolean;status:string;editing:Setting|null;onCancel:()=>void;onSubmit:(p:Record<string,unknown>)=>Promise<boolean>}){
  const current=editing?JSON.parse(editing.data_json) as {level?:string;parent_key?:string|null}:null;
- const [level,setLevel]=useState<string>(current?.level||'institution'),[error,setError]=useState('');
- const parents=data.effective.filter(s=>s.kind==='organization'&&s.setting_key!==editing?.setting_key);
+ const [level,setLevel]=useState<string>(current?.level||'institution'),[error,setError]=useState(''),[settingKey,setSettingKey]=useState(editing?.setting_key||'');
+ const approved=data.effective.filter(s=>s.kind==='organization').flatMap(s=>{
+  try{const value=JSON.parse(s.data_json) as {level?:string};return typeof value.level==='string'?[{...s,level:value.level}]:[];}
+  catch{return [];}
+ });
+ const parents=approved.filter(s=>s.setting_key!==settingKey&&isValidOrganizationParentLevel(level,s.level));
+ const pending=data.settings.filter(s=>s.kind==='organization'&&s.status==='draft');
+ const noInstitution=!approved.some(s=>s.level==='institution');
  const submit=async(e:React.FormEvent<HTMLFormElement>)=>{
   e.preventDefault();const form=e.currentTarget,fd=new FormData(form);
   const setting_key=String(fd.get('setting_key')||'').trim().toLowerCase(),title=String(fd.get('title')||'').trim();
   const parent_key=level==='institution'?'':String(fd.get('parent_key')||'');
   setError('');
-  if(!/^[a-z0-9][a-z0-9_-]{0,60}$/.test(setting_key)){setError('Kode pengaturan wajib 1–61 karakter: huruf kecil, angka, _ atau -.');return;}
+  if(!/^[a-z0-9][a-z0-9_-]{1,60}$/.test(setting_key)){setError('Kode pengaturan wajib 2–61 karakter: huruf kecil, angka, _ atau -.');return;}
   if(title.length<3){setError('Nama pengaturan minimal 3 karakter.');return;}
-  if(level!=='institution'&&!parent_key){setError('Pilih parent organisasi yang sudah disetujui.');return;}
+  if(level!=='institution'&&(!parent_key||!parents.some(p=>p.setting_key===parent_key))){setError('Pilih parent organisasi aktif yang tingkatnya lebih tinggi.');return;}
   const version=data.latestVersions['organization:'+setting_key]||0;
   const saved=await onSubmit({action:'setting',kind:'organization',setting_key,title,level,parent_key,version,...(editing?{source_id:editing.id}:{})});
-  if(saved){form.reset();setLevel('institution');}else setError('Draft belum tersimpan. Lihat pesan error dan periksa data, lalu coba lagi.');
+  if(saved){form.reset();setLevel('institution');setSettingKey('');}else setError('Draft belum tersimpan. Lihat pesan error dan periksa data, lalu coba lagi.');
  };
  return <form className="space-y-4 rounded-2xl border bg-white p-4 sm:p-5" onSubmit={submit}>
   <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-slate-900">{editing?'Update organisasi: '+editing.title:'Tambah pengaturan organisasi'}</h2>{editing&&<button type="button" disabled={disabled} onClick={onCancel} className="rounded-lg border px-3 py-2 text-xs font-semibold">Batal edit</button>}</div>
+  {noInstitution&&<p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Belum ada <strong>Institusi</strong> berstatus disetujui. Buat Institusi, lalu minta Admin lain menyetujuinya agar tersedia sebagai Parent Direktorat.</p>}
   <fieldset disabled={disabled} className="grid gap-4 disabled:opacity-50 sm:grid-cols-2">
    <label className="block min-w-0 text-xs font-semibold text-slate-700">Kode pengaturan
-    <input className={inputStyle} name="setting_key" aria-label="Kode pengaturan" required maxLength={61} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Contoh: 1 atau rti" defaultValue={editing?.setting_key} readOnly={!!editing} />
-    <span className="mt-1 block text-[11px] font-normal text-slate-500">1–61 karakter; huruf kecil, angka, _ atau -.</span>
+    <input className={inputStyle} name="setting_key" aria-label="Kode pengaturan" required minLength={2} maxLength={61} autoCapitalize="none" autoCorrect="off" spellCheck={false} onChange={e=>setSettingKey(e.target.value.trim().toLowerCase())} placeholder="Contoh: 002 atau rti" defaultValue={editing?.setting_key} readOnly={!!editing} />
+    <span className="mt-1 block text-[11px] font-normal text-slate-500">2–61 karakter; huruf kecil, angka, _ atau -.</span>
    </label>
    <label className="block min-w-0 text-xs font-semibold text-slate-700">Nama pengaturan
     <input className={inputStyle} name="title" aria-label="Nama pengaturan" required minLength={3} maxLength={240} placeholder="Contoh: RTI" defaultValue={editing?.title}/>
@@ -41,16 +49,18 @@ function OrganizationDraftForm({data,disabled,status,editing,onCancel,onSubmit}:
    {level==='institution'
     ?<p className="self-end rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Institusi adalah organisasi tingkat tertinggi, sehingga tidak memerlukan parent.</p>
     :<label className="block min-w-0 text-xs font-semibold text-slate-700">Parent organisasi aktif
-      <select className={inputStyle} name="parent_key" aria-label="Parent organisasi aktif" defaultValue={current?.parent_key||""} required>
+      <select key={level} className={inputStyle} name="parent_key" aria-label="Parent organisasi aktif" defaultValue={current?.parent_key||""} required>
        <option value="">Pilih parent yang sudah disetujui</option>
-       {parents.map(p=><option key={p.id} value={p.setting_key}>{p.title} ({p.setting_key})</option>)}
+       {parents.map(p=><option key={p.id} value={p.setting_key}>{p.title} · {organizationLevelLabel(p.level)} ({p.setting_key})</option>)}
       </select>
-      {parents.length===0&&<span className="mt-1 block text-[11px] font-normal text-amber-700">Belum ada organisasi aktif. Buat institusi dahulu dan minta Admin kedua menyetujuinya.</span>}
+      {parents.length===0&&<span className="mt-1 block text-[11px] font-normal text-amber-700">Belum ada parent aktif pada tingkat lebih tinggi. Draft organisasi belum dapat dipilih sampai Admin lain menyetujuinya.</span>}
      </label>}
   </fieldset>
+  {pending.length>0&&<p className="text-xs text-slate-600">{pending.length} draft organisasi menunggu review Admin independen.</p>}
+  {pending.length>0&&data.active_admin_reviewers!==undefined&&data.active_admin_reviewers<2&&<p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Saat ini hanya {data.active_admin_reviewers} Admin aktif. Persetujuan membutuhkan Admin kedua yang berbeda dari pembuat. <a className="font-bold underline" href="/boq/users">Buka Registrasi User</a> untuk menambahkan Admin kedua.</p>}
   {error&&<p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">{error}</p>}
   {status&&<p role="status" className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800">{status}</p>}
-  <button type="submit" disabled={disabled} className={buttonStyle}>{disabled?'Menyimpan...':editing?'Simpan update':'Simpan draft'}</button>
+  <button type="submit" disabled={disabled||(level!=='institution'&&parents.length===0)} className={buttonStyle}>{disabled?'Menyimpan...':editing?'Simpan update':'Simpan draft'}</button>
  </form>;
 }
 export default function SystemSettings({mode='parameters'}:{mode?:'parameters'|'options'}){
