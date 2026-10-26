@@ -15,6 +15,25 @@ export const SALES_STAGES=[
 export type SalesStage=(typeof SALES_STAGES)[number][0];
 export const SERVICE_FAMILIES=['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other'] as const;
 export type SalesFields=Record<string,string>;
+/** When billing matches headquarters, headquarters is the canonical source. */
+export function synchronizeBillingAddress(fields:SalesFields):SalesFields{
+ if(fields.billing_same_as_hq!=='ya')return fields;
+ return {...fields,
+  billing_address:fields.hq_address||'',
+  billing_province:fields.hq_province||'',
+  billing_postal:fields.hq_postal||''
+ };
+}
+/** A deliberate switch to a separate billing address starts with empty fields. */
+export function updateCustomerAddressFields(current:SalesFields,patch:SalesFields):SalesFields{
+ const next={...current,...patch};
+ if(current.billing_same_as_hq==='ya'&&patch.billing_same_as_hq==='tidak'){
+  next.billing_address='';
+  next.billing_province='';
+  next.billing_postal='';
+ }
+ return synchronizeBillingAddress(next);
+}
 export type SalesAccount={
  id:string; customer_number:string; legal_name:string; fields:SalesFields;
  created_at:string; created_by?:string;
