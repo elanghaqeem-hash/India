@@ -74,7 +74,23 @@ export async function POST(req:Request){
    const old=await db.prepare('SELECT max(version) AS version FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?').bind(TENANT,kind,key).first<{version:number|null}>();
    if(Number(old?.version||0)!==p.version)return fail('Versi pengaturan berubah',409);
    const id=crypto.randomUUID(),version=Number(p.version)+1;
-   await atomicSales(db,'(SELECT coalesce(max(version),0) FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?)=?',[TENANT,kind,key,Number(p.version)],[db.prepare('INSERT INTO india_setting_versions(id,tenant_id,kind,setting_key,title,data_json,version,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,kind,key,title,JSON.stringify(data),version,email),operationEvent(db,'setting',id,'DRAFT',email,{kind,key,title,data,version})]);
+   let guard='(SELECT coalesce(max(version),0) FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?)=?';
+   const args:(string|number|null)[]=[TENANT,kind,key,Number(p.version)];
+   const writes=[db.prepare('INSERT INTO india_setting_versions(id,tenant_id,kind,setting_key,title,data_json,version,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,kind,key,title,JSON.stringify(data),version,email),operationEvent(db,'setting',id,'DRAFT',email,{kind,key,title,data,version})];
+   if(p.source_id!==undefined){
+    if(!safeID(p.source_id))return fail('ID asal revisi tidak valid');
+    const source=await db.prepare('SELECT kind,setting_key,status,created_by FROM india_setting_versions WHERE tenant_id=? AND id=?')
+     .bind(TENANT,String(p.source_id)).first<{kind:string;setting_key:string;status:string;created_by:string}>();
+    if(!source||source.kind!==kind||source.setting_key!==key||!['draft','approved'].includes(source.status))return fail('Sumber revisi tidak valid',409);
+    if(source.status==='draft'){
+     if(source.created_by.toLowerCase()!==email)return fail('Hanya pembuat draft yang dapat merevisinya',403);
+     guard+=" AND EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND id=? AND status='draft' AND lower(created_by)=?)";
+     args.push(TENANT,String(p.source_id),email);
+     writes.unshift(db.prepare("UPDATE india_setting_versions SET status='rejected' WHERE tenant_id=? AND id=? AND status='draft'").bind(TENANT,String(p.source_id)));
+     writes.push(operationEvent(db,'setting',String(p.source_id),'SUPERSEDE_DRAFT',email,{replacement:id}));
+    }
+   }
+   await atomicSales(db,guard,args,writes);
    return reply({success:true,id,version,status:'draft'},201);
   }
   if(p.action==='delete_setting'){
