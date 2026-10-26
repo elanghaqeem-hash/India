@@ -56,7 +56,7 @@ test('mobile link is reachable, browser does not show saved key values',()=>{
  assert.match(ui,/p\.hasKey/);
  assert.doesNotMatch(ui,/type={showKey/);
  assert.match(ui,/x-india-ai-admin/);
- assert.match(menu,/AI Connections & API Keys/);
+ assert.match(menu,/item\('API Key','\/settings\/ai',\['admin'\]\)/);
  assert.match(nav,/navigationForRole/);
  assert.match(sidebar,/navigationForRole/);
 });

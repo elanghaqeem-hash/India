@@ -1,5 +1,6 @@
 'use client';
 
+import AdminNavigation from '@/components/admin/AdminNavigation';
 import React,{useCallback,useEffect,useState} from 'react';
 import { Bot, CheckCircle2, AlertTriangle, ShieldCheck, KeyRound, ArrowUp,
  ArrowDown, RefreshCcw, Trash2, Save, LoaderCircle, PlugZap, Send } from 'lucide-react';
@@ -86,6 +87,7 @@ export default function AISettingsPage(){
  const connected=configs.filter(x=>x.hasKey).length;
  const active=configs.filter(x=>x.enabled&&x.hasKey).length;
  return <main className="mx-auto max-w-6xl space-y-5 pb-24">
+  <AdminNavigation/>
   <header className="rounded-2xl border border-violet-100 bg-gradient-to-r from-white to-violet-50 p-5 sm:p-6">
    <div className="flex items-center gap-3"><span className="rounded-xl bg-violet-800 p-3 text-white"><PlugZap className="h-5 w-5"/></span>
     <div className="min-w-0"><h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">AI Connections & API Keys</h1>
