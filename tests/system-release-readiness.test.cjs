@@ -9,14 +9,14 @@ const compiled=ts.transpileModule(read(file),{compilerOptions:{module:ts.ModuleK
 const exp={};
 vm.runInNewContext(compiled,{exports:exp,require:n=>{throw Error('Unexpected dependency '+n)}},{filename:file});
 const {evaluateSchemaReadiness,CANONICAL_MANIFEST_PATHS}=exp;
-const ledger=()=>Array.from({length:19},(_,i)=>({version:i+13}));
+const ledger=()=>Array.from({length:20},(_,i)=>({version:i+13}));
 const manifest=()=>CANONICAL_MANIFEST_PATHS.map(path=>({path}));
 
 test('full canonical ledger/manifest is reconciled, never a production PASS',()=>{
  const x=evaluateSchemaReadiness(ledger(),manifest());
  assert.equal(x.status,'reconciled');
- assert.equal(x.latest_applied_version,31);
- assert.equal(x.required_through_version,31);
+ assert.equal(x.latest_applied_version,32);
+ assert.equal(x.required_through_version,32);
  assert.equal(x.missing_versions.length,0);
  assert.equal(x.missing_manifest_paths.length,0);
  assert.match(x.evidence_scope,/independent evidence/);
@@ -43,8 +43,8 @@ test('noncanonical migration 0025 path collision and orphan manifest are visible
 test('string ledger versions from D1 are treated as numbers but cannot spoof non-integers',()=>{
  const rows=ledger().map(v=>({version:String(v.version)}));
  assert.equal(evaluateSchemaReadiness(rows,manifest()).status,'reconciled');
- rows[18].version='31abc';
- assert.ok(evaluateSchemaReadiness(rows,manifest()).missing_versions.includes(31));
+ rows[19].version='32abc';
+ assert.ok(evaluateSchemaReadiness(rows,manifest()).missing_versions.includes(32));
 });
 
 test('Admin health API uses server-side evaluated evidence and never certifies production',()=>{
