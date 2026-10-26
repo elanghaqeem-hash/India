@@ -29,3 +29,37 @@ export async function POST(req:Request){
   await atomicSales(i.db,guard,args,writes);return out({success:true});
  }catch(e){return out({success:false,message:/constraint/.test(String(e))?'Perubahan pengguna atau organisasi konflik; muat ulang':'Pengguna dan audit tidak tersimpan'},/constraint/.test(String(e))?409:503);}
 }
+
+/**
+ * Remove an inactive registration only. Cloudflare Access identity and
+ * immutable audit evidence are intentionally managed separately.
+ */
+export async function DELETE(req:Request){
+ const a=await authorizeBoQ(req);if(!a.ok)return a.response;
+ const i=a.identity;if(i.role!=='admin')return out({success:false,message:'Admin diperlukan'},403);
+ const origin=req.headers.get('origin');
+ if(origin&&origin!==new URL(req.url).origin)return out({success:false,message:'Origin ditolak'},403);
+ let p:Record<string,unknown>;
+ try{p=await readBoundedJSON(req,2000);}
+ catch(e){return out({success:false,message:e instanceof Error?e.message:'JSON tidak valid'},e instanceof RequestBodyError?e.status:400);}
+ const email=txt(p.email,254).trim().toLowerCase();
+ if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))return out({success:false,message:'Email pengguna tidak valid'},422);
+ if(email===i.email)return out({success:false,message:'Admin tidak boleh menghapus akun sendiri'},409);
+ try{
+  const member=await i.db.prepare('SELECT role,active FROM india_members WHERE email=?').bind(email).first<{role:string;active:number}>();
+  if(!member)return out({success:false,message:'Pengguna tidak ditemukan; muat ulang daftar'},404);
+  if(member.active!==0)return out({success:false,message:'Nonaktifkan pengguna dahulu sebelum menghapus registrasi'},409);
+  const guard="EXISTS(SELECT 1 FROM india_members WHERE email=? AND role='admin' AND active=1) AND EXISTS(SELECT 1 FROM india_members WHERE email=? AND active=0) AND ?!=?";
+  await atomicSales(i.db,guard,[i.email,email,email,i.email],[
+   i.db.prepare('DELETE FROM india_member_orgs WHERE email=?').bind(email),
+   i.db.prepare('DELETE FROM india_members WHERE email=? AND active=0').bind(email),
+   i.db.prepare('INSERT INTO india_audit_log(id,tenant_id,action,actor_email,summary) VALUES(?,?,?,?,?)')
+    .bind(crypto.randomUUID(),TENANT,'MEMBER_DELETE',i.email,email+':'+member.role+':inactive'),
+   operationEvent(i.db,'member',email,'DELETE',i.email,{email,role:member.role,previous_active:false,method:'inactive_registration_removal'})
+  ]);
+  return out({success:true,message:'Registrasi pengguna dihapus dan jejak audit disimpan'});
+ }catch(e){
+  const conflict=/constraint|FOREIGN KEY|MEMBER_|CHECK constraint/i.test(String(e));
+  return out({success:false,message:conflict?'Registrasi tidak dapat dihapus karena masih terhubung dengan data lain atau status telah berubah; muat ulang daftar':'Penghapusan pengguna dan audit gagal; tidak ada perubahan tersimpan'},conflict?409:503);
+ }
+}
