@@ -28,7 +28,8 @@ const GROUP_ICONS: Record<string, LucideIcon> = {
   cash: WalletCards,
   partners: Handshake,
   reporting: ChartNoAxesCombined,
-  governance: Settings2,
+  governance: ShieldCheck,
+  administration: Settings2,
 };
 
 function NavigationContent({role, onClose, onNavigate, mobile}:{

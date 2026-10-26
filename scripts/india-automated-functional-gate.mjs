@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * INDIA 10 business menus + transaction modules: reproducible SOURCE-ONLY automated gate.
+ * INDIA business and administration menus + transaction modules: reproducible SOURCE-ONLY automated gate.
  * Executes actual project tests; refuses PASS when any case fails, when a nav target is missing,
  * or when TypeScript fails. Never accesses production, reads secrets or fabricates human UAT.
  */
@@ -19,7 +19,8 @@ const groups=[
  {name:'07 Cash, Renewal & FlexGuard',checks:['test:service-operations','test:flexguard']},
  {name:'08 Partners, Vendor & OEM',checks:['test:modules-13-15']},
  {name:'09 Reports & AI',checks:['test:modules-13-15','test:ai']},
- {name:'10 Secure Vault & Administration',checks:['test:document-vault','test:modules-13-15']},
+ {name:'10 Secure Vault',checks:['test:document-vault']},
+ {name:'11 Administration',checks:['test:admin','test:modules-13-15','test:ai']},
  {name:'Cross-module Transaction & SoD',checks:['test:p1-p2','test:india-negative','test:scoping-upload']},
  {name:'Postal Reference & Import',checks:['test:postal']},
  {name:'Server Runtime & Layout',checks:['test:runtime-compat','test:layout']},
@@ -67,14 +68,14 @@ function verifyMenus(){
  for(const blocked of ['/api/tenders','/api/wallets','/api/approvals','/api/opportunities','/api/proposals']){
   if(middleware.includes("  '"+blocked+"',"))throw Error('Legacy demo API was re-enabled: '+blocked);
  }
- return {status:'PASS',unique_menu_routes:links.length,groups:10,missing_routes:[],unreviewed_apis:[]};
+ return {status:'PASS',unique_menu_routes:links.length,groups:[...nav.matchAll(/\{id:'[^']+',label:/g)].length,missing_routes:[],unreviewed_apis:[]};
 }
 if(process.argv[2]!=='--ci'){
  console.error('Use --ci; this task does not deploy or mutate a D1 database.');
  process.exit(2);
 }
 let structure;
-try{structure=verifyMenus();console.log('PASS 10 navigation groups / '+structure.unique_menu_routes+' routes');}
+try{structure=verifyMenus();console.log('PASS '+structure.groups+' navigation groups / '+structure.unique_menu_routes+' routes');}
 catch(error){structure={status:'FAIL',error:String(error)};console.error(String(error));}
 for(const command of commands){const result=execute(command);outcome.set(command,result);evidence.push({command,...result});}
 const matrix=groups.map(x=>({
