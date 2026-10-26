@@ -4,6 +4,7 @@ import {TENANT,safeID} from '@/lib/sales-workflow';
 import {atomicSales} from '@/lib/sales-transactions';
 import {operationEvent,txt,jakartaDate,csvText} from '@/lib/operations';
 import {effectiveSetting,validateSetting} from '@/lib/system-settings';
+import {isValidOrganizationParentLevel} from '@/lib/organization-hierarchy';
 import {evaluateSchemaReadiness,pendingMasterReleaseGates} from '@/lib/release-readiness';
 export const dynamic='force-dynamic';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders});
@@ -75,9 +76,16 @@ export async function POST(req:Request){
    let extra='';const args:(string|number|null)[]=[TENANT,row.id,row.version];
    if(p.action==='approve'&&row.kind==='organization'){
     const all=await db.prepare("SELECT setting_key,data_json,version FROM india_effective_settings WHERE tenant_id=? AND kind='organization'").bind(TENANT).all<{setting_key:string;data_json:string;version:number}>();
-    const parents=new Map(all.results.map(x=>[x.setting_key,JSON.parse(x.data_json).parent_key as string|null]));
-    const data=JSON.parse(row.data_json);if(data.parent_key&&!parents.has(data.parent_key))return fail('Parent organisasi aktif diperlukan',409);parents.set(row.setting_key,data.parent_key);
-    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)||null;}}
+    const parents=new Map(all.results.map(x=>{const d=JSON.parse(x.data_json) as {level:string;parent_key:string|null};return [x.setting_key,{level:d.level,parentKey:d.parent_key}] as const;}));
+    const data=JSON.parse(row.data_json) as {level:string;parent_key:string|null};
+    if(data.level==='institution'&&data.parent_key)return fail('Institusi tidak boleh memiliki parent',409);
+    if(data.level!=='institution'){
+     const parent=data.parent_key?parents.get(data.parent_key):null;
+     if(!parent)return fail('Parent organisasi aktif diperlukan',409);
+     if(!isValidOrganizationParentLevel(data.level,parent.level))return fail('Tingkat parent harus lebih tinggi daripada organisasi baru',409);
+    }
+    parents.set(row.setting_key,{level:data.level,parentKey:data.parent_key});
+    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)?.parentKey||null;}}
     // Serialize organizational activations against the complete approved organization version set.
     extra=" AND (SELECT coalesce(sum(version),0) FROM india_effective_settings WHERE tenant_id=? AND kind='organization')=?";
     args.push(TENANT,all.results.reduce((n,x)=>n+x.version,0));
