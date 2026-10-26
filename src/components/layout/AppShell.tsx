@@ -22,14 +22,14 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
 
   useEffect(()=>{
     try {
-      const saved=window.localStorage.getItem('india:right-navigation-open');
+      const saved=window.localStorage.getItem('india:left-navigation-open') ?? window.localStorage.getItem('india:right-navigation-open');
       if(saved==='true'||saved==='false')setDesktopMenuOpen(saved==='true');
     } catch {/* Local storage is optional, including in privacy mode. */}
     setMenuPreferenceLoaded(true);
   },[]);
   useEffect(()=>{
     if(!menuPreferenceLoaded)return;
-    try {window.localStorage.setItem('india:right-navigation-open',String(desktopMenuOpen));}
+    try {window.localStorage.setItem('india:left-navigation-open',String(desktopMenuOpen));}
     catch {/* Keep the menu usable when storage is unavailable. */}
   },[desktopMenuOpen,menuPreferenceLoaded]);
 
@@ -81,11 +81,11 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
          'Sesi belum terverifikasi. Fitur transaksi memerlukan Cloudflare Access dan skema D1 yang sesuai.'}
       </div>
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
+        {role&&<Sidebar role={role} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen} onClose={onCloseMenu}/>}
         <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto px-3 pb-28 pt-4 sm:p-6 lg:p-8 print:max-w-none print:overflow-visible print:p-0">
           {role&&<AIWorkbench/>}
           {children}
         </main>
-        {role&&<Sidebar role={role} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen} onClose={onCloseMenu}/>}
       </div>
       {role&&<MobileNav role={role}/>}
     </div>
