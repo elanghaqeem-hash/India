@@ -4,7 +4,7 @@ import AdminNavigation from './AdminNavigation';
 import {isValidOrganizationParentLevel, organizationLevelLabel, organizationLevels} from '@/lib/organization-hierarchy';
 import {commercialAPI,EntryForm,buttonStyle,type FormField} from '@/components/sales/CommercialUI';
 type Setting={id:string;kind:string;setting_key:string;title:string;data_json:string;status:string;version:number;created_by:string};
-type Data={role:string;identityEmail:string;settings:Setting[];effective:Setting[];catalog:Record<string,unknown>[];numbers:{id:string;number:string;actor_email:string}[]};
+type Data={role:string;identityEmail:string;settings:Setting[];effective:Setting[];catalog:Record<string,unknown>[];numbers:{id:string;number:string;actor_email:string}[];active_admin_reviewers?:number};
 type HealthData={database:{ok:boolean;latency_ms:number};checked_at:string;manifest:{path:string}[];release_readiness:{schema:{status:'reconciled'|'incomplete';latest_applied_version:number|null;required_through_version:number;missing_versions:number[];missing_manifest_paths:string[];conflicting_manifest_paths:string[];manifest_without_ledger:string[];evidence_scope:string};production_gate:'HOLD';master_gates:{id:string;label:string;status:string;reason:string}[];required_evidence:string[];note:string}};
 const categories=[['organization','Organisasi'],['approval','Approval Matrix'],['access','Access Policy'],['numbering','Numbering'],['template','Templates'],['integration','API Integrations'],['catalog','Service Catalog'],['audit','Audit Logs'],['health','Monitoring & Backup']] as const;
 
@@ -53,6 +53,7 @@ function OrganizationSettingForm({data,busy,onSubmit}:{data:Data;busy:boolean;on
   {level==='institution'&&<p className="text-sm text-slate-600">Institusi adalah organisasi induk tertinggi dan tidak memerlukan Parent.</p>}
   {needsParent&&parents.length===0&&<p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Tidak ada organisasi induk aktif yang sesuai untuk tingkat <strong>{organizationLevelLabel(level)}</strong>. {pending.length?'Ada '+pending.length+' draft organisasi menunggu review Admin independen.':'Daftarkan organisasi tingkat lebih tinggi terlebih dahulu.'} Pilihan baru muncul setelah disetujui.</p>}
   {pending.length>0&&<p className="text-xs text-slate-600">{pending.length} draft organisasi belum efektif; persetujuan dilakukan oleh Admin yang berbeda dari pembuat.</p>}
+  {pending.length>0&&data.active_admin_reviewers!==undefined&&data.active_admin_reviewers<2&&<p role="status" className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">Hanya {data.active_admin_reviewers} Admin aktif. Persetujuan independen membutuhkan Admin kedua yang berbeda dari pembuat. <a className="font-bold underline" href="/boq/users">Buka Registrasi User untuk menambahkan Admin kedua</a>.</p>}
   <button type="submit" disabled={busy||!ready} className={buttonStyle}>Simpan draft</button>
  </form>;
 }
