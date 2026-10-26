@@ -1,10 +1,11 @@
 # INDIA Admin Registration Center — implementation and release note
 
 Routes (role Admin + verified Cloudflare Access + active D1 membership required for write):
-- /settings/admin — central Admin menu with server-verified access
+- Navigasi Admin pada sidebar dan tab Admin; tidak ada halaman /settings/admin yang dijadikan tautan
 - /boq/users — existing user enrollment, role, unit and active status; protects last active Admin
 - /settings/system — existing versioned parameters, independent approval and audit
-- /settings/options — new D1 option registry with optimistic versioning and soft disable
+- /settings/options — existing configuration choices (service catalog / access policy / templates), preserved without feature regression
+- /settings/option-registry — new D1 option registry with optimistic versioning and soft disable
 - /settings/ai — existing AES-GCM AI API key vault with rotate/test/delete, never returns key
 
 Backend:
