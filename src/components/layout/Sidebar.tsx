@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
   BriefcaseBusiness, Calculator, ChartNoAxesCombined, ChevronDown, ClipboardCheck,
-  Handshake, LayoutDashboard, Megaphone, PanelRightClose, Search, Settings2,
+  Handshake, LayoutDashboard, Megaphone, PanelLeftClose, Search, Settings2,
   ShieldCheck, UsersRound, WalletCards,
   type LucideIcon,
 } from 'lucide-react';
@@ -49,7 +49,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
   return (
     <div className="flex h-full min-h-0 flex-col bg-white">
       <div className="relative shrink-0 overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-blue-900 px-5 pb-5 pt-5 text-white">
-        <div className="pointer-events-none absolute -right-10 -top-14 h-40 w-40 rounded-full bg-cyan-400/10 blur-2xl"/>
+        <div className="pointer-events-none absolute -left-10 -top-14 h-40 w-40 rounded-full bg-cyan-400/10 blur-2xl"/>
         <div className="relative flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-white/15 bg-white/10 shadow-inner">
@@ -62,7 +62,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
             </div>
           </div>
           <button type="button" onClick={onClose} autoFocus={mobile}
-            aria-label="Sembunyikan sidebar kanan" title="Sembunyikan sidebar kanan"
+            aria-label="Sembunyikan sidebar kiri" title="Sembunyikan sidebar kiri"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
             <PanelRightClose className="h-4 w-4" aria-hidden="true"/>
           </button>
@@ -129,7 +129,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
   );
 }
 
-/** Right-hand navigation. Menus use the canonical role-scoped route catalog. */
+/** Left-hand navigation. Menus use the canonical role-scoped route catalog. */
 export const Sidebar:React.FC<SidebarProps> = ({role,desktopOpen,mobileOpen,onClose}) => {
   useEffect(()=>{
     if(!mobileOpen)return;
@@ -143,9 +143,9 @@ export const Sidebar:React.FC<SidebarProps> = ({role,desktopOpen,mobileOpen,onCl
   return (
     <>
       <div className={['no-print hidden shrink-0 overflow-hidden border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:block',
-        desktopOpen?'w-80 border-l':'w-0'].join(' ')}>
+        desktopOpen?'w-80 border-r':'w-0'].join(' ')}>
         {desktopOpen&&(
-          <aside id="india-right-sidebar-desktop" aria-label="Navigasi modul INDIA"
+          <aside id="india-left-sidebar-desktop" aria-label="Navigasi modul INDIA"
             className="sticky top-0 h-[calc(100dvh-4rem)] w-80 overflow-hidden">
             <NavigationContent role={role} onClose={onClose} onNavigate={()=>{}} mobile={false}/>
           </aside>
@@ -155,8 +155,8 @@ export const Sidebar:React.FC<SidebarProps> = ({role,desktopOpen,mobileOpen,onCl
         <div className="no-print fixed inset-0 z-[70] lg:hidden">
           <button type="button" aria-label="Tutup navigasi INDIA" onClick={onClose}
             className="absolute inset-0 h-full w-full bg-slate-950/55 backdrop-blur-[2px]"/>
-          <aside id="india-right-sidebar-mobile" role="dialog" aria-modal="true" aria-label="Navigasi modul INDIA"
-            className="absolute inset-y-0 right-0 h-[100dvh] w-[min(22rem,90vw)] overflow-hidden border-l border-white/20 bg-white shadow-2xl">
+          <aside id="india-left-sidebar-mobile" role="dialog" aria-modal="true" aria-label="Navigasi modul INDIA"
+            className="absolute inset-y-0 left-0 h-[100dvh] w-[min(22rem,90vw)] overflow-hidden border-r border-white/20 bg-white shadow-2xl">
             <NavigationContent role={role} onClose={onClose} onNavigate={onClose} mobile={true}/>
           </aside>
         </div>
