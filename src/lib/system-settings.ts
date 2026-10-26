@@ -14,10 +14,10 @@ export async function accessRestricted(db:D1DB,path:string,role:string){
  const p=await effectiveSetting(db,'access',resource);return !!p&&Array.isArray(p.denied_roles)&&p.denied_roles.includes(role);
 }
 export function validateSetting(kind:string,key:string,p:Record<string,unknown>):Record<string,unknown>{
- if(!/^[a-z0-9][a-z0-9_-]{1,60}$/.test(key))throw Error('Kode pengaturan 2–61 karakter huruf kecil, angka, _ atau -');
+ if(!/^[a-z0-9][a-z0-9_-]{0,60}$/.test(key))throw Error('Kode pengaturan 1–61 karakter huruf kecil, angka, _ atau -');
  if(kind==='organization'){
   if(!['institution','directorate','division','unit','branch'].includes(String(p.level)))throw Error('Level organisasi tidak valid');
-  if(p.parent_key&&(!/^[a-z0-9][a-z0-9_-]{1,60}$/.test(String(p.parent_key))||p.parent_key===key))throw Error('Parent organisasi tidak valid');
+  if(p.parent_key&&(!/^[a-z0-9][a-z0-9_-]{0,60}$/.test(String(p.parent_key))||p.parent_key===key))throw Error('Parent organisasi tidak valid');
   if(p.level==='institution'&&p.parent_key)throw Error('Institusi tidak memiliki parent');
   if(p.level!=='institution'&&!p.parent_key)throw Error('Parent organisasi wajib');
   return {level:p.level,parent_key:p.parent_key||null};
