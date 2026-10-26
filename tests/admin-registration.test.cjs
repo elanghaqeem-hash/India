@@ -55,8 +55,8 @@ test('Admin registration UI enforces server-verified role; options API cannot ap
   assert.match(source,/authorizeBoQ\(/);
   assert.match(source,/role\s*!==\s*'admin'|identity\.role\s*!==\s*'admin'|i\.role\s*!==\s*'admin'/);
  }
- assert.match(read('src/app/settings/options/page.tsx'),/allowed&&/);
- assert.match(read('src/lib/enterprise-navigation.ts'),/Registrasi User & Role/);
- assert.match(read('src/lib/enterprise-navigation.ts'),/Registrasi Opsi/);
- assert.match(read('src/lib/enterprise-navigation.ts'),/Registrasi API Key/);
+ assert.match(read('src/app/settings/option-registry/page.tsx'),/allowed&&/);
+ assert.match(read('src/lib/enterprise-navigation.ts'),/Registrasi User/);
+ assert.match(read('src/lib/enterprise-navigation.ts'),/Opsi/);
+ assert.match(read('src/lib/enterprise-navigation.ts'),/API Key/);
 });

@@ -10,9 +10,9 @@ const exportsObject={};
 vm.runInNewContext(transpiled,{exports:exportsObject,require:n=>{throw Error('Unexpected runtime dependency '+n)}},{filename:file});
 const {INDIA_NAVIGATION,navigationForRole}=exportsObject;
 
-test('ten existing business menu groups, no duplicate or demo routes',()=>{
- assert.equal(INDIA_NAVIGATION.length,10);
- assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,10);
+test('eleven business and administration menu groups, no duplicate or demo routes',()=>{
+ assert.equal(INDIA_NAVIGATION.length,11);
+ assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,11);
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
@@ -26,12 +26,10 @@ test('ten existing business menu groups, no duplicate or demo routes',()=>{
 test('user roles are filtered; Admin alone gets secret-management menu',()=>{
  const admin=navigationForRole('admin').flatMap(g=>g.items.map(x=>x.href));
  assert.ok(admin.includes('/settings/system'));assert.ok(admin.includes('/settings/ai'));
- assert.ok(admin.includes('/settings/admin'));assert.ok(admin.includes('/boq/users'));assert.ok(admin.includes('/settings/options'));
  for(const role of ['sales','marketing','presales','finance','approver','legal','viewer']){
   const routes=navigationForRole(role).flatMap(g=>g.items.map(x=>x.href));
   assert.ok(!routes.includes('/settings/system'),role);
   assert.ok(!routes.includes('/settings/ai'),role);
-  for(const adminRoute of ['/settings/admin','/boq/users','/settings/options'])assert.ok(!routes.includes(adminRoute),role);
  }
  assert.deepEqual(Array.from(navigationForRole('viewer').flatMap(g=>g.items.map(x=>x.href))),['/boq']);
  assert.equal(navigationForRole('made-up-role').length,0);

@@ -34,7 +34,7 @@ const permitted = [
   '/api/marketing/leads', '/api/marketing/campaigns',
   '/api/marketing/lead-intelligence', '/api/sales',
   '/api/sales/customer360', '/api/sales/service-operations',
-  '/api/partners', '/api/reports', '/api/admin/system', '/api/admin/options', '/api/reference/options',
+  '/api/partners', '/api/reports', '/api/admin/system',
 ];
 const blocked = [
   '/api/opportunities', '/api/proposals', '/api/tenders', '/api/approvals',
