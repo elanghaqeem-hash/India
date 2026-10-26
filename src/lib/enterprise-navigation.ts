@@ -66,11 +66,14 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   ]},
   {id:'reporting',label:'09 · Reporting, Analytics & AI',items:[
     item('Enterprise Reports','/reports',['admin','marketing','sales','finance','approver']),
-    item('AI Connections & API Keys','/settings/ai',['admin']),
   ]},
   {id:'governance',label:'10 · Document Center & Governance',items:[
     item('Secure Document Vault','/sales/documents',COMMERCIAL),
-    item('Administration & System Settings','/settings/system',['admin']),
+    item('Pusat Administrasi','/settings/admin',['admin']),
+    item('Registrasi User & Role','/boq/users',['admin']),
+    item('Parameter Sistem','/settings/system',['admin']),
+    item('Registrasi Opsi','/settings/options',['admin']),
+    item('Registrasi API Key','/settings/ai',['admin']),
   ]},
 ] as const;
 

@@ -16,7 +16,7 @@ test('ten existing business menu groups, no duplicate or demo routes',()=>{
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
-  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq$|flexguard$|post-po$|approvals$|scoping$)/);
+  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq(?:/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
  for(const legacy of ['/','/pricing','/tender','/proposals'])
@@ -26,10 +26,12 @@ test('ten existing business menu groups, no duplicate or demo routes',()=>{
 test('user roles are filtered; Admin alone gets secret-management menu',()=>{
  const admin=navigationForRole('admin').flatMap(g=>g.items.map(x=>x.href));
  assert.ok(admin.includes('/settings/system'));assert.ok(admin.includes('/settings/ai'));
+ assert.ok(admin.includes('/settings/admin'));assert.ok(admin.includes('/boq/users'));assert.ok(admin.includes('/settings/options'));
  for(const role of ['sales','marketing','presales','finance','approver','legal','viewer']){
   const routes=navigationForRole(role).flatMap(g=>g.items.map(x=>x.href));
   assert.ok(!routes.includes('/settings/system'),role);
   assert.ok(!routes.includes('/settings/ai'),role);
+  for(const adminRoute of ['/settings/admin','/boq/users','/settings/options'])assert.ok(!routes.includes(adminRoute),role);
  }
  assert.deepEqual(Array.from(navigationForRole('viewer').flatMap(g=>g.items.map(x=>x.href))),['/boq']);
  assert.equal(navigationForRole('made-up-role').length,0);
