@@ -28,19 +28,21 @@ export default function AdminOptionsPage(){
   try{
    const r=await fetch('/api/admin/options',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({...form,action:'save'})});
    const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Penyimpanan ditolak');
-   await load();setForm({...empty});setMessage('Opsi dan audit perubahan berhasil disimpan.');
+   setForm({...empty});setMessage('Opsi dan audit perubahan berhasil disimpan.');
+   try{await load();}catch{setMessage('Opsi tersimpan, tetapi daftar belum dapat dimuat ulang. Perbarui halaman untuk verifikasi.');}
   }catch(e){setError(e instanceof Error?e.message:'Penyimpanan gagal');}
   finally{setBusy(false);}
  };
  const toggle=async(x:Option)=>{setBusy(true);setError('');setMessage('');
   try{const r=await fetch('/api/admin/options',{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'save',group_key:x.group_key,option_value:x.option_value,option_label:x.option_label,description:x.description,sort_order:x.sort_order,active:x.active!==1,version:x.version})});
    const j=await r.json();if(!r.ok||!j.success)throw Error(j.message||'Gagal mengubah status');
-   await load();setMessage('Status opsi tersimpan.');}
+   setMessage('Status opsi berhasil disimpan.');
+   try{await load();}catch{setMessage('Status opsi tersimpan, tetapi daftar belum dapat dimuat ulang. Perbarui halaman untuk verifikasi.');}}
   catch(e){setError(e instanceof Error?e.message:'Perubahan gagal');}finally{setBusy(false);}
  };
  return <main className="mx-auto max-w-6xl space-y-5 pb-24">
   <header className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-white to-indigo-50 p-5 sm:p-6">
-   <Link href="/settings/options" className="text-xs font-semibold text-indigo-700">Administrasi / Registrasi Opsi</Link>
+   <Link href="/settings/options" className="text-xs font-semibold text-indigo-700">Opsi / Registrasi Opsi</Link>
    <div className="mt-2 flex items-center gap-3"><span className="rounded-xl bg-indigo-900 p-3 text-white"><ListChecks className="h-5 w-5"/></span><div><h1 className="text-xl font-extrabold sm:text-2xl">Registrasi Opsi INDIA</h1><p className="text-xs text-slate-600">Master dropdown terpusat, berkode, dapat diaktifkan/nonaktifkan, dan terekam dalam audit.</p></div></div>
    <p className="mt-4 flex items-center gap-2 text-xs text-indigo-900"><ShieldCheck className="h-4 w-4"/> Pembuatan dan perubahan hanya oleh Admin. Pengguna terotorisasi lain hanya dapat membaca pilihan aktif.</p>
   </header>
