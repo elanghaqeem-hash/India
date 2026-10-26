@@ -7,9 +7,10 @@ type Data={role:string;identityEmail:string;settings:Setting[];effective:Setting
 type HealthData={database:{ok:boolean;latency_ms:number};checked_at:string;manifest:{path:string}[];release_readiness:{schema:{status:'reconciled'|'incomplete';latest_applied_version:number|null;required_through_version:number;missing_versions:number[];missing_manifest_paths:string[];conflicting_manifest_paths:string[];manifest_without_ledger:string[];evidence_scope:string};production_gate:'HOLD';master_gates:{id:string;label:string;status:string;reason:string}[];required_evidence:string[];note:string}};
 const categories=[['organization','Organisasi'],['approval','Approval Matrix'],['access','Access Policy'],['numbering','Numbering'],['template','Templates'],['integration','API Integrations'],['catalog','Service Catalog'],['audit','Audit Logs'],['health','Monitoring & Backup']] as const;
 const organizationLevels=[['institution','Institusi'],['directorate','Direktorat'],['division','Divisi'],['unit','Unit kerja'],['branch','Cabang']] as const;
-function OrganizationDraftForm({data,disabled,status,onSubmit}:{data:Data;disabled:boolean;status:string;onSubmit:(p:Record<string,unknown>)=>Promise<boolean>}){
- const [level,setLevel]=useState<string>('institution'),[error,setError]=useState('');
- const parents=data.effective.filter(s=>s.kind==='organization');
+function OrganizationDraftForm({data,disabled,status,editing,onCancel,onSubmit}:{data:Data;disabled:boolean;status:string;editing:Setting|null;onCancel:()=>void;onSubmit:(p:Record<string,unknown>)=>Promise<boolean>}){
+ const current=editing?JSON.parse(editing.data_json) as {level?:string;parent_key?:string|null}:null;
+ const [level,setLevel]=useState<string>(current?.level||'institution'),[error,setError]=useState('');
+ const parents=data.effective.filter(s=>s.kind==='organization'&&s.setting_key!==editing?.setting_key);
  const submit=async(e:React.FormEvent<HTMLFormElement>)=>{
   e.preventDefault();const form=e.currentTarget,fd=new FormData(form);
   const setting_key=String(fd.get('setting_key')||'').trim().toLowerCase(),title=String(fd.get('title')||'').trim();
@@ -19,18 +20,18 @@ function OrganizationDraftForm({data,disabled,status,onSubmit}:{data:Data;disabl
   if(title.length<3){setError('Nama pengaturan minimal 3 karakter.');return;}
   if(level!=='institution'&&!parent_key){setError('Pilih parent organisasi yang sudah disetujui.');return;}
   const version=Math.max(0,...data.settings.filter(x=>x.kind==='organization'&&x.setting_key===setting_key).map(x=>x.version));
-  const saved=await onSubmit({action:'setting',kind:'organization',setting_key,title,level,parent_key,version});
+  const saved=await onSubmit({action:'setting',kind:'organization',setting_key,title,level,parent_key,version,...(editing?{source_id:editing.id}:{})});
   if(saved){form.reset();setLevel('institution');}else setError('Draft belum tersimpan. Lihat pesan error dan periksa data, lalu coba lagi.');
  };
  return <form className="space-y-4 rounded-2xl border bg-white p-4 sm:p-5" onSubmit={submit}>
-  <h2 className="font-bold text-slate-900">Tambah / revisi pengaturan</h2>
+  <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="font-bold text-slate-900">{editing?'Update organisasi: '+editing.title:'Tambah pengaturan organisasi'}</h2>{editing&&<button type="button" disabled={disabled} onClick={onCancel} className="rounded-lg border px-3 py-2 text-xs font-semibold">Batal edit</button>}</div>
   <fieldset disabled={disabled} className="grid gap-4 disabled:opacity-50 sm:grid-cols-2">
    <label className="block min-w-0 text-xs font-semibold text-slate-700">Kode pengaturan
-    <input className={inputStyle} name="setting_key" aria-label="Kode pengaturan" required maxLength={61} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Contoh: 1 atau rti" />
+    <input className={inputStyle} name="setting_key" aria-label="Kode pengaturan" required maxLength={61} autoCapitalize="none" autoCorrect="off" spellCheck={false} placeholder="Contoh: 1 atau rti" defaultValue={editing?.setting_key} readOnly={!!editing} />
     <span className="mt-1 block text-[11px] font-normal text-slate-500">1–61 karakter; huruf kecil, angka, _ atau -.</span>
    </label>
    <label className="block min-w-0 text-xs font-semibold text-slate-700">Nama pengaturan
-    <input className={inputStyle} name="title" aria-label="Nama pengaturan" required minLength={3} maxLength={240} placeholder="Contoh: RTI"/>
+    <input className={inputStyle} name="title" aria-label="Nama pengaturan" required minLength={3} maxLength={240} placeholder="Contoh: RTI" defaultValue={editing?.title}/>
    </label>
    <label className="block min-w-0 text-xs font-semibold text-slate-700">Tingkat organisasi
     <select name="level" aria-label="Tingkat organisasi" className={inputStyle} value={level} onChange={e=>{setLevel(e.target.value);setError('');}} required>
@@ -40,7 +41,7 @@ function OrganizationDraftForm({data,disabled,status,onSubmit}:{data:Data;disabl
    {level==='institution'
     ?<p className="self-end rounded-xl bg-slate-50 p-3 text-xs text-slate-600">Institusi adalah organisasi tingkat tertinggi, sehingga tidak memerlukan parent.</p>
     :<label className="block min-w-0 text-xs font-semibold text-slate-700">Parent organisasi aktif
-      <select className={inputStyle} name="parent_key" aria-label="Parent organisasi aktif" defaultValue="" required>
+      <select className={inputStyle} name="parent_key" aria-label="Parent organisasi aktif" defaultValue={current?.parent_key||""} required>
        <option value="">Pilih parent yang sudah disetujui</option>
        {parents.map(p=><option key={p.id} value={p.setting_key}>{p.title} ({p.setting_key})</option>)}
       </select>
@@ -49,15 +50,15 @@ function OrganizationDraftForm({data,disabled,status,onSubmit}:{data:Data;disabl
   </fieldset>
   {error&&<p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-800">{error}</p>}
   {status&&<p role="status" className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800">{status}</p>}
-  <button type="submit" disabled={disabled} className={buttonStyle}>{disabled?'Menyimpan...':'Simpan draft'}</button>
+  <button type="submit" disabled={disabled} className={buttonStyle}>{disabled?'Menyimpan...':editing?'Simpan update':'Simpan draft'}</button>
  </form>;
 }
 export default function SystemSettings({mode='parameters'}:{mode?:'parameters'|'options'}){
  const visibleCategories=categories.filter(([key])=>mode==='options'?['catalog','access','template'].includes(key):!['catalog','access','template'].includes(key));
- const [tab,setTab]=useState(mode==='options'?'catalog':'organization'),[data,setData]=useState<Data|null>(null),[health,setHealth]=useState<HealthData|null>(null),[audit,setAudit]=useState<{items:Record<string,unknown>[];sales:Record<string,unknown>[];next_page:number|null}|null>(null),[page,setPage]=useState(0),[busy,setBusy]=useState(false),[message,setMessage]=useState('');
+ const [tab,setTab]=useState(mode==='options'?'catalog':'organization'),[data,setData]=useState<Data|null>(null),[health,setHealth]=useState<HealthData|null>(null),[audit,setAudit]=useState<{items:Record<string,unknown>[];sales:Record<string,unknown>[];next_page:number|null}|null>(null),[page,setPage]=useState(0),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[editing,setEditing]=useState<Setting|null>(null);
  const load=useCallback(async()=>{if(tab==='health')setHealth(await commercialAPI('/api/admin/system?section=health'));else if(tab==='audit')setAudit(await commercialAPI('/api/admin/system?section=audit&page='+page));else setData(await commercialAPI('/api/admin/system'));},[tab,page]);
  useEffect(()=>{let active=true;setMessage('');const endpoint=tab==='health'?'/api/admin/system?section=health':tab==='audit'?'/api/admin/system?section=audit&page='+page:'/api/admin/system';void commercialAPI(endpoint).then(x=>{if(!active)return;if(tab==='health')setHealth(x);else if(tab==='audit')setAudit(x);else setData(x);}).catch(e=>{if(active)setMessage(e.message);});return()=>{active=false;};},[tab,page]);
- const mutate=async(p:Record<string,unknown>)=>{setBusy(true);setMessage('');try{const x=await commercialAPI('/api/admin/system',p);const savedMessage=x.number?'Nomor dialokasikan: '+x.number:'Draft dan audit berhasil tersimpan. Admin reviewer yang berbeda harus menyetujui draft agar aktif.';setMessage(savedMessage);try{await load();}catch{setMessage(savedMessage+' Daftar belum dapat dimuat ulang; muat ulang halaman untuk memastikan versi terbaru.');}return true;}catch(e){setMessage(e instanceof Error?e.message:'Transaksi gagal');return false;}finally{setBusy(false);}};
+ const mutate=async(p:Record<string,unknown>)=>{setBusy(true);setMessage('');try{const x=await commercialAPI('/api/admin/system',p);const savedMessage=x.number?'Nomor dialokasikan: '+x.number:x.status==='discarded'?'Draft dihapus dari daftar; jejak audit tetap tersimpan.':x.status==='deletion_pending'?'Permintaan hapus dibuat. Admin lain harus menyetujuinya sebelum pengaturan aktif dinonaktifkan.':'Draft dan audit berhasil tersimpan. Admin reviewer yang berbeda harus menyetujui draft agar aktif.';setMessage(savedMessage);if(p.action==='setting'||p.action==='delete_setting')setEditing(null);try{await load();}catch{setMessage(savedMessage+' Daftar belum dapat dimuat ulang; muat ulang halaman untuk memastikan versi terbaru.');}return true;}catch(e){setMessage(e instanceof Error?e.message:'Transaksi gagal');return false;}finally{setBusy(false);}};
  const fields:FormField[]=[{key:'setting_key',label:'Kode pengaturan'},{key:'title',label:'Nama pengaturan'}];
  if(tab==='approval'){fields[0]={key:'setting_key',label:'Proses approval',type:'select',options:[{value:'boq',label:'BoQ'}]};fields.push({key:'min_margin_pct',label:'Batas minimum margin (%)',type:'number',min:25,max:100},{key:'approver_limit_idr',label:'Batas nilai Approver (IDR), di atasnya Admin',type:'number'});}
  if(tab==='numbering'){fields[0]={key:'setting_key',label:'Jenis dokumen',type:'select',options:['quotation','proposal','purchase'].map(value=>({value,label:value}))};fields.push({key:'prefix',label:'Prefix nomor (huruf besar / angka / tanda -)'});}
