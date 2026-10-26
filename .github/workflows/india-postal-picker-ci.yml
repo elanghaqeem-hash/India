@@ -1,0 +1,28 @@
+name: INDIA Postal Code Picker CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - src/components/sales/PostalAddressFields.tsx
+      - src/lib/indonesia-postal.ts
+      - src/app/api/reference/postal/route.ts
+      - tests/indonesia-postal*.test.cjs
+      - .github/workflows/india-postal-picker-ci.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  postal:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Existing postcode and search regressions
+        run: npm run test:postal
+      - name: TypeScript strict check
+        run: npm run typecheck
