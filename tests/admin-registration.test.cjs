@@ -59,4 +59,10 @@ test('Admin registration UI enforces server-verified role; options API cannot ap
  assert.match(read('src/lib/enterprise-navigation.ts'),/Registrasi User/);
  assert.match(read('src/lib/enterprise-navigation.ts'),/Opsi/);
  assert.match(read('src/lib/enterprise-navigation.ts'),/API Key/);
+ assert.match(read('src/lib/enterprise-navigation.ts'),/\/settings\/option-registry/);
+ assert.match(read('src/components/admin/AdminNavigation.tsx'),/\/settings\/option-registry/);
+ assert.match(read('src/app/settings/option-registry/page.tsx'),/Perbarui halaman untuk verifikasi/);
+ for(const href of ['/settings/system','/settings/options','/settings/option-registry','/settings/ai']){
+  assert.ok(fs.existsSync(path.join(__dirname,'..','src/app',href.slice(1),'page.tsx')), 'Missing Admin page '+href);
+ }
 });
