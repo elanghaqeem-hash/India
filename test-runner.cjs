@@ -1,4 +1,4 @@
-// Standalone CommonJS test verification runner for ICOP CyberBusiness 360
+// Standalone CommonJS test verification runner for INDIA CyberBusiness 360
 
 // 1. Dynamic Pricing Engine Math
 function calculateDAI(indices) {
@@ -69,7 +69,7 @@ function calculateVaptMandays(input) {
 }
 
 console.log('================================================================');
-console.log('ICOP CYBERBUSINESS 360 — PHASE 1 COMMERCIAL ENGINE VERIFICATION');
+console.log('INDIA CYBERBUSINESS 360 — PHASE 1 COMMERCIAL ENGINE VERIFICATION');
 console.log('================================================================\n');
 
 let passed = 0;

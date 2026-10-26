@@ -1,4 +1,4 @@
-// Test Verification Script for ICOP CyberBusiness 360 Core Engines
+// Test Verification Script for INDIA CyberBusiness 360 Core Engines
 // Verifies Dynamic Pricing, BoQ, DoA, and Scoping formulas
 
 import {
@@ -13,7 +13,7 @@ import { calculateVaptMandays, calculateSocSizing } from './src/lib/scoping-calc
 import { generateQuotationNumber, getRomanMonth } from './src/lib/formatters';
 
 console.log('================================================================');
-console.log('ICOP CYBERBUSINESS 360 — PHASE 1 CORE COMMERCIAL TEST SUITE');
+console.log('INDIA CYBERBUSINESS 360 — PHASE 1 CORE COMMERCIAL TEST SUITE');
 console.log('================================================================\n');
 
 let passedTests = 0;

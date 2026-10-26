@@ -1,5 +1,5 @@
-// ICOP CyberBusiness 360 Core Types & Enums
-// Sourced from icop_*_schema.sql and BRD v2.0 / PreDev Decisions
+// INDIA CyberBusiness 360 Core Types & Enums
+// Sourced from the database schemas and BRD v2.0 / PreDev Decisions
 
 export type SystemRole =
   | 'super_admin'

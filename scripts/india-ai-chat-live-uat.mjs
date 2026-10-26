@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Genuine ICOP AI UAT: signed human Admin Cloudflare Access + configured
+ * Genuine INDIA AI UAT: signed human Admin Cloudflare Access + configured
  * OpenRouter on an isolated candidate UAT Worker. This is NOT a mock test.
  * Never use on production. No customer records or provider secrets logged.
  */

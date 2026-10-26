@@ -1,6 +1,6 @@
-// ICOP CyberBusiness 360 In-Memory & File-Persistent Store
+// INDIA CyberBusiness 360 In-Memory Preview Store
 // Seeded with realistic data from BRD v2.0 & Technotama test scenarios.
-// Automatically persists state to disk (data/icop_database.json) when running in server environment.
+// Preview state is deliberately non-persistent.
 
 import {
   Company,

@@ -33,7 +33,7 @@ async function runScenario(browser, name, viewport, mobile) {
     });
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
     await page.getByTitle('Buka AI Business Assistant').click();
-    const dialog = page.getByRole('dialog', { name: 'ICOP AI Business Assistant' });
+    const dialog = page.getByRole('dialog', { name: 'INDIA AI Business Assistant' });
     await dialog.waitFor({ timeout: 10000 });
     const input = page.getByRole('textbox', { name: 'Pesan untuk AI Business Assistant' });
     const send = page.getByRole('button', { name: 'Kirim pesan ke AI' });
