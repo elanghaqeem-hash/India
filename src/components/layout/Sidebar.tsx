@@ -64,7 +64,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
           <button type="button" onClick={onClose} autoFocus={mobile}
             aria-label="Sembunyikan sidebar kiri" title="Sembunyikan sidebar kiri"
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/20 bg-white/10 text-white transition hover:bg-white/20 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">
-            <PanelRightClose className="h-4 w-4" aria-hidden="true"/>
+            <PanelLeftClose className="h-4 w-4" aria-hidden="true"/>
           </button>
         </div>
         <div className="relative mt-5 flex items-center justify-between gap-2">
