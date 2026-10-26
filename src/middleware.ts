@@ -20,6 +20,8 @@ const D1_ROUTES = new Set([
   '/api/partners',
   '/api/reports',
   '/api/admin/system',
+  '/api/admin/options',
+  '/api/reference/options',
 ]);
 
 export function isEnabledD1ApiRoute(path: string): boolean {
