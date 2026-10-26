@@ -43,7 +43,7 @@
     "test:modules-browser": "node tests/run-modules-browser.cjs",
     "test:service-operations": "node --test tests/service-operations.test.cjs",
     "test:release-controls": "node --test tests/release-evidence.test.cjs tests/ai-request-budget.test.cjs tests/india-operational-release-gate.test.cjs tests/india-feasibility-live-access-guard.test.cjs",
-    "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs && node --test tests/audit-remediation.test.cjs"
+    "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs tests/admin-user-delete.test.cjs && node --test tests/audit-remediation.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

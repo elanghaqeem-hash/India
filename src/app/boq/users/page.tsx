@@ -25,6 +25,20 @@ export default function BoQUsers(){
   }catch(e){setError(e instanceof Error?e.message:'Permintaan gagal');}
   finally{setBusy(false);}
  };
+ const remove=async(m:Member)=>{
+  if(m.active){setError('Nonaktifkan pengguna dahulu sebelum menghapus registrasi.');return;}
+  if(!window.confirm('Hapus registrasi '+m.email+' secara permanen? Akses INDIA akan dicabut. Riwayat audit tetap disimpan.'))return;
+  setBusy(true);setError('');setNotice('');
+  try{
+   const r=await fetch('/api/boq/members',{method:'DELETE',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:m.email})});
+   const j=await r.json();
+   if(!r.ok||!j.success)throw Error(j.message||'Pengguna gagal dihapus');
+   if(editing&&form.email.toLowerCase()===m.email.toLowerCase()){setForm(empty);setEditing(false);}
+   await load();
+   setNotice('Registrasi '+m.email+' dihapus. Jejak audit tetap tersimpan.');
+  }catch(e){setError(e instanceof Error?e.message:'Penghapusan gagal');}
+  finally{setBusy(false);}
+ };
  return <main className="mx-auto max-w-5xl space-y-5 pb-20">
   <AdminNavigation/>
   <header className="rounded-2xl border bg-white p-5"><p className="text-xs font-bold text-indigo-700">INDIA · KHUSUS ADMIN</p><h1 className="mt-1 text-2xl font-bold">Registrasi User</h1>
@@ -49,6 +63,7 @@ export default function BoQUsers(){
     <div className="min-w-0 flex-1"><h3 className="break-all font-bold">{m.email}</h3><p className="mt-1 text-slate-600">{m.role} · {m.active?'Aktif':'Nonaktif'} · {units.find(u=>u.setting_key===m.unit_key)?.title||m.unit_key||'Tanpa unit kerja'}</p></div>
     <button disabled={busy} type="button" onClick={()=>{setEditing(true);setForm({email:m.email,role:m.role,active:!!m.active,unit_key:m.unit_key||''});setNotice('');}} className="min-h-11 rounded-xl border px-3" aria-label={'Ubah '+m.email}>Ubah</button>
     <button disabled={busy} type="button" onClick={()=>void save({email:m.email,role:m.role,active:!m.active,unit_key:m.unit_key||''})} className="min-h-11 rounded-xl border px-3" aria-label={(m.active?'Nonaktifkan ':'Aktifkan ')+m.email}>{m.active?'Nonaktifkan':'Aktifkan'}</button>
+    <button disabled={busy||!!m.active} type="button" onClick={()=>void remove(m)} className="min-h-11 rounded-xl border border-red-200 bg-white px-3 text-red-700 disabled:cursor-not-allowed disabled:opacity-40" aria-label={'Delete '+m.email} title={m.active?'Nonaktifkan akun sebelum menghapus':'Hapus registrasi pengguna'}>Delete</button>
    </article>)}</section>
   </>}
  </main>;
