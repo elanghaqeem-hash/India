@@ -18,8 +18,8 @@ import {
   RotateCcw,
   Zap,
   Menu,
-  PanelRightClose,
-  PanelRightOpen,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
 import { selectConversationHistory, activeChatTopic, type AIConversationTurn } from '@/lib/ai-conversation';
@@ -150,6 +150,27 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-6">
           {/* Brand Logo & Name */}
           <div className="flex min-w-0 items-center gap-1.5">
+            {/* Left-side navigation is available even when the panel is collapsed. */}
+            {role&&(
+              <>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-left-sidebar-desktop" aria-expanded={desktopMenuOpen}
+                  aria-label={desktopMenuOpen?'Sembunyikan menu kiri INDIA':'Tampilkan menu kiri INDIA'}
+                  title={desktopMenuOpen?'Sembunyikan menu kiri':'Tampilkan menu kiri'}
+                  className="hidden h-9 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:flex">
+                  {desktopMenuOpen?<PanelLeftClose className="h-4 w-4" aria-hidden="true"/>:<PanelLeftOpen className="h-4 w-4" aria-hidden="true"/>}
+                  <span>Menu</span>
+                </button>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-left-sidebar-mobile" aria-expanded={mobileMenuOpen}
+                  aria-label={mobileMenuOpen?'Tutup menu kiri INDIA':'Buka menu kiri INDIA'}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:hidden">
+                  {mobileMenuOpen?<X className="h-4 w-4" aria-hidden="true"/>:<Menu className="h-4 w-4" aria-hidden="true"/>}
+                </button>
+              </>
+            )}
+
+
             <Link href="/" className="flex min-w-0 items-center gap-1.5 transition-transform hover:scale-[1.01]">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-indigo-900 text-white shadow-md shadow-blue-500/20">
                 <Shield className="h-5 w-5 text-cyan-400" />
@@ -200,26 +221,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               )}
             </Link>
-
-            {/* Right-side navigation is available even when the panel is collapsed. */}
-            {role&&(
-              <>
-                <button type="button" onClick={onToggleMenu}
-                  aria-controls="india-right-sidebar-desktop" aria-expanded={desktopMenuOpen}
-                  aria-label={desktopMenuOpen?'Sembunyikan menu kanan INDIA':'Tampilkan menu kanan INDIA'}
-                  title={desktopMenuOpen?'Sembunyikan menu kanan':'Tampilkan menu kanan'}
-                  className="hidden h-9 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:flex">
-                  {desktopMenuOpen?<PanelRightClose className="h-4 w-4" aria-hidden="true"/>:<PanelRightOpen className="h-4 w-4" aria-hidden="true"/>}
-                  <span>Menu</span>
-                </button>
-                <button type="button" onClick={onToggleMenu}
-                  aria-controls="india-right-sidebar-mobile" aria-expanded={mobileMenuOpen}
-                  aria-label={mobileMenuOpen?'Tutup menu kanan INDIA':'Buka menu kanan INDIA'}
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:hidden">
-                  {mobileMenuOpen?<X className="h-4 w-4" aria-hidden="true"/>:<Menu className="h-4 w-4" aria-hidden="true"/>}
-                </button>
-              </>
-            )}
 
             {/* Read-only server-verified identity: no selectable demo roles. */}
             <div className="flex min-w-0 max-w-[110px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
