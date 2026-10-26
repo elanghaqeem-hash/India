@@ -46,13 +46,14 @@ export async function GET(req:Request){
    if(u.searchParams.get('format')==='csv')return new Response(csvText(['ID','Area','Entity','Action','Actor','At'],result.results.map((r:Record<string,unknown>)=>[r.id,r.area,r.entity_id,r.action,r.actor_email,r.created_at])),{headers:{...privateHeaders,'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="INDIA_System_Audit.csv"'}});
    return reply({success:true,role,items:result.results,sales:sales.results,page,next_page:result.results.length===limit||sales.results.length===limit?page+1:null});
   }
-  const [settings,effective,catalog,numbers]=await Promise.all([
+  const [settings,effective,catalog,numbers,activeAdminReviewers]=await Promise.all([
    db.prepare('SELECT * FROM india_setting_versions WHERE tenant_id=? ORDER BY created_at DESC,version DESC LIMIT 500').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_effective_settings WHERE tenant_id=? ORDER BY kind,setting_key').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_catalog ORDER BY category,sku LIMIT 500').all(),
-   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all()
+   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all(),
+   db.prepare("SELECT count(*) AS total FROM india_members WHERE role='admin' AND active=1").first<{total:number}>()
   ]);
-  return reply({success:true,role,identityEmail:email,settings:settings.results,effective:effective.results,catalog:catalog.results,numbers:numbers.results,approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
+  return reply({success:true,role,identityEmail:email,settings:settings.results,effective:effective.results,catalog:catalog.results,numbers:numbers.results,active_admin_reviewers:Number(activeAdminReviewers?.total||0),approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
  }catch{return fail('Administrasi belum siap. Verifikasi migrasi 0026.',503);}
 }
 export async function POST(req:Request){
