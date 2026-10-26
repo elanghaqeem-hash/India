@@ -49,7 +49,7 @@ test('string ledger versions from D1 are treated as numbers but cannot spoof non
 
 test('Admin health API uses server-side evaluated evidence and never certifies production',()=>{
  const route=read('src/app/api/admin/system/route.ts');
- const ui=read('src/app/settings/system/page.tsx');
+ const ui=read('src/components/admin/SystemSettings.tsx');
  assert.match(route,/await authorizeBoQ\(req\)/);
  assert.match(route,/evaluateSchemaReadiness\(migrations\.results,manifest\.results\)/);
  assert.match(route,/production_gate:'HOLD'/);
