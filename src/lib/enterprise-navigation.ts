@@ -73,7 +73,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
     item('Registrasi User & Role','/boq/users',['admin']),
     item('Parameter Sistem','/settings/system',['admin']),
     item('Registrasi Opsi','/settings/options',['admin']),
-    item('Registrasi API Key','/settings/ai',['admin']),
+    item('Registrasi API Key · AI Connections & API Keys','/settings/ai',['admin']),
   ]},
 ] as const;
 
