@@ -1,5 +1,5 @@
-// ICOP CyberBusiness 360 Delegation of Authority (DoA) Engine
-// Sourced from Master Prompt Section L & ICOP_PreDev_Decisions_v1.0.docx
+// INDIA CyberBusiness 360 Delegation of Authority (DoA) Engine
+// Sourced from Master Prompt Section L & pre-development decisions
 
 export type DoALevel = 'manager' | 'vp' | 'director';
 

@@ -12,9 +12,9 @@ import { AI_WORKSPACE_IDENTITY } from '@/lib/ai-workspace-identity';
 export const dynamic='force-dynamic';
 const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:privateHeaders});
 
-const ICOP_CHAT_INSTRUCTION = [
+const INDIA_CHAT_INSTRUCTION = [
  AI_WORKSPACE_IDENTITY,
- 'Anda adalah ICOP AI Business Assistant untuk Technotama, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
+ 'Anda adalah INDIA AI Business Assistant untuk Technotama, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
  'WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia (kecuali nama merek, istilah teknis, dan kode), dengan profesional dan relevan terhadap pertanyaan terakhir.',
  'Instruksi gaya, bahasa, dan format adalah PREFERENSI sepanjang sesi, bukan penggantian topik. Konfirmasi secara singkat sambil mempertahankan konteks sebelumnya; jangan menjawab sebagai percakapan baru.',
  'Jangan menanyakan kembali topik yang sudah dibahas atau memberikan pembuka generik setelah instruksi gaya. Lanjutkan substansi topik sebelumnya.',
@@ -54,13 +54,13 @@ export async function POST(req:Request){
  // no loss of prior topic, and no extra exposure of prior discussion to a model.
  if(isIndonesianLanguagePreference(prompt)){
   return json({success:true,content:languagePreferenceAcknowledgment(history),
-   providerUsed:'ICOP (pengaturan percakapan)',modelUsed:'local-instruction',
+   providerUsed:'INDIA (pengaturan percakapan)',modelUsed:'local-instruction',
    latencyMs:0,tokensEstimate:0,isFallback:false});
  }
 
  const anchor=contextualConversationAnchor(prompt,history,payload?.topic_hint);
  const conversation:AIConversationRequest = {
-  system:ICOP_CHAT_INSTRUCTION+(anchor?'\n'+anchor.guidance:''),
+  system:INDIA_CHAT_INSTRUCTION+(anchor?'\n'+anchor.guidance:''),
   messages:[...history,{role:'user',content:prompt.trim()}],
  };
  try{
@@ -80,7 +80,7 @@ export async function POST(req:Request){
    }
    if(isClearlyOffTopicChatAnswer(anchor,result.content)&&anchor){
     return json({success:true,content:topicalClarification(anchor),
-     providerUsed:'ICOP (penjaga konteks)',modelUsed:'local-context-guard',
+     providerUsed:'INDIA (penjaga konteks)',modelUsed:'local-context-guard',
      latencyMs:0,tokensEstimate:0,isFallback:false});
    }
   }

@@ -48,7 +48,7 @@ jobs:
           git merge-base --is-ancestor 3b765b80879c1ea23b75bab894d8e4279d2ed5cf HEAD
           grep -q "topic_hint: activeChatTopic" src/components/layout/Navbar.tsx
           grep -q "createPortal(" src/components/layout/Navbar.tsx
-          grep -q "icop-ai-chat-open" src/app/globals.css
+          grep -q "india-ai-chat-open" src/app/globals.css
       - name: Verify Cloudflare token configured, do not disclose its value
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then

@@ -1,5 +1,5 @@
 /**
- * Bounded, in-memory ICOP chat context. Only completed user/assistant pairs
+ * Bounded, in-memory INDIA chat context. Only completed user/assistant pairs
  * are eligible; the browser does not persist conversation content to storage.
  * Long AI replies retain their opening topic and closing recommendations.
  */

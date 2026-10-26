@@ -26,7 +26,7 @@ import { selectConversationHistory, activeChatTopic, type AIConversationTurn } f
 
 const WELCOME_MESSAGE = {
   sender: 'ai' as const,
-  text: 'Halo! Saya Asisten AI ICOP CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
+  text: 'Halo! Saya Asisten AI INDIA CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
   provider: 'Informasi awal (bukan hasil model AI)',
 };
 
@@ -69,7 +69,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (!aiAssistantOpen) return;
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.body.classList.add('icop-ai-chat-open');
+    document.body.classList.add('india-ai-chat-open');
 
     const viewport = window.visualViewport;
     const syncViewport = () => {
@@ -93,7 +93,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('resize', syncViewport);
       window.removeEventListener('keydown', onEscape);
       document.body.style.overflow = oldOverflow;
-      document.body.classList.remove('icop-ai-chat-open');
+      document.body.classList.remove('india-ai-chat-open');
       setVisualViewport(null);
     };
   }, [aiAssistantOpen]);
@@ -177,7 +177,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">ICOP</span>
+                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">INDIA</span>
                   <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">360</span>
                 </div>
                 <p className="hidden text-[10px] font-medium text-slate-500 sm:block -mt-1">
@@ -237,10 +237,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Global AI Assistant Drawer / Modal */}
       {aiAssistantOpen && typeof document !== 'undefined' && createPortal(
         <div
-          className="icop-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
+          className="india-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
           style={visualViewport ? { top: visualViewport.top + 'px', height: visualViewport.height + 'px', bottom: 'auto' } : undefined}
         >
-          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"
+          <div role="dialog" aria-modal="true" aria-label="INDIA AI Business Assistant"
             className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
             <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
@@ -249,7 +249,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm tracking-tight">ICOP AI Business Assistant</h3>
+                  <h3 className="font-extrabold text-sm tracking-tight">INDIA AI Business Assistant</h3>
                   <div className="text-[10px] text-slate-300 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Koneksi AI Admin: hasil sesuai provider aktif</span>
