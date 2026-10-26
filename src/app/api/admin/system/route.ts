@@ -52,6 +52,11 @@ export async function GET(req:Request){
    db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all()
   ]);
   // Hide superseded/withdrawn cards without erasing immutable versions or audit events.
+  const latestVersions:Record<string,number>={};
+  for(const row of settings.results as {kind:string;setting_key:string;version:number}[]){
+   const key=row.kind+':'+row.setting_key;
+   latestVersions[key]=Math.max(latestVersions[key]||0,row.version);
+  }
   const newestApproved=new Map<string,{version:number;deleted:boolean}>();
   for(const row of settings.results as {kind:string;setting_key:string;version:number;status:string;data_json:string}[]){
    if(row.status!=='approved')continue;
@@ -60,7 +65,7 @@ export async function GET(req:Request){
   }
   const revoked=new Set([...newestApproved].filter(([,value])=>value.deleted).map(([key])=>key));
   const visible=settings.results.filter((r:Record<string,unknown>)=>r.status!=='rejected'&&!revoked.has(String(r.kind)+':'+String(r.setting_key)));
-  return reply({success:true,role,identityEmail:email,settings:visible,effective:effective.results,catalog:catalog.results,numbers:numbers.results,approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
+  return reply({success:true,role,identityEmail:email,settings:visible,latestVersions,effective:effective.results,catalog:catalog.results,numbers:numbers.results,approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
  }catch{return fail('Administrasi belum siap. Verifikasi migrasi 0026.',503);}
 }
 export async function POST(req:Request){
