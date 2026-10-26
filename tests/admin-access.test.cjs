@@ -9,9 +9,9 @@ function loadTS(file,mocks={}){
  new Function('require','module','exports',js)(name=>name in mocks?mocks[name]:require(name),mod,mod.exports);
  return mod.exports;
 }
-test('all four administration links are visible only to Admin, including mobile navigation source',()=>{
+test('all five administration links are visible only to Admin, including mobile navigation source',()=>{
  const nav=loadTS('src/lib/enterprise-navigation.ts');
- const urls=['/boq/users','/settings/system','/settings/options','/settings/ai'];
+ const urls=['/boq/users','/settings/system','/settings/options','/settings/option-registry','/settings/ai'];
  assert.deepEqual(nav.navigationForRole('admin').find(g=>g.id==='administration').items.map(x=>x.href),urls);
  for(const role of [...nonAdmins,null,'forged']){
   const groups=nav.navigationForRole(role);
