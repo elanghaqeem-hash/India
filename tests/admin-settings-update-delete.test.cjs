@@ -82,9 +82,9 @@ test('Cannot orphan hierarchy or active member assignments, including changes du
 });
 test('UI surfaces both actions; fails closed on failed audit and prevents stale deletion',async()=>{
  const ui=fs.readFileSync('src/components/admin/SystemSettings.tsx','utf8');
- assert.match(ui,/>Update<\\/button>/);
- assert.match(ui,/>Delete<\\/button>/);
- assert.match(ui,/window\\.confirm/);
+ assert.ok(ui.includes('>Update</button>'));
+ assert.ok(ui.includes('>Delete</button>'));
+ assert.ok(ui.includes('window.confirm'));
  const h=fixture();try{
   const r=await expect(org(h,'rti'),201);
   h.sql.exec("CREATE TRIGGER abort_setting_audit BEFORE INSERT ON india_operations_events BEGIN SELECT RAISE(ABORT,'injected failure'); END");
