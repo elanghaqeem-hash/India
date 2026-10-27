@@ -1,6 +1,8 @@
 'use client';
 
 import React,{useCallback,useEffect,useState} from 'react';
+import Link from 'next/link';
+import {usePathname} from 'next/navigation';
 import {Navbar} from './Navbar';
 import {Sidebar} from './Sidebar';
 import {MobileNav} from './MobileNav';
@@ -14,6 +16,8 @@ type Session={status:'checking'|'ready'|'denied';identity:Identity|null};
  * No hardcoded user identities, selectable security roles, or fake approval counts.
  */
 export const AppShell:React.FC<AppShellProps> = ({children})=>{
+  const pathname=usePathname();
+  const isLoginPage=pathname==='/login';
   const [session,setSession]=useState<Session>({status:'checking',identity:null});
   const [pendingApprovalsCount,setPendingApprovalsCount]=useState<number|null>(null);
   const [desktopMenuOpen,setDesktopMenuOpen]=useState(true);
@@ -42,6 +46,7 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
     else setMobileMenuOpen(false);
   },[]);
   useEffect(()=>{
+    if(isLoginPage)return; // Public-facing login UI must not fetch a protected identity endpoint.
     const controller=new AbortController();
     fetch('/api/sales/identity',{method:'GET',credentials:'same-origin',cache:'no-store',signal:controller.signal})
       .then(async res=>{
@@ -53,7 +58,7 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
       })
       .catch(()=>{if(!controller.signal.aborted)setSession({status:'denied',identity:null});});
     return ()=>controller.abort();
-  },[]);
+  },[isLoginPage]);
   // The bell count is real, role-scoped D1 data, or null when not verified. Never assume zero on failure.
   useEffect(()=>{
     if(session.status!=='ready'){setPendingApprovalsCount(null);return;}
@@ -72,6 +77,8 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
     return ()=>{controller.abort();document.removeEventListener('visibilitychange',onVisible);};
   },[session.status]);
   const role=session.status==='ready'?session.identity?.role??null:null;
+  // The sign-in page has its own minimal layout (no authenticated header or navigation).
+  if(isLoginPage)return <>{children}</>;
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
       <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount} onToggleMenu={onToggleMenu} desktopMenuOpen={desktopMenuOpen} mobileMenuOpen={mobileMenuOpen}/>
@@ -80,6 +87,9 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
          session.status==='ready'? `Sesi terverifikasi · Role: ${role}`:
          'Sesi belum terverifikasi. Fitur transaksi memerlukan Cloudflare Access dan skema D1 yang sesuai.'}
       </div>
+      {session.status==='denied'&&<div className="no-print border-b border-indigo-100 bg-indigo-50 px-4 py-2 text-center text-xs">
+        <Link href="/login" className="font-semibold text-indigo-800 underline">Buka halaman login INDIA</Link>
+      </div>}
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         {role&&<Sidebar role={role} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen} onClose={onCloseMenu}/>}
         <main className="mx-auto w-full min-w-0 max-w-7xl flex-1 overflow-x-clip overflow-y-auto px-3 pb-28 pt-4 sm:p-6 lg:p-8 print:max-w-none print:overflow-visible print:p-0">
