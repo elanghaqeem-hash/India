@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {
   BriefcaseBusiness, Calculator, ChartNoAxesCombined, ChevronDown, ClipboardCheck,
-  Handshake, LayoutDashboard, Megaphone, PanelLeftClose, Search, Settings2,
+  Handshake, LayoutDashboard, LogOut, Megaphone, PanelLeftClose, Search, Settings2,
   ShieldCheck, UsersRound, WalletCards,
   type LucideIcon,
 } from 'lucide-react';
@@ -125,6 +125,9 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
       <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3">
         <p className="text-[11px] font-semibold text-slate-600">INDIA · Integrated Business Platform</p>
         <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">Akses menu mengikuti role yang diverifikasi melalui Cloudflare Access dan D1.</p>
+        <a href="/cdn-cgi/access/logout" className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-500">
+          <LogOut className="h-4 w-4" aria-hidden="true"/> Keluar akun / Logout
+        </a>
       </div>
     </div>
   );

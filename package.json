@@ -39,7 +39,7 @@
     "test:menu-approval": "node --test tests/india-automated-navigation-approval.test.cjs tests/left-navigation-sidebar.test.cjs",
     "gate:automated": "node scripts/india-automated-functional-gate.mjs --ci",
     "test:postal": "node --test tests/indonesia-postal.test.cjs tests/indonesia-postal-route.test.cjs tests/indonesia-postal-importer.test.cjs",
-    "test:modules-13-15": "node --test tests/modules-13-15.test.cjs tests/middleware-route-gate.test.cjs tests/enterprise-navigation.test.cjs tests/india-legacy-consolidation.test.cjs tests/unified-approval-queue.test.cjs tests/system-release-readiness.test.cjs tests/admin-registration.test.cjs && node --test tests/left-navigation-sidebar.test.cjs && node --experimental-strip-types --test tests/managed-options.test.cjs",
+    "test:modules-13-15": "node --test tests/modules-13-15.test.cjs tests/middleware-route-gate.test.cjs tests/enterprise-navigation.test.cjs tests/india-legacy-consolidation.test.cjs tests/unified-approval-queue.test.cjs tests/system-release-readiness.test.cjs tests/admin-registration.test.cjs tests/india-access-entrypoints.test.cjs && node --test tests/left-navigation-sidebar.test.cjs && node --experimental-strip-types --test tests/managed-options.test.cjs",
     "test:modules-browser": "node tests/run-modules-browser.cjs",
     "test:service-operations": "node --test tests/service-operations.test.cjs",
     "test:release-controls": "node --test tests/release-evidence.test.cjs tests/ai-request-budget.test.cjs tests/india-operational-release-gate.test.cjs tests/india-feasibility-live-access-guard.test.cjs",
