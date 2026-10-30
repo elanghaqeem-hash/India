@@ -22,6 +22,7 @@ const D1_ROUTES = new Set([
   '/api/admin/system',
   '/api/admin/options',
   '/api/reference/options',
+  '/api/psa/timesheets',
 ]);
 
 export function isEnabledD1ApiRoute(path: string): boolean {

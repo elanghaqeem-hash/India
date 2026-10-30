@@ -16,7 +16,7 @@ test('eleven business and administration menu groups, no duplicate or demo route
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
-  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq(?:\/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
+  assert.match(href,/^\/(?:sales\/|psa\/timesheets$|customers$|partners$|reports$|settings\/|boq(?:\/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
  for(const legacy of ['/','/pricing','/tender','/proposals'])

@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && opennextjs-cloudflare build",
+    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && npm run test:psa-timesheets && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:executive": "node --test tests/india-executive-dashboard.test.cjs",
@@ -42,6 +42,7 @@
     "test:modules-13-15": "node --test tests/modules-13-15.test.cjs tests/middleware-route-gate.test.cjs tests/enterprise-navigation.test.cjs tests/india-legacy-consolidation.test.cjs tests/unified-approval-queue.test.cjs tests/system-release-readiness.test.cjs tests/admin-registration.test.cjs tests/india-access-entrypoints.test.cjs && node --test tests/left-navigation-sidebar.test.cjs && node --experimental-strip-types --test tests/managed-options.test.cjs",
     "test:modules-browser": "node tests/run-modules-browser.cjs",
     "test:service-operations": "node --test tests/service-operations.test.cjs",
+    "test:psa-timesheets": "node --test tests/psa-timesheets.test.cjs",
     "test:release-controls": "node --test tests/release-evidence.test.cjs tests/ai-request-budget.test.cjs tests/india-operational-release-gate.test.cjs tests/india-feasibility-live-access-guard.test.cjs",
     "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs tests/admin-user-delete.test.cjs && node --test tests/audit-remediation.test.cjs"
   },

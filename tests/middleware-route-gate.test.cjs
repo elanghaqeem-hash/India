@@ -34,13 +34,13 @@ const permitted = [
   '/api/marketing/leads', '/api/marketing/campaigns',
   '/api/marketing/lead-intelligence', '/api/sales',
   '/api/sales/customer360', '/api/sales/service-operations',
-  '/api/partners', '/api/reports', '/api/admin/system',
+  '/api/partners', '/api/reports', '/api/admin/system', '/api/psa/timesheets',
 ];
 const blocked = [
   '/api/opportunities', '/api/proposals', '/api/tenders', '/api/approvals',
   '/api/partners/export', '/api/reports/arbitrary', '/api/admin/system/debug',
   '/api/partners-malicious', '/api/report', '/api/admin',
-  '/api/unknown', '/api/boq-impersonation', '/api/ai/unsafe',
+  '/api/unknown', '/api/boq-impersonation', '/api/ai/unsafe', '/api/psa/timesheets/export',
 ];
 
 test('existing D1 routes plus authenticated 0026 enterprise handlers are reachable', () => {
@@ -60,7 +60,7 @@ test('legacy/unreviewed APIs and misleading prefix paths remain fail-closed', ()
 });
 
 test('each newly enabled route still calls real server-side Access authorization', () => {
-  for (const route of ['partners', 'reports', 'admin/system']) {
+  for (const route of ['partners', 'reports', 'admin/system', 'psa/timesheets']) {
     const code = fs.readFileSync(path.join(base, 'src/app/api', route, 'route.ts'), 'utf8');
     assert.match(code, /import\s*\{[^}]*authorizeBoQ[^}]*\}\s*from\s*['"]@\/lib\/boq-auth['"]/);
     assert.match(code, /await\s+authorizeBoQ\(req\)/);
