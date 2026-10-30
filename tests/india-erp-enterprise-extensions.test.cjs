@@ -33,7 +33,7 @@ test('WP2 independent role matrix change and approved grant revoke stop access i
  await expect(h.call('erp/organization','POST','approver',{action:'review_policy_change',id:proposed,version:1,approve:true,notes:'Independent role-policy risk acceptance'}),200);
  await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),403);
  // An existing grant is also individually revocable.
- const grantId='ext-'+users.finance+'-finance_gl';
+ const grantId=h.sql.prepare('SELECT id FROM india_erp_capability_grants WHERE tenant_id=? AND email=? AND capability=?').get(tenant,users.finance,'finance_gl').id;
  const revoke=(await expect(h.call('erp/organization','POST','admin',{action:'request_revoke',id:crypto.randomUUID(),grant_id:grantId,reason:'Segregation of duties violation necessitates grant revocation'}),201)).body.id;
  await expect(h.call('erp/organization','POST','approver',{action:'review_revoke',id:revoke,version:1,approve:true,notes:'Independent revoke authorization'}),200);
  assert.equal(h.sql.prepare('SELECT status FROM india_erp_capability_grants WHERE id=?').get(grantId).status,'revoked');
