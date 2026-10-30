@@ -3,13 +3,17 @@ on:
   push:
     branches:
       - 'feat/india-erp-wp2-finance-procurement-cyber-20261030'
+      - 'feat/india-erp-enterprise-close-treasury-p2p-hr-siem-20261030'
   pull_request:
     paths:
       - 'migrations/003*.sql'
+      - 'migrations/004*.sql'
       - 'src/lib/erp-core.ts'
       - 'src/app/api/erp/**'
       - 'src/app/erp/**'
       - 'tests/india-erp-foundation.test.cjs'
+      - 'tests/india-erp-enterprise-extensions.test.cjs'
+      - 'src/components/erp/**'
       - '.github/workflows/india-erp-integration-ci.yml'
       - 'package.json'
 permissions:
@@ -27,6 +31,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Isolated persistent SQLite/D1 route integration (synthetic identities)
         run: npm run test:erp
+      - name: Enterprise expansion isolated API and D1 role-journeys
+        run: npm run test:erp:extensions
       - name: Existing PSA regression
         run: npm run test:psa-timesheets
       - name: TypeScript contract

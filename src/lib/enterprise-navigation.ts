@@ -74,6 +74,9 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   {id:'enterprise_erp',label:'12 · ERP Finance, Procurement & Cybersecurity',items:[
     item('Organization & ERP Access','/erp/organization',['admin','approver']),
     item('General Ledger & Journal','/erp/general-ledger',['finance','approver']),
+    item('Treasury & Payments','/erp/treasury',['admin','finance','approver']),
+    item('Human Resources & Workforce','/erp/hr',['admin','approver']),
+    item('SIEM / EDR Integrations','/erp/security-integrations',['admin','presales','approver']),
     item('Procurement & Accounts Payable','/erp/procurement',['admin','presales','finance','approver']),
     item('Cybersecurity Operations','/erp/cyber-operations',['admin','presales','approver']),
   ]},

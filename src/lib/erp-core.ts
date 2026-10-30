@@ -25,7 +25,7 @@ export async function erpGrant(a:BoQIdentity,capability:string,unitId?:string){
   SELECT u.parent_id FROM india_erp_org_units u JOIN scoped_units x ON x.unit_id=u.id
    WHERE u.tenant_id=? AND u.parent_id IS NOT NULL
  )
- SELECT g.id FROM india_erp_capability_grants g JOIN india_members m ON lower(m.email)=lower(g.email)
+ SELECT g.id FROM india_erp_capability_grants g JOIN india_members m ON lower(m.email)=lower(g.email) JOIN india_erp_role_capability_matrix pol ON pol.role=m.role AND pol.capability=g.capability AND pol.allowed=1
  WHERE g.tenant_id=? AND lower(g.email)=? AND g.capability=? AND g.status='approved' AND m.active=1
  AND EXISTS(SELECT 1 FROM scoped_units WHERE unit_id=g.unit_id)
  `+(unitId?'AND g.unit_id=?':'')+' LIMIT 1').bind(TENANT,a.email,TENANT,TENANT,a.email,capability,...(unitId?[unitId]:[])).first();
