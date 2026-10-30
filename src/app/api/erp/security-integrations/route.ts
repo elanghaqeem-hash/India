@@ -15,6 +15,7 @@ function safeDestination(raw:string,allowed:string){
 async function outbound(kind:'siem'|'edr',endpoint:string){
  const env=(await getCloudflareContext({async:true})).env as Record<string,unknown>;
  const allowed=String(env.INDIA_SECURITY_ALLOWED_HOSTS||'');
+ erpAssert(allowed.length>0,'Security outbound hostname allowlist belum dikonfigurasi',503);
  const url=safeDestination(endpoint,allowed);
  const token=env[kind==='siem'?'INDIA_SIEM_OUTBOUND_TOKEN':'INDIA_EDR_OUTBOUND_TOKEN'];
  erpAssert(typeof token==='string'&&token.length>=24,'Security outbound secret belum disediakan',503);
