@@ -25,6 +25,11 @@ export async function erpProjectUnit(db:D1DB,id:string){
  if(!row)throw new ERPError('Legal entity proyek belum disetujui',409);
  return row.legal_entity_id;
 }
+export async function erpOpportunityUnit(db:D1DB,id:string){
+ const row=await db.prepare("SELECT s.legal_entity_id FROM india_erp_opportunity_scopes s WHERE s.tenant_id=? AND s.opportunity_id=? AND s.status='approved'").bind(TENANT,id).first<{legal_entity_id:string}>();
+ if(!row)throw new ERPError('Legal entity Opportunity belum disetujui',409);
+ return row.legal_entity_id;
+}
 export async function erpAtom(a:BoQIdentity,guard:string,args:(string|number|null)[],writes:ReturnType<D1DB['prepare']>[],area:string,id:string,action:string,data:unknown){
  await atomicSales(a.db,guard,args,[...writes,operationEvent(a.db,area,id,action,a.email,data)]);
 }
