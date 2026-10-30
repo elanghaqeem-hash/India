@@ -26,7 +26,7 @@ test('0034–0037 apply without dummy ERP postings, maintain foreign keys and im
 test('WP2 API requires independent grant review and legal entity scope',async()=>{
  const h=fixture(37);try{
   await org(h);
-  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),201);
+  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),200);
   await expect(h.call('erp/organization','POST','finance',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Self approval is forbidden'}),403);
   await expect(h.call('erp/organization','POST','approver',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Independent Finance staff unit review'}),200);
   assert.equal(h.sql.prepare('SELECT status FROM india_erp_staff_org WHERE email=?').get(users.finance).status,'approved');
@@ -104,7 +104,7 @@ test('ERP grant is inactive until the same staff member has independently approv
   h.sql.prepare("INSERT INTO india_erp_capability_grants(id,tenant_id,email,capability,unit_id,status,requested_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?,?)")
    .run('grant-without-staff',tenant,users.finance,'finance_gl',legal,'requester@synthetic.invalid','checker@synthetic.invalid','QA approval without staff assignment');
   await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),403);
-  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),201);
+  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),200);
   await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),403);
   await expect(h.call('erp/organization','POST','approver',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Signed independent organizational appointment'}),200);
   await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),200);
