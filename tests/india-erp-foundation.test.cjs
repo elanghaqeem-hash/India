@@ -24,6 +24,10 @@ test('0034–0037 apply without dummy ERP postings, maintain foreign keys and im
 test('WP2 API requires independent grant review and legal entity scope',async()=>{
  const h=fixture(37);try{
   await org(h);
+  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),201);
+  await expect(h.call('erp/organization','POST','finance',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Self approval is forbidden'}),403);
+  await expect(h.call('erp/organization','POST','approver',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Independent Finance staff unit review'}),200);
+  assert.equal(h.sql.prepare('SELECT status FROM india_erp_staff_org WHERE email=?').get(users.finance).status,'approved');
   const id='grant-erp-review';
   await expect(h.call('erp/organization','POST','admin',{action:'request_grant',id,email:users.finance,capability:'finance_gl',unit_id:legal}),201);
   await expect(h.call('erp/organization','POST','finance',{action:'review_grant',id,version:1,approve:true,notes:'Wrong role reviewer'}),403);
