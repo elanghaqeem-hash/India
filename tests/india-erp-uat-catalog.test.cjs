@@ -18,7 +18,7 @@ test('historical 210 cases retained and 210 new ERP cases defined, never asserte
 test('all new cases specify executable steps, role, invariant, negative or positive path and required evidence',()=>{
  const required=['environment','source_sha','actor','executed_at','api_or_browser_trace','db_before_after','audit_event','document_or_ledger_reference'];
  for(const c of newer.cases){
-  assert.match(c.id,/^ERP-(GL|P2P|OPS|HR|E2E|SEC)-\\d{3}$/);
+  assert.match(c.id,/^ERP-(GL|P2P|OPS|HR|E2E|SEC)-\d{3}$/);
   assert.ok(c.workflow&&c.actor&&c.scenario&&c.preconditions&&c.expected);
   assert.ok(c.steps.length>=2);
   assert.ok(['positive','negative'].includes(c.kind));
