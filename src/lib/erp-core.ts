@@ -17,8 +17,19 @@ export const erpDate=(x:unknown):x is string=>typeof x==='string'&&/^20\d\d-\d\d
 export const erpPeriod=(x:unknown):x is string=>typeof x==='string'&&/^20\d\d-(0[1-9]|1[0-2])$/.test(x);
 export function erpOrigin(req:Request){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new ERPError('Origin tidak diizinkan',403);}
 export async function erpGrant(a:BoQIdentity,capability:string,unitId?:string){
- const q=await a.db.prepare('SELECT g.id FROM india_erp_capability_grants g JOIN india_members m ON lower(m.email)=lower(g.email) WHERE g.tenant_id=? AND lower(g.email)=? AND g.capability=? AND g.status=\'approved\' AND m.active=1 '+(unitId?'AND g.unit_id=?':'')+' LIMIT 1').bind(TENANT,a.email,capability,...(unitId?[unitId]:[])).first();
- if(!q)throw new ERPError('Hak akses ERP memerlukan grant independen untuk unit terkait',403);
+ // Every grant must have a separately approved employee-unit affiliation.
+ // Recursively accept grants for the employee's unit or its ancestors.
+ const q=await a.db.prepare(`WITH RECURSIVE scoped_units(unit_id) AS (
+  SELECT s.unit_id FROM india_erp_staff_org s WHERE s.tenant_id=? AND lower(s.email)=? AND s.status='approved'
+  UNION ALL
+  SELECT u.parent_id FROM india_erp_org_units u JOIN scoped_units x ON x.unit_id=u.id
+   WHERE u.tenant_id=? AND u.parent_id IS NOT NULL
+ )
+ SELECT g.id FROM india_erp_capability_grants g JOIN india_members m ON lower(m.email)=lower(g.email)
+ WHERE g.tenant_id=? AND lower(g.email)=? AND g.capability=? AND g.status='approved' AND m.active=1
+ AND EXISTS(SELECT 1 FROM scoped_units WHERE unit_id=g.unit_id)
+ `+(unitId?'AND g.unit_id=?':'')+' LIMIT 1').bind(TENANT,a.email,TENANT,TENANT,a.email,capability,...(unitId?[unitId]:[])).first();
+ if(!q)throw new ERPError('Akses ERP memerlukan penempatan staff dan grant legal-unit yang disetujui secara independen',403);
 }
 export async function erpProjectUnit(db:D1DB,id:string){
  const row=await db.prepare("SELECT s.legal_entity_id FROM india_erp_project_scopes s JOIN india_delivery_projects p ON p.id=s.project_id AND p.tenant_id=s.tenant_id WHERE s.tenant_id=? AND s.project_id=? AND s.status='approved'").bind(TENANT,id).first<{legal_entity_id:string}>();
