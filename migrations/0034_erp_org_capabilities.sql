@@ -34,7 +34,7 @@ CREATE TABLE india_erp_staff_org (
  PRIMARY KEY(tenant_id,email), FOREIGN KEY(email) REFERENCES india_members(email),
  FOREIGN KEY(tenant_id,unit_id) REFERENCES india_erp_org_units(tenant_id,id),
  CHECK(reviewed_by IS NULL OR (lower(reviewed_by)!=lower(created_by) AND lower(reviewed_by)!=lower(email))),
- CHECK(status='pending' OR (reviewed_by IS NOT NULL AND length(review_notes)>=12))
+ CHECK(status='pending' OR (reviewed_by IS NOT NULL AND coalesce(length(review_notes),0)>=12))
 );
 CREATE TRIGGER india_erp_staff_review BEFORE UPDATE ON india_erp_staff_org
 WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected')
@@ -56,7 +56,7 @@ CREATE TABLE india_erp_capability_grants (
  FOREIGN KEY(email) REFERENCES india_members(email),
  FOREIGN KEY(tenant_id,unit_id) REFERENCES india_erp_org_units(tenant_id,id),
  CHECK(reviewed_by IS NULL OR (lower(reviewed_by)!=lower(requested_by) AND lower(reviewed_by)!=lower(email))),
- CHECK(status NOT IN ('approved','rejected','revoked') OR (reviewed_by IS NOT NULL AND length(review_notes)>=12))
+ CHECK(status NOT IN ('approved','rejected','revoked') OR (reviewed_by IS NOT NULL AND coalesce(length(review_notes),0)>=12))
 );
 CREATE INDEX india_erp_capability_access ON india_erp_capability_grants(tenant_id,email,capability,status);
 CREATE TRIGGER india_erp_grants_no_delete BEFORE DELETE ON india_erp_capability_grants
