@@ -5,6 +5,8 @@ async function org(h){
  await expect(h.call('erp/organization','POST','admin',{action:'create_unit',id:legal,code:'TCH-LEGAL',label:'Technotama QA Legal Entity',kind:'legal_entity',parent_id:null}),201);
 }
 function grant(h,email,cap){
+ h.sql.prepare("INSERT OR IGNORE INTO india_erp_staff_org(tenant_id,email,unit_id,position_title,created_by,status,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?)")
+  .run(tenant,email,legal,'Synthetic UAT staff affiliation','requester@synthetic.invalid','checker@synthetic.invalid','Synthetic independent organization approval');
  h.sql.prepare("INSERT INTO india_erp_capability_grants(id,tenant_id,email,capability,unit_id,status,requested_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?,?)")
   .run('grant-'+email+'-'+cap,tenant,email,cap,legal,'requester@synthetic.invalid','checker@synthetic.invalid','Synthetic independent test-only approval');
 }
