@@ -59,8 +59,12 @@ export async function POST(req:Request){
   }
   if(v.action==='leave_request'){
    erpAssert(erpId(v.policy_id)&&erpDate(v.from_date)&&erpDate(v.to_date)&&String(v.from_date)<=String(v.to_date),'Leave dates atau policy tidak valid');
-   const days=Math.round((Date.parse(v.to_date as string)-Date.parse(v.from_date as string))/86400000)+1;
-   erpAssert(days>0&&days<=365,'Rentang cuti maksimal 365 hari');
+   const from=Date.parse(v.from_date as string),to=Date.parse(v.to_date as string);
+   erpAssert((to-from)/86400000<=364,'Rentang cuti maksimal 365 hari');
+   let days=0;
+   for(let t=from;t<=to;t+=86400000){const wd=new Date(t).getUTCDay();if(wd!==0&&wd!==6)days++;}
+   erpAssert(days>0,'Rentang cuti tidak mengandung hari kerja');
+   // Weekends excluded; tenant-specific Indonesian public holidays require a separate approved calendar.
    const emp=await db.prepare("SELECT status FROM india_hr_employees WHERE tenant_id=? AND email=?").bind(TENANT,email).first<{status:string}>();
    erpAssert(emp?.status==='active','Pemohon belum aktif',403);
    const id=crypto.randomUUID();
