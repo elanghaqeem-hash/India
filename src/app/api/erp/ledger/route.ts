@@ -75,6 +75,42 @@ export async function POST(req:Request){
    }
    return erpReply({success:true});
   }
+
+  if(action==='reverse'){
+   erpAssert(role==='finance'&&erpId(v.original_journal_id)&&erpId(v.period_id)&&erpText(v.memo,12,500),'Reversal memerlukan Finance, jurnal, periode dan alasan',403);
+   const original=await db.prepare("SELECT j.id,j.legal_entity_id,j.status,j.created_by FROM india_gl_journals j WHERE j.tenant_id=? AND j.id=?").bind(TENANT,v.original_journal_id as string).first<{id:string;legal_entity_id:string;status:string;created_by:string}>();
+   erpAssert(original&&original.status==='posted','Hanya jurnal posted boleh dibalik',409);
+   await erpGrant(a.identity,'finance_gl',original.legal_entity_id);
+   const old=await db.prepare("SELECT account_id,debit_cents,credit_cents FROM india_gl_lines WHERE tenant_id=? AND journal_id=?").bind(TENANT,original.id).all<{account_id:string;debit_cents:number;credit_cents:number}>();
+   erpAssert(old.results.length>=2,'Sumber jurnal tidak memiliki baris valid',409);
+   const id=crypto.randomUUID();
+   const writes=[db.prepare("INSERT INTO india_gl_journals(id,tenant_id,legal_entity_id,period_id,source_type,source_key,memo,created_by) VALUES(?,?,?,?,?,?,?,?)").bind(id,TENANT,original.legal_entity_id,v.period_id as string,'reversal',original.id,v.memo as string,email)];
+   for(const line of old.results)writes.push(db.prepare('INSERT INTO india_gl_lines(id,tenant_id,journal_id,account_id,debit_cents,credit_cents) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,id,line.account_id,line.credit_cents,line.debit_cents));
+   writes.push(db.prepare('INSERT INTO india_gl_reversal_links(tenant_id,original_journal_id,reversal_journal_id,created_by) VALUES(?,?,?,?)').bind(TENANT,original.id,id,email));
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_gl_periods WHERE tenant_id=? AND id=? AND legal_entity_id=? AND status='open') AND NOT EXISTS(SELECT 1 FROM india_gl_reversal_links WHERE tenant_id=? AND original_journal_id=?)",
+    [TENANT,v.period_id as string,original.legal_entity_id,TENANT,original.id],writes,'gl',id,'REVERSAL_DRAFT',{original:original.id});
+   return erpReply({success:true,id},201);
+  }
+  if(action==='request_close'){
+   erpAssert(role==='finance'&&erpId(v.period_id)&&erpText(v.notes,12,800),'Close request memerlukan Finance dan alasan',403);
+   const period=await db.prepare("SELECT id,legal_entity_id,status FROM india_gl_periods WHERE tenant_id=? AND id=?").bind(TENANT,v.period_id as string).first<{id:string;legal_entity_id:string;status:string}>();
+   erpAssert(period&&period.status==='open','Periode harus masih open',409);
+   await erpGrant(a.identity,'finance_gl',period.legal_entity_id);
+   const rows=await db.prepare("SELECT count(DISTINCT j.id) journal_count,coalesce(sum(l.debit_cents),0) debits,coalesce(sum(l.credit_cents),0) credits FROM india_gl_journals j JOIN india_gl_lines l ON l.tenant_id=j.tenant_id AND l.journal_id=j.id WHERE j.tenant_id=? AND j.period_id=? AND j.status='posted'").bind(TENANT,period.id).first<{journal_count:number;debits:number;credits:number}>();
+   erpAssert(rows&&rows.journal_count>0&&rows.debits===rows.credits&&Number.isSafeInteger(rows.debits),'Periode belum memiliki jurnal posted yang seimbang',409);
+   const id=crypto.randomUUID();
+   await erpAtom(a.identity,"NOT EXISTS(SELECT 1 FROM india_gl_journals WHERE tenant_id=? AND period_id=? AND status IN ('draft','approved')) AND NOT EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND period_id=?)",
+    [TENANT,period.id,TENANT,period.id],[db.prepare("INSERT INTO india_gl_close_requests(id,tenant_id,period_id,notes,snapshot_debits,snapshot_credits,created_by) VALUES(?,?,?,?,?,?,?)").bind(id,TENANT,period.id,v.notes as string,rows.debits,rows.credits,email)],'gl',id,'CLOSE_REQUEST',{period_id:period.id,debits:rows.debits});
+   return erpReply({success:true,id},201);
+  }
+  if(action==='review_close'){
+   erpAssert(role==='approver'&&erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Review close wajib Approver independen',403);
+   const close=await db.prepare('SELECT x.id,x.period_id,x.status,x.version,x.created_by,p.legal_entity_id FROM india_gl_close_requests x JOIN india_gl_periods p ON p.tenant_id=x.tenant_id AND p.id=x.period_id WHERE x.tenant_id=? AND x.id=?').bind(TENANT,v.id as string).first<{id:string;status:string;version:number;created_by:string;legal_entity_id:string}>();
+   erpAssert(close&&close.status==='pending'&&close.version===v.version&&close.created_by.toLowerCase()!==email,'Review close dilarang self-approval',409);
+   await erpGrant(a.identity,'finance_gl',close.legal_entity_id);
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND id=? AND status='pending' AND version=? AND lower(created_by)!=?)",
+    [TENANT,close.id,close.version,email],[db.prepare("UPDATE india_gl_close_requests SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?").bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,close.id)],'gl',close.id,'CLOSE_REVIEW',{approved:v.approve});return erpReply({success:true});
+  }
   throw new ERPError('Aksi GL tidak tersedia');
  }catch(e){return erpError(e);}
 }
