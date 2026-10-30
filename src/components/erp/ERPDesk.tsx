@@ -5,8 +5,10 @@ type Field={name:string;label:string;kind?:'number'|'decision'|'text';placeholde
 type Action={id:string;label:string;fields:Field[]};
 const f=(name:string,label:string,kind?:Field['kind']):Field=>({name,label,kind});
 const configs:Record<Desk,{title:string;description:string;query?:string;groups:string[];actions:Action[]}>={
- organization:{title:'Struktur Organisasi & Approval',description:'Buat hierarki, ajukan grant dan review legal entity secara independen.',groups:['units','grants','projects','opportunities'],actions:[
+ organization:{title:'Struktur Organisasi & Approval',description:'Buat hierarki, ajukan grant dan review legal entity secara independen.',groups:['units','staff','grants','projects','opportunities'],actions:[
  {id:'create_unit',label:'Tambah Unit',fields:[f('code','Kode'),f('label','Nama Unit'),f('kind','Tipe: legal_entity/division/department/team/cost_center'),f('parent_id','Parent ID (kosong untuk legal entity)')]},
+ {id:'assign_staff',label:'Ajukan Penempatan Personel',fields:[f('email','Email staff aktif'),f('unit_id','Unit ID'),f('position_title','Jabatan')]},
+ {id:'review_staff',label:'Review Penempatan Personel',fields:[f('email','Email staff'),f('version','Versi','number'),f('approve','Keputusan','decision'),f('notes','Alasan')]},
  {id:'request_grant',label:'Ajukan Capability',fields:[f('email','Email user aktif'),f('unit_id','Unit ID'),f('capability','Capability: finance_gl/finance_ap/procurement/cyber_ops/resource/hr/audit')]},
  {id:'review_grant',label:'Review Capability',fields:[f('id','Grant ID'),f('version','Versi','number'),f('approve','Keputusan','decision'),f('notes','Alasan approval')]},
  {id:'request_project_scope',label:'Ajukan Scope Project',fields:[f('project_id','Project ID'),f('legal_entity_id','Legal Entity ID')]},
