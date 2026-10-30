@@ -73,6 +73,36 @@ export async function POST(req:Request){
    await erpGrant(a,'hr',leave.legal_entity_id);
    await erpAtom(a,"EXISTS(SELECT 1 FROM india_hr_leave_requests WHERE tenant_id=? AND id=? AND status='draft' AND version=? AND lower(email)!=?)",[TENANT,v.id as string,v.version as number,email],[db.prepare('UPDATE india_hr_leave_requests SET status=?,version=version+1,reviewed_by=?,review_notes=? WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.id as string)],'hr',v.id as string,'LEAVE_REVIEW',{approved:v.approve});return erpReply({success:true});
   }
+
+  if(v.action==='skill'){
+   erpAssert(role==='admin'&&erpText(v.email,6,254)&&erpText(v.skill,3,120)&&['foundation','intermediate','advanced','expert'].includes(String(v.level)),'Data kompetensi atau sertifikasi tidak valid',403);
+   const unit=await db.prepare("SELECT unit_id FROM india_erp_staff_org WHERE tenant_id=? AND lower(email)=lower(?) AND status='approved'").bind(TENANT,v.email as string).first<{unit_id:string}>();
+   erpAssert(unit,'Staff belum memiliki unit',409);await erpGrant(a,'hr',unit.unit_id);
+   erpAssert(v.expires_at===undefined||erpDate(v.expires_at),'Tanggal kedaluwarsa tidak valid');
+   const id=crypto.randomUUID();
+   await erpAtom(a,'1=1',[],[db.prepare('INSERT INTO india_hr_skills(id,tenant_id,email,skill,level,evidence_document_id,expires_at,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,String(v.email).toLowerCase(),(v.skill as string).trim(),v.level as string,erpId(v.document_id)?v.document_id:null,v.expires_at as string||null,email)],'hr',id,'SKILL_RECORD',{employee:v.email,skill:v.skill,level:v.level});return erpReply({success:true,id},201);
+  }
+  if(v.action==='asset_register'){
+   erpAssert(role==='admin'&&erpId(v.legal_entity_id)&&erpText(v.tag,3,80)&&erpText(v.model,3,120)&&['laptop','mobile','security_token','equipment','license'].includes(String(v.category)),'Inventaris aset harus memiliki tag dan kategori valid',403);
+   await erpGrant(a,'hr',v.legal_entity_id as string);const id=crypto.randomUUID();
+   await erpAtom(a,'1=1',[],[db.prepare('INSERT INTO india_hr_assets(id,tenant_id,legal_entity_id,tag,category,model,created_by) VALUES(?,?,?,?,?,?,?)').bind(id,TENANT,v.legal_entity_id as string,v.tag as string,v.category as string,v.model as string,email)],'hr',id,'ASSET_REGISTER',{tag:v.tag,category:v.category});return erpReply({success:true,id},201);
+  }
+  if(v.action==='asset_assign'||v.action==='asset_return'||v.action==='asset_retire'){
+   erpAssert(role==='admin'&&erpId(v.id),'Aset harus valid',403);
+   const asset=await db.prepare('SELECT id,status,assigned_to,legal_entity_id FROM india_hr_assets WHERE tenant_id=? AND id=?').bind(TENANT,v.id as string).first<{id:string;status:string;assigned_to:string|null;legal_entity_id:string}>();
+   erpAssert(asset,'Aset tidak ditemukan',404);await erpGrant(a,'hr',asset.legal_entity_id);
+   const assign=v.action==='asset_assign',retire=v.action==='asset_retire';
+   erpAssert(assign?asset.status==='available':asset.status===(retire?'available':'assigned'),'Status aset tidak sesuai',409);
+   if(assign){
+    erpAssert(erpText(v.email,6,254),'Email penerima wajib');
+    const target=await db.prepare("SELECT e.email FROM india_hr_employees e JOIN india_erp_staff_org s ON s.email=e.email AND s.tenant_id=e.tenant_id AND s.status='approved' WHERE e.tenant_id=? AND lower(e.email)=lower(?) AND e.status='active' AND EXISTS(WITH RECURSIVE nodes(id,parent_id) AS (SELECT id,parent_id FROM india_erp_org_units WHERE tenant_id=? AND id=s.unit_id UNION ALL SELECT p.id,p.parent_id FROM india_erp_org_units p JOIN nodes n ON n.parent_id=p.id WHERE p.tenant_id=?) SELECT 1 FROM nodes WHERE id=?)").bind(TENANT,v.email as string,TENANT,TENANT,asset.legal_entity_id).first();
+    erpAssert(target,'Penerima belum aktif atau di legal entity lain',409);
+   }
+   const newStatus=assign?'assigned':retire?'retired':'available',assigned=assign?String(v.email).toLowerCase():null;
+   const id=crypto.randomUUID();
+   await erpAtom(a,"EXISTS(SELECT 1 FROM india_hr_assets WHERE tenant_id=? AND id=? AND status=? AND assigned_to IS ?)",[TENANT,asset.id,asset.status,asset.assigned_to],[db.prepare('INSERT INTO india_hr_asset_events(id,tenant_id,asset_id,action,employee_email,created_by) VALUES(?,?,?,?,?,?)').bind(id,TENANT,asset.id,assign?'assign':retire?'retire':'return',assign?assigned:asset.assigned_to,email),
+    db.prepare('UPDATE india_hr_assets SET status=?,assigned_to=? WHERE tenant_id=? AND id=?').bind(newStatus,assigned,TENANT,asset.id)],'hr',asset.id,'ASSET_'+newStatus.toUpperCase(),{event_id:id});return erpReply({success:true});
+  }
   throw new ERPError('Aksi HR belum tersedia');
  }catch(e){return erpError(e);}
 }
