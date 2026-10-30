@@ -9,11 +9,13 @@ export async function GET(req:Request){
  try{
   if(!['admin','approver'].includes(role))throw new ERPError('Akses pengelolaan organisasi ditolak',403);
   const staff=await db.prepare("SELECT email,unit_id,position_title,status,version,created_by,reviewed_by FROM india_erp_staff_org WHERE tenant_id=? ORDER BY email LIMIT 500").bind(TENANT).all();
+  const matrix=await db.prepare('SELECT role,capability,allowed FROM india_erp_role_capability_matrix ORDER BY role,capability').all();
+  const changes=await db.prepare('SELECT id,grant_id,action,reason,status,version,requested_by,reviewed_by FROM india_erp_access_change_requests WHERE tenant_id=? ORDER BY requested_at DESC LIMIT 200').bind(TENANT).all();
   const units=await db.prepare('SELECT id,code,label,kind,parent_id,active FROM india_erp_org_units WHERE tenant_id=? ORDER BY kind,code LIMIT 500').bind(TENANT).all();
   const grants=await db.prepare("SELECT id,email,capability,unit_id,status,version,requested_by,reviewed_by FROM india_erp_capability_grants WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500").bind(TENANT).all();
   const opportunities=await db.prepare("SELECT opportunity_id,legal_entity_id,status,version,requested_by,reviewed_by FROM india_erp_opportunity_scopes WHERE tenant_id=? ORDER BY opportunity_id LIMIT 500").bind(TENANT).all();
   const projects=await db.prepare("SELECT project_id,legal_entity_id,status,version,requested_by,reviewed_by FROM india_erp_project_scopes WHERE tenant_id=? ORDER BY project_id LIMIT 500").bind(TENANT).all();
-  return erpReply({success:true,role,email,units:units.results,staff:staff.results,grants:grants.results,projects:projects.results,opportunities:opportunities.results});
+  return erpReply({success:true,role,email,units:units.results,staff:staff.results,grants:grants.results,projects:projects.results,opportunities:opportunities.results,matrix:matrix.results,changes:changes.results});
  }catch(e){return erpError(e);}
 }
 export async function POST(req:Request){
@@ -35,6 +37,17 @@ export async function POST(req:Request){
    erpAssert(role==='approver','Penempatan personel perlu Approver independen',403);
    erpAssert(erpText(v.email,6,254)&&String(v.email).includes('@')&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Keputusan review personel tidak valid');
    await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_staff_org WHERE tenant_id=? AND lower(email)=lower(?) AND status='pending' AND version=? AND lower(created_by)!=? AND lower(email)!=?)",[TENANT,v.email as string,v.version as number,email,email],[db.prepare('UPDATE india_erp_staff_org SET status=?,version=version+1,reviewed_by=?,review_notes=? WHERE tenant_id=? AND lower(email)=lower(?)').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.email as string)],'org',v.email as string,'REVIEW_STAFF_ASSIGNMENT',{approved:v.approve});return erpReply({success:true});
+  }
+
+  if(v.action==='request_revoke'){
+   erpAssert(role==='admin','Permohonan pencabutan hanya Admin',403);
+   erpAssert(erpId(v.id)&&erpId(v.grant_id)&&erpText(v.reason,12,800),'ID, grant dan alasan pencabutan wajib');
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_capability_grants WHERE tenant_id=? AND id=? AND status='approved')",[TENANT,v.grant_id as string],[db.prepare('INSERT INTO india_erp_access_change_requests(id,tenant_id,grant_id,action,reason,requested_by) VALUES(?,?,?,?,?,?)').bind(v.id as string,TENANT,v.grant_id as string,'revoke',v.reason as string,email)],'access',v.id as string,'REVOKE_REQUESTED',{grant_id:v.grant_id});return erpReply({success:true,id:v.id},201);
+  }
+  if(v.action==='review_revoke'){
+   erpAssert(role==='approver','Pencabutan memerlukan Approver independen',403);
+   erpAssert(erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Keputusan pencabutan tidak valid');
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_access_change_requests x JOIN india_erp_capability_grants g ON g.id=x.grant_id AND g.tenant_id=x.tenant_id WHERE x.tenant_id=? AND x.id=? AND x.version=? AND x.status='pending' AND g.status='approved' AND lower(x.requested_by)!=? AND lower(g.email)!=?)",[TENANT,v.id as string,v.version as number,email,email],[db.prepare('UPDATE india_erp_access_change_requests SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.id as string)],'access',v.id as string,'REVOKE_REVIEWED',{approved:v.approve});return erpReply({success:true});
   }
   if(v.action==='request_grant'){
    erpAssert(role==='admin','Permohonan hak ERP hanya oleh Admin',403);
