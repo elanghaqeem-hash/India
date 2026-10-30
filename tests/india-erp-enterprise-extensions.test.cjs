@@ -65,7 +65,7 @@ test('WP6 posted journal reverses exactly once, close rejects pending journals a
 test('WP7 budget→requisition→canonical vendor PO approval commit guards amount and SoD',async()=>{
  const h=await won(fixture(43));try{
  await setup(h);await legalScope(h,'opportunity','opp-qa');
- for(const [email,cap] of [[users.finance,'finance_ap'],[users.approver,'finance_ap'],[users.admin,'procurement'],[users.approver,'procurement']])grant(h,email,cap);
+ for(const [email,cap] of [[users.finance,'finance_ap'],[users.approver,'finance_ap'],[users.admin,'finance_ap'],[users.finance,'finance_gl'],[users.presales,'procurement'],[users.admin,'procurement'],[users.approver,'procurement']])grant(h,email,cap);
  const budget=(await expect(h.call('erp/procurement','POST','finance',{action:'budget',legal_entity_id:legal,period:'2026-10',code:'CYBER-OEM',limit_cents:200000000}),201)).body.id;
  await expect(h.call('erp/procurement','POST','finance',{action:'approve_budget',id:budget}),403);
  await expect(h.call('erp/procurement','POST','approver',{action:'approve_budget',id:budget}),200);
@@ -78,6 +78,23 @@ test('WP7 budget→requisition→canonical vendor PO approval commit guards amou
  const po=(await expect(h.call('erp/procurement','POST','admin',{action:'create_po',offer_id:'offer-ext',po_number:'PO-EXT',qty:1,requisition_id:req}),201)).body.id;
  assert.equal(h.sql.prepare('SELECT po_id FROM india_procurement_commitments WHERE requisition_id=?').get(req).po_id,po);
  assert.equal(h.sql.prepare('SELECT committed_cents FROM india_procurement_budget_usage WHERE budget_id=?').get(budget).committed_cents,60000000);
+ await expect(h.call('erp/procurement','POST','approver',{action:'review_po',po_id:po,version:1,approve:true,notes:'Independent approved supplier PO and budget'}),200);
+ const receiptDoc=(await expect(upload(h,'supporting','finance'),201)).body.id;
+ await expect(h.call('erp/procurement','POST','presales',{action:'receipt',po_id:po,qty:1,document_id:receiptDoc}),201);
+ const invDoc=(await expect(upload(h,'supporting','finance'),201)).body.id;
+ const invoice=(await expect(h.call('erp/procurement','POST','finance',{action:'supplier_invoice',po_id:po,supplier_invoice_number:'SUP-EXT-PAY',qty:1,due_date:'2026-12-31',document_id:invDoc}),201)).body.id;
+ await expect(h.call('erp/procurement','POST','approver',{action:'review_invoice',id:invoice,version:1,approve:true,notes:'Three way original PO goods and supplier evidence verified'}),200);
+ const glBank=(await expect(h.call('erp/ledger','POST','finance',{action:'account',legal_entity_id:legal,code:'10210',name:'Clearing Bank Account',category:'asset'}),201)).body.id;
+ const bank=(await expect(h.call('erp/treasury','POST','finance',{action:'register_bank',legal_entity_id:legal,gl_account_id:glBank,bank_name:'Test Bank - no real transfer',masked_number:'****1234'}),201)).body.id;
+ const payment=(await expect(h.call('erp/treasury','POST','finance',{action:'request_payment',invoice_id:invoice,bank_account_id:bank,amount_cents:50000000}),201)).body.id;
+ await expect(h.call('erp/treasury','POST','finance',{action:'approve_payment',id:payment,version:1,approve:true,notes:'Payment self review denied'}),403);
+ await expect(h.call('erp/treasury','POST','approver',{action:'approve_payment',id:payment,version:1,approve:true,notes:'Independent payment instruction approval'}),200);
+ const bankDoc=(await expect(upload(h,'supporting','finance'),201)).body.id;
+ await expect(h.call('erp/treasury','POST','admin',{action:'record_bank_evidence',id:payment,version:2,bank_reference:'BANK-SYNTHETIC-001',document_id:bankDoc}),200);
+ await expect(h.call('erp/treasury','POST','approver',{action:'confirm_settlement',id:payment,version:3}),200);
+ assert.equal(h.sql.prepare('SELECT status FROM india_treasury_payments WHERE id=?').get(payment).status,'settled');
+ assert.equal(h.sql.prepare('SELECT settled_cents FROM india_treasury_ap_outstanding WHERE invoice_id=?').get(invoice).settled_cents,50000000);
+
  }finally{h.close();}
 });
 test('HR onboarding, leave policy and custodial asset return before offboarding',async()=>{
