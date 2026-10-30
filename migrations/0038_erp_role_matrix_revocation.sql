@@ -9,7 +9,7 @@ CREATE TABLE india_erp_role_capability_matrix (
  CHECK(capability IN ('finance_gl','finance_ap','procurement','cyber_ops','resource','hr','audit'))
 );
 INSERT INTO india_erp_role_capability_matrix(role,capability,allowed) VALUES
- ('finance','finance_gl',1),('finance','finance_ap',1),
+ ('finance','finance_gl',1),('finance','finance_ap',1),('admin','finance_ap',1),
  ('approver','finance_gl',1),('approver','finance_ap',1),
  ('approver','procurement',1),('approver','cyber_ops',1),
  ('presales','procurement',1),('presales','cyber_ops',1),
