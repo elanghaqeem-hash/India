@@ -28,10 +28,22 @@ BEGIN SELECT RAISE(ABORT,'ERP_ORG_IMMUTABLE'); END;
 CREATE TABLE india_erp_staff_org (
  tenant_id TEXT NOT NULL, email TEXT NOT NULL COLLATE NOCASE, unit_id TEXT NOT NULL,
  position_title TEXT NOT NULL CHECK(length(position_title) BETWEEN 3 AND 120),
- created_by TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ created_by TEXT NOT NULL COLLATE NOCASE, created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+ version INTEGER NOT NULL DEFAULT 1,reviewed_by TEXT COLLATE NOCASE,review_notes TEXT,
  PRIMARY KEY(tenant_id,email), FOREIGN KEY(email) REFERENCES india_members(email),
- FOREIGN KEY(tenant_id,unit_id) REFERENCES india_erp_org_units(tenant_id,id)
+ FOREIGN KEY(tenant_id,unit_id) REFERENCES india_erp_org_units(tenant_id,id),
+ CHECK(reviewed_by IS NULL OR (lower(reviewed_by)!=lower(created_by) AND lower(reviewed_by)!=lower(email))),
+ CHECK(status='pending' OR (reviewed_by IS NOT NULL AND length(review_notes)>=12))
 );
+CREATE TRIGGER india_erp_staff_review BEFORE UPDATE ON india_erp_staff_org
+WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected')
+ OR NEW.version!=OLD.version+1 OR NEW.tenant_id IS NOT OLD.tenant_id
+ OR NEW.email IS NOT OLD.email OR NEW.unit_id IS NOT OLD.unit_id
+ OR NEW.position_title IS NOT OLD.position_title OR NEW.created_by IS NOT OLD.created_by
+ OR lower(NEW.reviewed_by)=lower(OLD.created_by) OR lower(NEW.reviewed_by)=lower(OLD.email)
+BEGIN SELECT RAISE(ABORT,'ERP_STAFF_IMMUTABLE'); END;
+CREATE TRIGGER india_erp_staff_no_delete BEFORE DELETE ON india_erp_staff_org BEGIN SELECT RAISE(ABORT,'ERP_STAFF_IMMUTABLE'); END;
 CREATE TABLE india_erp_capability_grants (
  id TEXT PRIMARY KEY, tenant_id TEXT NOT NULL, email TEXT NOT NULL COLLATE NOCASE,
  capability TEXT NOT NULL CHECK(capability IN ('finance_gl','finance_ap','procurement','cyber_ops','resource','hr','audit')),
