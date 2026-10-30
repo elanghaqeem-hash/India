@@ -38,3 +38,20 @@ test('injected audit failure rolls back timesheet submission and rejects forged 
  await expect(submit(h,p.id,day),503);
  assert.equal(h.sql.prepare('SELECT count(*) n FROM india_project_timesheets').get().n,0);
 }finally{h.close();}});
+
+test('approved allocation daily cost is prorated by minutes and frozen for project actuals',async()=>{
+ for(const [minutes,expectedCents] of [[15,312500],[30,625000],[240,5000000],[480,10000000]]){
+  const {h,p,day}=await setup();
+  try{
+   const created=await expect(submit(h,p.id,day,'presales',{minutes}),201);
+   const before=h.sql.prepare('SELECT minutes,cost_snapshot_cents FROM india_project_timesheets WHERE id=?').get(created.body.id);
+   assert.equal(before.minutes,minutes);
+   assert.equal(before.cost_snapshot_cents,expectedCents,'Daily rate must not be charged for partial workday');
+   h.sql.prepare('UPDATE india_resource_people SET daily_cost_idr=300000 WHERE id=?').run('person-timesheet');
+   const finance=await expect(h.call('psa/timesheets','GET','finance',null,'?project_id='+p.id),200);
+   assert.equal(finance.body.items[0].cost_snapshot_cents,expectedCents,'Frozen snapshot cannot follow later rate edits');
+   await expect(h.call('psa/timesheets','POST','finance',{action:'review',id:created.body.id,version:1,approve:true,notes:'Minutes and approved allocation reconciled'}),200);
+   assert.equal(h.sql.prepare('SELECT cost_snapshot_cents,status FROM india_project_timesheets WHERE id=?').get(created.body.id).cost_snapshot_cents,expectedCents);
+  }finally{h.close();}
+ }
+});
