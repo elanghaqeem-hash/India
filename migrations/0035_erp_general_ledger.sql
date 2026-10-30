@@ -36,7 +36,7 @@ CREATE TABLE india_gl_journals (
  FOREIGN KEY(tenant_id,legal_entity_id) REFERENCES india_erp_org_units(tenant_id,id),
  FOREIGN KEY(tenant_id,period_id) REFERENCES india_gl_periods(tenant_id,id),
  CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(created_by)),
- CHECK(status NOT IN ('approved','posted') OR (reviewed_by IS NOT NULL AND length(review_notes)>=12))
+ CHECK(status NOT IN ('approved','posted') OR (reviewed_by IS NOT NULL AND coalesce(length(review_notes),0)>=12))
 );
 CREATE TABLE india_gl_lines (
  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,journal_id TEXT NOT NULL,
