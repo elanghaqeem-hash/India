@@ -19,7 +19,7 @@ export async function POST(req:Request){
  try{
   erpOrigin(req);const v=await readBoundedJSON(req,7000) as Record<string,unknown>;
   if(v.action==='open'){
-   erpAssert(role==='presales','Case hanya dibuat oleh operator bergrant',403);
+   erpAssert(['presales','admin'].includes(role),'Case hanya dibuat oleh operator bergrant',403);
    erpAssert(erpId(v.project_id)&&erpText(v.external_ref,3,120)&&erpText(v.title,8,240)&&['vapt_finding','soc_incident','dfir_incident'].includes(String(v.kind))&&['critical','high','medium','low','informational'].includes(String(v.severity))&&['confidential','restricted'].includes(String(v.classification)),'Metadata keamanan tidak valid');
    const unit=await erpProjectUnit(db,v.project_id as string);await erpGrant(a.identity,'cyber_ops',unit);
    const id=crypto.randomUUID();
@@ -36,7 +36,7 @@ export async function POST(req:Request){
     await supportingOriginal(db,v.document_id as string,c.opportunity_id);
     await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_cyber_cases WHERE tenant_id=? AND id=? AND version=? AND status='open' AND lower(created_by)!=?)",[TENANT,c.id,c.version,email],[db.prepare('UPDATE india_cyber_cases SET status=?,version=version+1,reviewer_email=?,review_notes=?,evidence_document_id=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?').bind(v.approve?'reviewed':'rejected',email,v.notes as string,v.document_id as string,TENANT,c.id)],'cyber',c.id,'CASE_REVIEW',{approved:v.approve,document_id:v.document_id});return erpReply({success:true});
    }
-   erpAssert(role==='presales'&&c.status==='reviewed'&&c.reviewer_email!==null&&c.reviewer_email.toLowerCase()!==email,'Penutupan perlu review independen',403);
+   erpAssert(['presales','admin'].includes(role)&&c.status==='reviewed'&&c.reviewer_email!==null&&c.reviewer_email.toLowerCase()!==email,'Penutupan perlu review independen',403);
    await supportingOriginal(db,c.evidence_document_id as string,c.opportunity_id);
    await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_cyber_cases WHERE tenant_id=? AND id=? AND version=? AND status='reviewed')",[TENANT,c.id,c.version],[db.prepare("UPDATE india_cyber_cases SET status='closed',version=version+1,closed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?").bind(TENANT,c.id)],'cyber',c.id,'CASE_CLOSE',{evidence_document_id:c.evidence_document_id});
    return erpReply({success:true});
