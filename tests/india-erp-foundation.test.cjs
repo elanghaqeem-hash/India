@@ -50,6 +50,7 @@ test('WP6 GL double entry: denied draft, balanced approval, one immutable postin
   const v={action:'journal',legal_entity_id:legal,period_id:period,source_type:'manual',source_key:'qa-entry-01',memo:'Approved manual QA revenue entry',lines:[{account_id:a,debit_cents:20000000,credit_cents:0},{account_id:b,debit_cents:0,credit_cents:20000000}]};
   await expect(h.call('erp/ledger','POST','finance',{...v,source_key:'imbalanced',lines:[{account_id:a,debit_cents:100,credit_cents:0},{account_id:b,debit_cents:0,credit_cents:90}]}),422);
   const id=(await expect(h.call('erp/ledger','POST','finance',v),201)).body.id;
+  assert.throws(()=>h.sql.prepare("UPDATE india_gl_journals SET status='approved',version=version+1,reviewed_by=?,review_notes=NULL WHERE id=?").run(users.approver,id),/constraint|CHECK/i);
   await expect(h.call('erp/ledger','POST','finance',{action:'review',id,version:1,approve:true,notes:'Finance self-review denied'}),403);
   await expect(h.call('erp/ledger','POST','approver',{action:'review',id,version:1,approve:true,notes:'Reviewed balanced source and evidence'}),200);
   await expect(h.call('erp/ledger','POST','finance',{action:'post',id,version:2}),200);
