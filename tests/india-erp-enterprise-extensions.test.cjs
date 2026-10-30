@@ -109,6 +109,8 @@ test('HR onboarding, leave policy and custodial asset return before offboarding'
  await expect(h.call('erp/hr','POST','approver',{action:'approve_policy',id:policy}),200);
  const leave=(await expect(h.call('erp/hr','POST','finance',{action:'leave_request',policy_id:policy,from_date:'2026-11-02',to_date:'2026-11-03',notes:'Annual leave request'}),201)).body.id;
  await expect(h.call('erp/hr','POST','approver',{action:'review_leave',id:leave,version:1,approve:true,notes:'Leave balance validated independently'}),200);
+ const weekdayLeave=(await expect(h.call('erp/hr','POST','finance',{action:'leave_request',policy_id:policy,from_date:'2026-11-06',to_date:'2026-11-09',notes:'Weekend-aware leave request'}),201)).body.id;
+ assert.equal(h.sql.prepare('SELECT business_days FROM india_hr_leave_requests WHERE id=?').get(weekdayLeave).business_days,2);
  const asset=(await expect(h.call('erp/hr','POST','admin',{action:'asset_register',legal_entity_id:legal,tag:'LAP-EXT-001',category:'laptop',model:'Managed Enterprise Laptop'}),201)).body.id;
  await expect(h.call('erp/hr','POST','admin',{action:'asset_assign',id:asset,email:users.finance}),200);
  await expect(h.call('erp/hr','POST','approver',{action:'offboard',email:users.finance,version:2,end_date:'2026-12-31',reason:'Confirmed employee lifecycle separation'}),409);
