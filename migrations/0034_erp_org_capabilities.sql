@@ -81,6 +81,25 @@ WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected') OR NEW.v
 BEGIN SELECT RAISE(ABORT,'ERP_PROJECT_SCOPE_IMMUTABLE'); END;
 CREATE TRIGGER india_erp_project_scope_no_delete BEFORE DELETE ON india_erp_project_scopes BEGIN SELECT RAISE(ABORT,'ERP_PROJECT_SCOPE_IMMUTABLE'); END;
 
+CREATE TABLE india_erp_opportunity_scopes (
+ tenant_id TEXT NOT NULL,opportunity_id TEXT NOT NULL,legal_entity_id TEXT NOT NULL,
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','rejected')),
+ requested_by TEXT NOT NULL COLLATE NOCASE,reviewed_by TEXT COLLATE NOCASE,version INTEGER NOT NULL DEFAULT 1,
+ PRIMARY KEY(tenant_id,opportunity_id),FOREIGN KEY(tenant_id,opportunity_id) REFERENCES india_sales_opportunities(tenant_id,id),
+ FOREIGN KEY(tenant_id,legal_entity_id) REFERENCES india_erp_org_units(tenant_id,id),
+ CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(requested_by))
+);
+CREATE TRIGGER india_erp_opp_scope_guard BEFORE INSERT ON india_erp_opportunity_scopes
+WHEN NOT EXISTS(SELECT 1 FROM india_erp_org_units u WHERE u.tenant_id=NEW.tenant_id AND u.id=NEW.legal_entity_id AND u.kind='legal_entity' AND u.active=1)
+BEGIN SELECT RAISE(ABORT,'ERP_OPPORTUNITY_SCOPE_INVALID'); END;
+CREATE TRIGGER india_erp_opp_scope_review BEFORE UPDATE ON india_erp_opportunity_scopes
+WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected') OR NEW.version!=OLD.version+1
+ OR NEW.tenant_id IS NOT OLD.tenant_id OR NEW.opportunity_id IS NOT OLD.opportunity_id
+ OR NEW.legal_entity_id IS NOT OLD.legal_entity_id OR NEW.requested_by IS NOT OLD.requested_by
+ OR lower(NEW.reviewed_by)=lower(OLD.requested_by)
+BEGIN SELECT RAISE(ABORT,'ERP_OPPORTUNITY_SCOPE_IMMUTABLE'); END;
+CREATE TRIGGER india_erp_opp_scope_no_delete BEFORE DELETE ON india_erp_opportunity_scopes BEGIN SELECT RAISE(ABORT,'ERP_OPPORTUNITY_SCOPE_IMMUTABLE'); END;
+
 INSERT INTO india_schema_file_manifest(path,source_branch)
 VALUES('migrations/0034_erp_org_capabilities.sql','erp-wp2');
 INSERT INTO india_schema_migrations(version) VALUES(34);
