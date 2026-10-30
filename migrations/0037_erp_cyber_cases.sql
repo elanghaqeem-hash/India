@@ -36,7 +36,7 @@ BEGIN
  ) THEN RAISE(ABORT,'CYBER_CASE_IMMUTABLE') END;
  SELECT CASE WHEN NEW.status IN ('reviewed','closed') AND (
  NEW.evidence_document_id IS NULL OR NEW.reviewer_email IS NULL
- OR lower(NEW.reviewer_email)=lower(NEW.created_by) OR length(NEW.review_notes)<12
+ OR lower(NEW.reviewer_email)=lower(NEW.created_by) OR coalesce(length(NEW.review_notes),0)<12
  ) THEN RAISE(ABORT,'CYBER_EVIDENCE_REVIEW_REQUIRED') END;
 END;
 CREATE TRIGGER india_cyber_case_no_delete BEFORE DELETE ON india_cyber_cases BEGIN SELECT RAISE(ABORT,'CYBER_CASE_IMMUTABLE'); END;
