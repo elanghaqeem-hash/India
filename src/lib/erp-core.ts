@@ -5,12 +5,12 @@ import {operationEvent} from './operations';
 import {privateHeaders} from './boq-auth';
 
 export class ERPError extends Error{constructor(message:string,public status=422){super(message);}}
-export const erpAssert=(condition:unknown,message:string,status=422):asserts condition=>{if(!condition)throw new ERPError(message,status);};
+export function erpAssert(condition:unknown,message:string,status=422):asserts condition{if(!condition)throw new ERPError(message,status);}
 export const erpReply=(x:unknown,status=200)=>Response.json(x,{status,headers:privateHeaders});
 export const erpError=(e:unknown)=>e instanceof ERPError?erpReply({success:false,message:e.message},e.status):
  erpReply({success:false,message:/constraint|CONFLICT|IMMUTABLE|INVALID|UNBALANCED|OVER_RECEIPT|MATCH|CAPACITY|SCOPE|FOREIGN KEY|UNIQUE/i.test(String(e))
  ?'Transaksi ditolak: referensi, versi, nominal atau pengendalian tidak valid.':'Modul ERP belum siap; periksa migrasi D1 0034–0037.'},/constraint|CONFLICT|IMMUTABLE|INVALID|UNBALANCED|OVER_RECEIPT|MATCH|CAPACITY|SCOPE|FOREIGN KEY|UNIQUE/i.test(String(e))?409:503);
-export const erpId=(x:unknown)=>safeID(x);
+export const erpId=(x:unknown):x is string=>safeID(x);
 export const erpText=(x:unknown,min=3,max=240):x is string=>typeof x==='string'&&x.trim().length>=min&&x.length<=max;
 export const erpPositiveCents=(x:unknown):x is number=>Number.isSafeInteger(x)&&Number(x)>0&&Number(x)<900000000000000;
 export const erpDate=(x:unknown):x is string=>typeof x==='string'&&/^20\d\d-\d\d-\d\d$/.test(x)&&!Number.isNaN(Date.parse(x+'T00:00:00Z'))&&new Date(x+'T00:00:00Z').toISOString().slice(0,10)===x;
