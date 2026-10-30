@@ -10,12 +10,13 @@ export async function GET(req:Request){
   if(!['admin','approver'].includes(role))throw new ERPError('Akses pengelolaan organisasi ditolak',403);
   const staff=await db.prepare("SELECT email,unit_id,position_title,status,version,created_by,reviewed_by FROM india_erp_staff_org WHERE tenant_id=? ORDER BY email LIMIT 500").bind(TENANT).all();
   const matrix=await db.prepare('SELECT role,capability,allowed FROM india_erp_role_capability_matrix ORDER BY role,capability').all();
+  const policy_changes=await db.prepare('SELECT id,role,capability,from_allowed,to_allowed,status,version,requested_by,reviewed_by FROM india_erp_role_policy_changes WHERE tenant_id=? ORDER BY created_at DESC LIMIT 150').bind(TENANT).all();
   const changes=await db.prepare('SELECT id,grant_id,action,reason,status,version,requested_by,reviewed_by FROM india_erp_access_change_requests WHERE tenant_id=? ORDER BY requested_at DESC LIMIT 200').bind(TENANT).all();
   const units=await db.prepare('SELECT id,code,label,kind,parent_id,active FROM india_erp_org_units WHERE tenant_id=? ORDER BY kind,code LIMIT 500').bind(TENANT).all();
   const grants=await db.prepare("SELECT id,email,capability,unit_id,status,version,requested_by,reviewed_by FROM india_erp_capability_grants WHERE tenant_id=? ORDER BY created_at DESC LIMIT 500").bind(TENANT).all();
   const opportunities=await db.prepare("SELECT opportunity_id,legal_entity_id,status,version,requested_by,reviewed_by FROM india_erp_opportunity_scopes WHERE tenant_id=? ORDER BY opportunity_id LIMIT 500").bind(TENANT).all();
   const projects=await db.prepare("SELECT project_id,legal_entity_id,status,version,requested_by,reviewed_by FROM india_erp_project_scopes WHERE tenant_id=? ORDER BY project_id LIMIT 500").bind(TENANT).all();
-  return erpReply({success:true,role,email,units:units.results,staff:staff.results,grants:grants.results,projects:projects.results,opportunities:opportunities.results,matrix:matrix.results,changes:changes.results});
+  return erpReply({success:true,role,email,units:units.results,staff:staff.results,grants:grants.results,projects:projects.results,opportunities:opportunities.results,matrix:matrix.results,changes:changes.results,policy_changes:policy_changes.results});
  }catch(e){return erpError(e);}
 }
 export async function POST(req:Request){
@@ -39,6 +40,18 @@ export async function POST(req:Request){
    await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_staff_org WHERE tenant_id=? AND lower(email)=lower(?) AND status='pending' AND version=? AND lower(created_by)!=? AND lower(email)!=?)",[TENANT,v.email as string,v.version as number,email,email],[db.prepare('UPDATE india_erp_staff_org SET status=?,version=version+1,reviewed_by=?,review_notes=? WHERE tenant_id=? AND lower(email)=lower(?)').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.email as string)],'org',v.email as string,'REVIEW_STAFF_ASSIGNMENT',{approved:v.approve});return erpReply({success:true});
   }
 
+
+  if(v.action==='request_policy_change'){
+   erpAssert(role==='admin'&&erpId(v.id)&&['admin','marketing','sales','presales','finance','approver','legal','viewer'].includes(String(v.policy_role))&&['finance_gl','finance_ap','procurement','cyber_ops','resource','hr','audit'].includes(String(v.capability))&&typeof v.allowed==='boolean'&&erpText(v.reason,12,800),'Perubahan role matrix harus valid',403);
+   const previous=await db.prepare('SELECT allowed FROM india_erp_role_capability_matrix WHERE role=? AND capability=?').bind(v.policy_role as string,v.capability as string).first<{allowed:number}>();
+   const old=previous?.allowed||0,next=v.allowed?1:0;
+   erpAssert(old!==next,'Kebijakan tidak berubah');
+   await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_erp_role_policy_changes(id,tenant_id,role,capability,from_allowed,to_allowed,reason,requested_by) VALUES(?,?,?,?,?,?,?,?)').bind(v.id as string,TENANT,v.policy_role as string,v.capability as string,old,next,v.reason as string,email)],'access',v.id as string,'POLICY_CHANGE_REQUEST',{role:v.policy_role,capability:v.capability,to_allowed:next});return erpReply({success:true,id:v.id},201);
+  }
+  if(v.action==='review_policy_change'){
+   erpAssert(role==='approver'&&erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Perubahan role matrix memerlukan approval independen',403);
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_role_policy_changes WHERE tenant_id=? AND id=? AND status='pending' AND version=? AND lower(requested_by)!=?)",[TENANT,v.id as string,v.version as number,email],[db.prepare('UPDATE india_erp_role_policy_changes SET status=?,version=version+1,reviewed_by=?,review_notes=? WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.id as string)],'access',v.id as string,'POLICY_CHANGE_REVIEW',{approved:v.approve});return erpReply({success:true});
+  }
   if(v.action==='request_revoke'){
    erpAssert(role==='admin','Permohonan pencabutan hanya Admin',403);
    erpAssert(erpId(v.id)&&erpId(v.grant_id)&&erpText(v.reason,12,800),'ID, grant dan alasan pencabutan wajib');
