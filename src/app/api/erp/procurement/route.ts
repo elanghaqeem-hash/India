@@ -25,7 +25,7 @@ export async function POST(req:Request){
  try{
   erpOrigin(req);const v=await readBoundedJSON(req,9000) as Record<string,unknown>;
   if(v.action==='create_po'){
-   erpAssert(role==='presales','Purchase Order hanya untuk Procurement/Presales bergrant',403);
+   erpAssert(['presales','admin'].includes(role),'Purchase Order hanya untuk Procurement/Presales bergrant',403);
    erpAssert(erpId(v.offer_id)&&erpText(v.po_number,3,100)&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0,'Vendor offer, PO dan kuantitas wajib');
    const offer=await db.prepare('SELECT o.id,o.vendor_id,o.opportunity_id,o.quantity,o.unit_price_idr,o.status,o.valid_until,v.status AS vendor_status,v.valid_until AS vendor_valid FROM india_vendor_offers o JOIN india_vendors v ON v.id=o.vendor_id AND v.tenant_id=o.tenant_id WHERE o.tenant_id=? AND o.id=?').bind(TENANT,v.offer_id as string).first<{id:string;vendor_id:string;opportunity_id:string;quantity:number;unit_price_idr:number;status:string;valid_until:string;vendor_status:string;vendor_valid:string}>();
    erpAssert(offer&&offer.status==='validated'&&offer.vendor_status==='validated','Vendor dan offer harus tervalidasi',409);
@@ -45,7 +45,7 @@ export async function POST(req:Request){
     await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_purchase_orders WHERE tenant_id=? AND id=? AND status='draft' AND version=? AND lower(created_by)!=?)",[TENANT,po.id,po.version,email],[db.prepare('UPDATE india_purchase_orders SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,po.id)],'procurement',po.id,'REVIEW_PO',{approved:v.approve});return erpReply({success:true});
    }
    if(v.action==='receipt'){
-    erpAssert(role==='presales','Penerimaan harus Procurement yang bergrant',403);await erpGrant(a.identity,'procurement',unit);
+    erpAssert(['presales','admin'].includes(role),'Penerimaan harus Procurement yang bergrant',403);await erpGrant(a.identity,'procurement',unit);
     erpAssert(po.status==='approved'&&po.created_by.toLowerCase()!==email&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0&&erpId(v.document_id),'Penerimaan berbeda pembuat PO dan membutuhkan bukti asli',403);
     await supportingOriginal(db,v.document_id as string,po.opportunity_id);
     const id=crypto.randomUUID();
