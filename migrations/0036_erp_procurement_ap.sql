@@ -11,7 +11,8 @@ CREATE TABLE india_purchase_orders (
  FOREIGN KEY(tenant_id,offer_id) REFERENCES india_vendor_offers(tenant_id,id),
  FOREIGN KEY(tenant_id,vendor_id) REFERENCES india_vendors(tenant_id,id),
  FOREIGN KEY(tenant_id,opportunity_id) REFERENCES india_sales_opportunities(tenant_id,id),
- CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(created_by))
+ CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(created_by)),
+ CHECK(status='draft' OR (reviewed_by IS NOT NULL AND coalesce(length(review_notes),0)>=12))
 );
 CREATE TRIGGER india_po_source BEFORE INSERT ON india_purchase_orders
 WHEN NOT EXISTS(SELECT 1 FROM india_vendor_offers o JOIN india_vendors v
@@ -56,7 +57,8 @@ CREATE TABLE india_ap_supplier_invoices (
  UNIQUE(tenant_id,id),UNIQUE(tenant_id,vendor_id,supplier_invoice_number),
  FOREIGN KEY(tenant_id,po_id) REFERENCES india_purchase_orders(tenant_id,id),
  FOREIGN KEY(tenant_id,vendor_id) REFERENCES india_vendors(tenant_id,id),
- CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(created_by))
+ CHECK(reviewed_by IS NULL OR lower(reviewed_by)!=lower(created_by)),
+ CHECK(status='draft' OR (reviewed_by IS NOT NULL AND coalesce(length(review_notes),0)>=12))
 );
 CREATE TRIGGER india_ap_match BEFORE INSERT ON india_ap_supplier_invoices
 WHEN NOT EXISTS(SELECT 1 FROM india_purchase_orders p WHERE p.tenant_id=NEW.tenant_id
