@@ -97,3 +97,16 @@ test('WP5 VAPT case project isolation and original Vault evidence for independen
   assert.throws(()=>h.sql.prepare('DELETE FROM india_cyber_cases WHERE id=?').run(created),/IMMUTABLE/);
  }finally{h.close();}
 });
+
+test('ERP grant is inactive until the same staff member has independently approved org affiliation',async()=>{
+ const h=fixture(37);try{
+  await org(h);
+  h.sql.prepare("INSERT INTO india_erp_capability_grants(id,tenant_id,email,capability,unit_id,status,requested_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?,?)")
+   .run('grant-without-staff',tenant,users.finance,'finance_gl',legal,'requester@synthetic.invalid','checker@synthetic.invalid','QA approval without staff assignment');
+  await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),403);
+  await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),201);
+  await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),403);
+  await expect(h.call('erp/organization','POST','approver',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Signed independent organizational appointment'}),200);
+  await expect(h.call('erp/ledger','GET','finance',null,'?legal_entity_id='+legal),200);
+ }finally{h.close();}
+});
