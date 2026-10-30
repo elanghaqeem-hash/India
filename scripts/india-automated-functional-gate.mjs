@@ -15,7 +15,7 @@ const groups=[
  {name:'03 Customer 360 & Sales',checks:['test:sales','test:sales-transactions']},
  {name:'04 Tender & Presales Feasibility',checks:['test:bid-readiness','test:feasibility']},
  {name:'05 Pricing, BoQ & Approval',checks:['test:pricing','test:boq','test:boq-domain','test:boq-workflow','test:quotation-docx','test:menu-approval']},
- {name:'06 Delivery & Post-PO',checks:['test:post-po','test:service-operations']},
+ {name:'06 Delivery & Post-PO',checks:['test:post-po','test:service-operations','test:psa-timesheets']},
  {name:'07 Cash, Renewal & FlexGuard',checks:['test:service-operations','test:flexguard']},
  {name:'08 Partners, Vendor & OEM',checks:['test:modules-13-15']},
  {name:'09 Reports & AI',checks:['test:modules-13-15','test:ai']},
@@ -35,7 +35,7 @@ const manual=[
 ];
 const infrastructure=[
  'Hash SHA-256 dump D1 original + independent restore/rollback di environment Cloudflare terpisah',
- 'Migrasi 0029 dan 0030 serta real transaction replay pada dedicated isolated Access UAT',
+ 'Migrasi 0033 dari baseline UAT/produksi yang diverifikasi dan real transaction replay pada dedicated isolated Access UAT',
  'Kontinuitas kunci AES Vault/AI dan monitoring/backup restore',
  'Deploy produksi, rollback rehearsal dan signoff yang sesuai'
 ];
