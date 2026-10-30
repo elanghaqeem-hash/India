@@ -21,7 +21,7 @@ WHEN OLD.status!='disabled' OR NEW.status!='enabled' OR NEW.version!=OLD.version
 BEGIN SELECT RAISE(ABORT,'CONNECTOR_IMMUTABLE'); END;
 CREATE TABLE india_security_dispatches(
  id TEXT PRIMARY KEY,tenant_id TEXT NOT NULL,connector_id TEXT NOT NULL,case_id TEXT NOT NULL,
- status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','delivered','retryable','rejected')),
+ status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','sending','delivered','retryable','rejected')),
  attempts INTEGER NOT NULL DEFAULT 0 CHECK(attempts BETWEEN 0 AND 5),
  last_http_code INTEGER,requested_by TEXT NOT NULL COLLATE NOCASE,
  last_attempt_at TEXT,delivered_at TEXT,
@@ -42,8 +42,12 @@ CREATE TRIGGER india_security_dispatch_update BEFORE UPDATE ON india_security_di
 WHEN NEW.id IS NOT OLD.id OR NEW.tenant_id IS NOT OLD.tenant_id
  OR NEW.connector_id IS NOT OLD.connector_id OR NEW.case_id IS NOT OLD.case_id
  OR NEW.requested_by IS NOT OLD.requested_by OR NEW.created_at IS NOT OLD.created_at
- OR NEW.attempts!=OLD.attempts+1 OR OLD.status NOT IN ('pending','retryable')
- OR NEW.status NOT IN ('retryable','delivered','rejected')
+ OR NOT(
+ (OLD.status IN ('pending','retryable') AND NEW.status='sending' AND NEW.attempts=OLD.attempts+1 AND OLD.attempts<5)
+ OR (OLD.status='sending' AND NEW.status='sending' AND NEW.attempts=OLD.attempts+1 AND OLD.attempts<5
+ AND OLD.last_attempt_at<=datetime('now','-15 minutes'))
+ OR (OLD.status='sending' AND NEW.status IN ('retryable','delivered','rejected') AND NEW.attempts=OLD.attempts)
+ )
 BEGIN SELECT RAISE(ABORT,'DISPATCH_IMMUTABLE'); END;
 CREATE TRIGGER india_security_dispatch_no_delete BEFORE DELETE ON india_security_dispatches BEGIN SELECT RAISE(ABORT,'DISPATCH_IMMUTABLE'); END;
 INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0042_erp_siem_edr_connectors.sql','erp-extensions');
