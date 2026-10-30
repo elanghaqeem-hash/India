@@ -32,4 +32,8 @@ jobs:
       - name: TypeScript contract
         run: npm run typecheck
       - name: Existing navigation and middleware regression
-        run: npm run test:menu-approval
+        run: npm run test:menu-approval && node --test tests/enterprise-navigation.test.cjs
+      - name: Cross-module automated functional gate
+        run: npm run gate:automated
+      - name: Next.js production compilation
+        run: npm run build
