@@ -8,7 +8,7 @@ function grant(h,email,cap){
  h.sql.prepare("INSERT OR IGNORE INTO india_erp_staff_org(tenant_id,email,unit_id,position_title,created_by,status,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?)")
  .run(tenant,email,legal,'Synthetic QA Enterprise user','requester@synthetic.invalid','checker@synthetic.invalid','Independent test-only staff affiliation');
  h.sql.prepare("INSERT OR IGNORE INTO india_erp_capability_grants(id,tenant_id,email,capability,unit_id,status,requested_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?,?)")
- .run('ext-'+email+'-'+cap,tenant,email,cap,legal,'requester@synthetic.invalid','checker@synthetic.invalid','Independent synthetic test-only grant');
+ .run(crypto.randomUUID(),tenant,email,cap,legal,'requester@synthetic.invalid','checker@synthetic.invalid','Independent synthetic test-only grant');
 }
 async function legalScope(h,type,id){
  await expect(h.call('erp/organization','POST','admin',{action:'request_'+type+'_scope',[type+'_id']:id,legal_entity_id:legal}),200);
