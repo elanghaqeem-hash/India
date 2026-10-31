@@ -1,0 +1,35 @@
+name: INDIA ERP PR96 canonical migration isolated CI
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'migrations/004*.sql'
+      - 'src/app/api/erp/**'
+      - 'src/components/erp/**'
+      - 'src/lib/erp-core.ts'
+      - 'src/lib/enterprise-navigation.ts'
+      - 'tests/india-erp-enterprise-extensions.test.cjs'
+      - '.github/workflows/india-erp-pr96-reconcile-ci.yml'
+permissions:
+  contents: read
+jobs:
+  isolated-canonical-replay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Canonical 0001 to 0045 isolated SQLite migration and API regression
+        run: DEBUG_FLOW=1 npm run test:erp:extensions
+      - name: Previous GL, procurement, cyber and org regressions
+        run: npm run test:erp
+      - name: Preserve original enterprise guards and source-only negative UAT
+        run: node --test tests/india-erp-enterprise-contract.test.cjs tests/india-negative-enterprise-matrix.test.cjs
+      - name: TypeScript compile gate
+        run: npm run typecheck
+      - name: Deliberately no production write, no external payments, no SIEM commands
+        run: echo 'CI checks are synthetic. Production remains HOLD without certified live UAT.'

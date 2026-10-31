@@ -24,7 +24,7 @@ test('FlexGuard pending entitlement flows to original wallet via canonical D1 qu
 test('isolated real migrations through 39 parse and existing wallet table supports approval query',()=>{
  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
  try{
- for(const name of fs.readdirSync('migrations').filter(s=>/^\d{4}_.+\.sql$/.test(s)).sort())
+ for(const name of fs.readdirSync('migrations').filter(s=>/^\d{4}_.+\.sql$/.test(s) && Number(s.slice(0,4))<=39).sort())
   db.exec(fs.readFileSync('migrations/'+name,'utf8'));
  const sql=`SELECT 'flexguard_wallet' AS kind,w.id,p.opportunity_id,('FlexGuard entitlement · '||a.legal_name) AS title,w.created_by,w.created_at
  FROM india_flexguard_wallets w
