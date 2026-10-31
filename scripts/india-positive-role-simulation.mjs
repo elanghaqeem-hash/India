@@ -24,11 +24,11 @@ const suites=[
 ];
 const output=[];
 for(const s of suites){
- console.log('\\n==== START '+s.id+' ====');
+ console.log('\n==== START '+s.id+' ====');
  const at=Date.now();
  const p=spawnSync(s.bin,s.args,{cwd:root,encoding:'utf8',timeout:25*60*1000,
    maxBuffer:8*1024*1024,env:{...process.env,CI:'true'}});
- const log=(p.stdout||'')+'\\n'+(p.stderr||'');
+ const log=(p.stdout||'')+'\n'+(p.stderr||'');
  const state=p.status===0&&!p.error?'PASS':'FAIL';
  console.log(log.slice(-6000));
  console.log('==== '+state+' '+s.id+' ====');
@@ -46,21 +46,21 @@ const result={name:'INDIA all-role positive-path technical simulation',generated
  scope:'isolated synthetic source/database and localhost browser only',
  catalog:{legacy_total:legacy.cases.length,erp_total:erp.cases.length,erp_positive:positive.length,
   erp_positive_by_domain:domains,erp_positive_actor_labels:actors,
-  note:'Catalog cases are NOT_RUN; 88 positive cases are a definition inventory, NOT 88 executed case results.'},
+  note:'Catalog cases are NOT_RUN; ERP positive cases are a definition inventory, NOT 88 executed case results.'},
  runs:output,technical_gate:success?'PASS':'FAIL',
  real_access_uat:'NOT_RUN',operational_certificate:'NOT_CERTIFIED',production_release:'HOLD',
  required_live_proof:['Real Access JWT and individual user sessions','Approved enterprise role grants and revocation',
   '420 distinct release-bound signed UAT evidence objects','Independent D1 backup, restore and reconciliation',
   'Actual live finance/treasury/HR and external SIEM-EDR connectors','8 independent business approvals']};
 mkdirSync('artifacts/india-positive-uat',{recursive:true});
-writeFileSync('artifacts/india-positive-uat/result.json',JSON.stringify(result,null,2)+'\\n',{mode:0o600});
+writeFileSync('artifacts/india-positive-uat/result.json',JSON.stringify(result,null,2)+'\n',{mode:0o600});
 if(process.env.GITHUB_STEP_SUMMARY){
- const rows=output.map(x=>'| '+x.id+' | '+x.status+' | '+x.scope+' |').join('\\n');
+ const rows=output.map(x=>'| '+x.id+' | '+x.status+' | '+x.scope+' |').join('\n');
  appendFileSync(process.env.GITHUB_STEP_SUMMARY,
- '# INDIA Positive UAT (synthetic CI only)\\n\\n'+
- 'Technical gate: **'+result.technical_gate+'**; Operational UAT: **NOT RUN**, Release: **HOLD**.\\n\\n'+
- '| Phase | Result | Scope |\\n|---|---|---|\\n'+rows+'\\n\\n'+
- 'The '+positive.length+' ERP positive catalog entries and '+actors.length+' actor labels are **inventory, not executed proofs**.\\n');
+ '# INDIA Positive UAT (synthetic CI only)\n\n'+
+ 'Technical gate: **'+result.technical_gate+'**; Operational UAT: **NOT RUN**, Release: **HOLD**.\n\n'+
+ '| Phase | Result | Scope |\n|---|---|---|\n'+rows+'\n\n'+
+ 'The '+positive.length+' ERP positive catalog entries and '+actors.length+' actor labels are **inventory, not executed proofs**.\n');
 }
 console.log(JSON.stringify({technical_gate:result.technical_gate,erp_positive_catalog_cases:positive.length,
  actors:actors.length,phases:output.length,production_release:'HOLD'}));
