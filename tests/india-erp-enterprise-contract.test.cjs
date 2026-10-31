@@ -1,6 +1,6 @@
 const test=require('node:test');const assert=require('node:assert/strict');const {fixture,tenant,users}=require('./helpers/service-operations-fixture.cjs');
 test('enterprise migrations 0038/0039 preserve original D1 constraints and contain no fabricated operational entries',()=>{
- const h=fixture();try{
+ const h=fixture(39);try{
   for(const v of [33,34,35,36,37,38,39])assert.equal(h.sql.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=?').get(v).n,1);
   assert.equal(h.sql.prepare('PRAGMA quick_check').get().quick_check,'ok');
   assert.deepEqual(h.sql.prepare('PRAGMA foreign_key_check').all(),[]);
@@ -10,7 +10,7 @@ test('enterprise migrations 0038/0039 preserve original D1 constraints and conta
  }finally{h.close();}
 });
 test('access change requests require active member, independent reviewer and immutable final disposition',()=>{
- const h=fixture();try{
+ const h=fixture(39);try{
   h.sql.prepare("INSERT INTO india_erp_org_units(id,tenant_id,code,label,kind,created_by) VALUES(?,?,?,?,?,?)").run('entity-ctrl',tenant,'CTRL-LEGAL','QA legal entity','legal_entity',users.admin);
   const sql="INSERT INTO india_erp_access_changes(id,tenant_id,email,capability,unit_id,operation,requested_by,reason) VALUES(?,?,?,?,?,?,?,?)";
   assert.throws(()=>h.sql.prepare(sql).run('missing',tenant,'absent@example.invalid','finance_gl','entity-ctrl','revoke',users.admin,'Independent incident review'),/ACCESS_CHANGE_UNKNOWN_USER_OR_UNIT/);
@@ -22,7 +22,7 @@ test('access change requests require active member, independent reviewer and imm
  }finally{h.close();}
 });
 test('HR leave composite foreign key and financial/payment prerequisite guards fail closed',()=>{
- const h=fixture();try{
+ const h=fixture(39);try{
   h.sql.prepare("INSERT INTO india_erp_hr_employee_profiles(id,tenant_id,email,employment_status,employee_number,hire_date,created_by) VALUES(?,?,?,?,?,?,?)").run('emp-qa',tenant,users.finance,'active','EMP-2026-QA','2026-01-10',users.admin);
   h.sql.prepare("INSERT INTO india_erp_hr_leave_requests(id,tenant_id,employee_id,start_date,end_date,leave_type,requested_by) VALUES(?,?,?,?,?,?,?)").run('leave-qa',tenant,'emp-qa','2026-11-01','2026-11-02','annual',users.finance);
   assert.throws(()=>h.sql.prepare("INSERT INTO india_erp_hr_leave_requests(id,tenant_id,employee_id,start_date,end_date,leave_type,requested_by) VALUES(?,?,?,?,?,?,?)").run('foreign-emp',tenant,'wrong-emp','2026-11-01','2026-11-02','annual',users.finance),/FOREIGN KEY|constraint/i);
