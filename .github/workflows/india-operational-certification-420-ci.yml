@@ -1,0 +1,30 @@
+name: INDIA 420-case operational certification evidence gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/india-release-evidence.mjs'
+      - 'tests/release-evidence.test.cjs'
+      - 'tests/india-erp-uat-catalog.test.cjs'
+      - 'docs/INDIA_ENTERPRISE_OPERATIONAL_CERTIFICATION_20261031.md'
+      - '.github/workflows/india-operational-certification-420-ci.yml'
+permissions:
+  contents: read
+jobs:
+  signed-evidence-fail-closed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Existing 210 + ERP 210 catalogs and independent signing rejection tests
+        run: node --test tests/release-evidence.test.cjs tests/india-erp-uat-catalog.test.cjs
+      - name: Release evidence script syntax
+        run: node --check scripts/india-release-evidence.mjs
+      - name: Explicitly label synthetic checks as NOT operational certification
+        run: |
+          echo 'PASS: certification validator and negative controls only'
+          echo 'NOT CERTIFIED: no real Cloudflare Access UAT, human signatures or independent backup proven'
+# No D1 writes, no token or user email in stdout, no auto certification or deploy.
