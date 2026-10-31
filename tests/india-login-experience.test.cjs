@@ -8,7 +8,7 @@ test('INDIA login is a complete branded entry with Access and logout',()=>{
  assert.match(page,/Login INDIA/);
  assert.match(page,/TECHNOTAMA|Technotama/);
  assert.match(page,/Masuk dengan Cloudflare Access/);
- assert.match(page,/<Link href="\/" /);
+ assert.match(page,/<a href="\/" /);
  assert.match(page,/href="\/cdn-cgi\/access\/logout"/);
  assert.match(page,/LoginSessionStatus/);
  assert.match(page,/min-h-\[100dvh\]/);
