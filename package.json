@@ -46,7 +46,8 @@
     "test:release-controls": "node --test tests/release-evidence.test.cjs tests/ai-request-budget.test.cjs tests/india-operational-release-gate.test.cjs tests/india-feasibility-live-access-guard.test.cjs",
     "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs tests/admin-user-delete.test.cjs && node --test tests/audit-remediation.test.cjs",
     "test:erp": "node --test tests/india-erp-foundation.test.cjs",
-    "gate:erp": "npm run typecheck && npm run test:psa-timesheets && npm run test:erp"
+    "gate:erp": "npm run typecheck && npm run test:psa-timesheets && npm run test:erp && npm run test:erp:extensions",
+    "test:erp:extensions": "node --test tests/india-erp-enterprise-extensions.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
