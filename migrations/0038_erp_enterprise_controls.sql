@@ -68,7 +68,7 @@ CREATE TABLE india_erp_hr_employee_profiles(
  employment_status TEXT NOT NULL CHECK(employment_status IN ('onboarding','active','leave','offboarding','terminated')),
  employee_number TEXT NOT NULL,hire_date TEXT NOT NULL,
  created_by TEXT NOT NULL COLLATE NOCASE,
- UNIQUE(tenant_id,email),UNIQUE(tenant_id,employee_number),
+ UNIQUE(tenant_id,id),UNIQUE(tenant_id,email),UNIQUE(tenant_id,employee_number),
  FOREIGN KEY(email) REFERENCES india_members(email)
 );
 CREATE TABLE india_erp_hr_leave_requests(
@@ -86,7 +86,7 @@ CREATE TABLE india_erp_security_connectors(
  secret_binding_name TEXT NOT NULL,endpoint_alias TEXT NOT NULL,
  enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
  last_verified_at TEXT,created_by TEXT NOT NULL COLLATE NOCASE,
- UNIQUE(tenant_id,project_id,provider,endpoint_alias),
+ UNIQUE(tenant_id,id),UNIQUE(tenant_id,project_id,provider,endpoint_alias),
  FOREIGN KEY(tenant_id,project_id) REFERENCES india_delivery_projects(tenant_id,id)
 );
 CREATE TABLE india_erp_security_ingestion_events(
