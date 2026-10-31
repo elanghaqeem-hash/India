@@ -10,6 +10,7 @@ on:
       - 'src/app/api/erp/**'
       - 'src/app/erp/**'
       - 'tests/india-erp-foundation.test.cjs'
+      - 'tests/india-erp-enterprise-contract.test.cjs'
       - '.github/workflows/india-erp-integration-ci.yml'
       - 'package.json'
 permissions:
@@ -27,6 +28,8 @@ jobs:
       - run: npm ci --no-audit --no-fund
       - name: Isolated persistent SQLite/D1 route integration (synthetic identities)
         run: npm run test:erp
+      - name: Expanded ERP schema and control regression
+        run: node --test tests/india-erp-enterprise-contract.test.cjs
       - name: Existing PSA regression
         run: npm run test:psa-timesheets
       - name: TypeScript contract

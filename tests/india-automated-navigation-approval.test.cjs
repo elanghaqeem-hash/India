@@ -21,7 +21,7 @@ test('FlexGuard pending entitlement flows to original wallet via canonical D1 qu
  assert.ok(q.includes("?wallet_id='+encodeURIComponent(row.id)"));
  assert.match(wallet,/wallet_id=/);
 });
-test('isolated real migrations through 37 parse and existing wallet table supports approval query',()=>{
+test('isolated real migrations through 39 parse and existing wallet table supports approval query',()=>{
  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
  try{
  for(const name of fs.readdirSync('migrations').filter(s=>/^\d{4}_.+\.sql$/.test(s)).sort())
@@ -35,7 +35,7 @@ test('isolated real migrations through 37 parse and existing wallet table suppor
  AND lower(w.created_by)!=? ORDER BY w.created_at DESC LIMIT 101`;
  const rows=db.prepare(sql).all('defendit360','checker@synthetic.invalid');
  assert.deepEqual(rows,[]);
- assert.equal(db.prepare('SELECT MAX(version) v FROM india_schema_migrations').get().v,37);
+ assert.equal(db.prepare('SELECT MAX(version) v FROM india_schema_migrations').get().v,39);
  assert.equal(db.prepare('PRAGMA quick_check').get().quick_check,'ok');
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  }finally{db.close();}
