@@ -18,7 +18,7 @@ async function fixture(){
  const ref={path:'proof.txt',sha256:createHash('sha256').update(proof).digest('hex')};
  const identities=['admin','marketing','sales','sales','presales','finance','approver','legal','viewer'].map((role,i)=>({subject:'subject-'+i,role,auth_method:'cloudflare_access',jwt_signature_verified:true,audience:'test-audience',issuer:'https://test.cloudflareaccess.com'}));
  const now=Date.now(),sha='a'.repeat(40);
- const payload={schema_version:1,release_sha:sha,environment:'production',worker:'india',database_id:'8395dd84-1b7d-4eaf-9990-1d8e75a42cb5',issued_at:new Date(now).toISOString(),expires_at:new Date(now+60000).toISOString(),gates:GATES.map(id=>({id,status:'PASS',evidence:[ref]})),identities,uat:catalog.map(c=>({id:c.id,priority:c.priority,status:'PASS',release_sha:sha,execution_kind:'real_cloudflare_access',actual_result:'test assertion',tester_subject:identities[0].subject,executed_at:new Date(now).toISOString(),evidence:[ref]})),erp_uat:erpCatalog.map(c=>({id:c.id,priority:c.priority,status:'PASS',release_sha:sha,execution_kind:'real_cloudflare_access',actual_result:'synthetic test assertion',tester_subject:identities[0].subject,executed_at:new Date(now).toISOString(),evidence:[ref]})),signoffs:['security','finance','operations','release','legal','hr','procurement','cyber_operations'].map(kind=>({kind,decision:'APPROVED',release_sha:sha,subject:'authority',reference:'synthetic-unit-test'})),open_critical:0,open_high:0};
+ const payload={schema_version:1,release_sha:sha,environment:'production',worker:'india',database_id:'8395dd84-1b7d-4eaf-9990-1d8e75a42cb5',issued_at:new Date(now).toISOString(),expires_at:new Date(now+60000).toISOString(),gates:GATES.map(id=>({id,status:'PASS',evidence:[ref]})),identities,uat:catalog.map(c=>({id:c.id,priority:c.priority,status:'PASS',release_sha:sha,execution_kind:'real_cloudflare_access',actual_result:'test assertion',tester_subject:identities[0].subject,executed_at:new Date(now).toISOString(),evidence:[ref]})),erp_uat:erpCatalog.map(c=>({id:c.id,priority:c.priority,status:'PASS',release_sha:sha,execution_kind:'real_cloudflare_access',actual_result:'synthetic test assertion',tester_subject:identities[0].subject,executed_at:new Date(now).toISOString(),evidence:[ref],actor:c.actor,role_scope_verified:true,segregation_of_duties_checked:true,actor_proofs:c.actor.split(',').map((label,i)=>({role_label:label.trim(),subject:identities[i].subject,jwt_signature_verified:true}))})),signoffs:['security','finance','operations','release','legal','hr','procurement','cyber_operations'].map(kind=>({kind,decision:'APPROVED',release_sha:sha,subject:'authority',reference:'synthetic-unit-test'})),open_critical:0,open_high:0};
  const receiptPath=join(dir,'receipt.json');
  const save=()=>writeFileSync(receiptPath,JSON.stringify({payload,signature:sign(null,Buffer.from(JSON.stringify(payload)),privateKey).toString('base64')}));
  const check=()=>verifyReleaseEvidence({receiptPath,publicKey:publicKey.export({format:'pem',type:'spki'}),sha,now});
@@ -65,7 +65,23 @@ test('all-module certification rejects omitted, unrun, stale or forged ERP evide
   f.payload.erp_uat[0].release_sha='f'.repeat(40);f.save();
   assert.throws(f.check,/REAL_ERP_UAT_MISSING/);
   f.payload.erp_uat[0].release_sha='a'.repeat(40);
+  f.payload.erp_uat[0].role_scope_verified=false;f.save();
+  assert.throws(f.check,/REAL_ERP_UAT_MISSING/);
+  f.payload.erp_uat[0].role_scope_verified=true;
+  f.payload.erp_uat[0].actor_proofs=[];f.save();
+  assert.throws(f.check,/ERP_ACTOR_PROOFS_MISSING/);
+  f.payload.erp_uat[0].actor_proofs=[{role_label:f.payload.erp_uat[0].actor,subject:f.payload.identities[0].subject,jwt_signature_verified:true}];
   f.payload.signoffs=f.payload.signoffs.filter(x=>x.kind!=='hr');f.save();
   assert.throws(f.check,/SIGNOFF_MISSING_hr/);
+ }finally{rmSync(f.dir,{recursive:true,force:true});}
+});
+
+test('multi-actor ERP cases cannot use one signed subject for distinct functions',async()=>{
+ const f=await fixture();try{
+  const c=f.payload.erp_uat.find(t=>t.actor.includes(','));
+  assert.ok(c);
+  c.actor_proofs=c.actor_proofs.map(p=>({...p,subject:f.payload.identities[0].subject}));
+  f.save();
+  assert.throws(f.check,/ERP_MULTIACTOR_SOD_MISSING/);
  }finally{rmSync(f.dir,{recursive:true,force:true});}
 });
