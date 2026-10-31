@@ -24,7 +24,7 @@ jobs:
           cache: npm
       - run: npm ci
       - name: Canonical 0001 to 0045 isolated SQLite migration and API regression
-        run: npm run test:erp:extensions
+        run: DEBUG_FLOW=1 npm run test:erp:extensions
       - name: Previous GL, procurement, cyber and org regressions
         run: npm run test:erp
       - name: Preserve original enterprise guards and source-only negative UAT
