@@ -10,13 +10,13 @@ const exportsObject={};
 vm.runInNewContext(transpiled,{exports:exportsObject,require:n=>{throw Error('Unexpected runtime dependency '+n)}},{filename:file});
 const {INDIA_NAVIGATION,navigationForRole}=exportsObject;
 
-test('eleven business and administration menu groups, no duplicate or demo routes',()=>{
- assert.equal(INDIA_NAVIGATION.length,11);
- assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,11);
+test('twelve business and administration menu groups, no duplicate or demo routes',()=>{
+ assert.equal(INDIA_NAVIGATION.length,12);
+ assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,12);
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
-  assert.match(href,/^\/(?:sales\/|psa\/timesheets$|customers$|partners$|reports$|settings\/|boq(?:\/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
+  assert.match(href,/^\/(?:sales\/|psa\/timesheets$|erp\/|customers$|partners$|reports$|settings\/|boq(?:\/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
  for(const legacy of ['/','/pricing','/tender','/proposals'])

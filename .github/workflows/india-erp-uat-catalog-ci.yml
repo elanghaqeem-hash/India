@@ -1,0 +1,27 @@
+name: INDIA ERP additional 210 UAT catalog integrity
+on:
+  push:
+    paths:
+      - 'docs/INDIA_ERP_UAT_210_CATALOG.json'
+      - 'docs/INDIA_UAT_210_CATALOG.json'
+      - 'tests/india-erp-uat-catalog.test.cjs'
+      - '.github/workflows/india-erp-uat-catalog-ci.yml'
+  pull_request:
+    paths:
+      - 'docs/INDIA_ERP_UAT_210_CATALOG.json'
+      - 'docs/INDIA_UAT_210_CATALOG.json'
+      - 'tests/india-erp-uat-catalog.test.cjs'
+      - '.github/workflows/india-erp-uat-catalog-ci.yml'
+permissions:
+  contents: read
+jobs:
+  validate-catalog-only:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Validate scenario definitions (not business UAT execution)
+        run: node --test tests/india-erp-uat-catalog.test.cjs

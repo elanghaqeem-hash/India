@@ -71,6 +71,12 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   {id:'governance',label:'10 · Document Center & Governance',items:[
     item('Secure Document Vault','/sales/documents',COMMERCIAL),
   ]},
+  {id:'enterprise_erp',label:'12 · ERP Finance, Procurement & Cybersecurity',items:[
+    item('Organization & ERP Access','/erp/organization',['admin','approver']),
+    item('General Ledger & Journal','/erp/general-ledger',['finance','approver']),
+    item('Procurement & Accounts Payable','/erp/procurement',['admin','presales','finance','approver']),
+    item('Cybersecurity Operations','/erp/cyber-operations',['admin','presales','approver']),
+  ]},
   {id:'administration',label:'11 · Administrasi · Khusus Admin',items:[
     item('Registrasi User','/boq/users',['admin']),
     item('Parameter','/settings/system',['admin']),
