@@ -58,6 +58,7 @@ export function verifyReleaseEvidence({receiptPath,publicKey,sha,phase='before',
   const t=p.erp_uat.find(t=>t.id===c.id);
   requireEvidence(t&&t.priority===c.priority&&t.status==='PASS'&&t.release_sha===sha&&
    t.execution_kind==='real_cloudflare_access'&&t.actual_result&&t.tester_subject&&
+   t.actor===c.actor&&t.role_scope_verified===true&&t.segregation_of_duties_checked===true&&
    Number.isFinite(Date.parse(t.executed_at)),'REAL_ERP_UAT_MISSING_'+c.id);
   requireEvidence(Array.isArray(t.evidence)&&t.evidence.length>0,'ERP_UAT_EVIDENCE_MISSING_'+c.id);
   t.evidence.forEach(checkFile);
@@ -69,6 +70,19 @@ export function verifyReleaseEvidence({receiptPath,publicKey,sha,phase='before',
  }
  requireEvidence(p.uat.every(t=>roster.some(i=>i.subject===t.tester_subject)),'UAT_TESTER_NOT_IN_VERIFIED_ROSTER');
  requireEvidence(p.erp_uat.every(t=>roster.some(i=>i.subject===t.tester_subject)),'ERP_UAT_TESTER_NOT_IN_VERIFIED_ROSTER');
+ for(const c of erpExpected){
+  const t=p.erp_uat.find(x=>x.id===c.id);
+  const labels=c.actor.split(',').map(x=>x.trim()).filter(Boolean);
+  requireEvidence(Array.isArray(t.actor_proofs)&&t.actor_proofs.length>=labels.length,'ERP_ACTOR_PROOFS_MISSING_'+c.id);
+  for(const label of labels){
+   requireEvidence(t.actor_proofs.some(proof=>proof.role_label===label&&proof.jwt_signature_verified===true&&
+    roster.some(identity=>identity.subject===proof.subject&&identity.jwt_signature_verified===true)),
+    'ERP_ACTOR_NOT_VERIFIED_'+c.id);
+  }
+  if(labels.length>1)requireEvidence(new Set(t.actor_proofs.filter(proof=>labels.includes(proof.role_label))
+   .map(proof=>proof.subject)).size>=labels.length,'ERP_MULTIACTOR_SOD_MISSING_'+c.id);
+ }
+
  // These functions must independently approve the FULL Worker containing ERP,
  // even if the underlying bank/SIEM/HR connectors are explicitly disabled.
  for(const kind of ['security','finance','operations','release','legal','hr','procurement','cyber_operations']){
