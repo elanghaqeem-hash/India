@@ -38,6 +38,7 @@ ALTER TABLE india_gl_close_requests ADD COLUMN snapshot_credits INTEGER;
 ALTER TABLE india_gl_close_requests ADD COLUMN created_by TEXT COLLATE NOCASE;
 ALTER TABLE india_gl_close_requests ADD COLUMN review_notes TEXT;
 ALTER TABLE india_gl_close_requests ADD COLUMN version INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE india_gl_close_requests ADD COLUMN reviewed_at TEXT;
 CREATE TRIGGER india_gl_close_review BEFORE UPDATE ON india_gl_close_requests
 WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected') OR NEW.version!=OLD.version+1
  OR NEW.id IS NOT OLD.id OR NEW.tenant_id IS NOT OLD.tenant_id OR NEW.period_id IS NOT OLD.period_id
