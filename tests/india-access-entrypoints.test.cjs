@@ -21,7 +21,7 @@ test('INDIA login page uses Cloudflare Access instead of a second insecure passw
   const shell=read('src/components/layout/AppShell.tsx');
   assert.match(page, /Login INDIA/);
   assert.match(page, /Masuk dengan Cloudflare Access/);
-  assert.match(page, /<Link href="\/" /);
+  assert.match(page, /<a href="\/" /);
   assert.match(page, /href="\/cdn-cgi\/access\/logout"/);
   assert.doesNotMatch(page, /type=["']password["']|localStorage\.setItem|jwtVerify\(/);
   assert.match(shell, /const isLoginPage=pathname==='\/login'/);
