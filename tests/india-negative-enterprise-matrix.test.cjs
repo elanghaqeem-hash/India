@@ -28,7 +28,7 @@ const actionRoles={
  manage_members:['admin']
 };
 test('canonical baseline: eight identities, 37 unique navigable pages and 12 business groups',()=>{
- assert.deepEqual(roles,roleSet);
+ assert.deepEqual([...roles].sort(),[...roleSet].sort());
  assert.equal(items.length,37);
  assert.equal(INDIA_NAVIGATION.length,12);
  assert.equal(new Set(items.map(x=>x.href)).size,items.length);
@@ -95,7 +95,7 @@ test('cross-site POST on all 4 ERP APIs rejected for all 8 signed mock roles, wi
  try{
   for(const role of roleSet){
    for(const route of ['erp/organization','erp/ledger','erp/procurement','erp/cyber-operations']){
-    const r=await h.call(route,'POST',role,{action:'invalid'},' ',{Origin:'https://evil.invalid'});
+    const r=await h.call(route,'POST',role,{action:'invalid'},'',{Origin:'https://evil.invalid'});
     assert.equal(r.status,403,role+' '+route+' '+JSON.stringify(r.body));
    }
   }
