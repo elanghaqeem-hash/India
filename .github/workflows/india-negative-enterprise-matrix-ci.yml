@@ -1,0 +1,40 @@
+name: INDIA negative UAT - all roles, menus and ERP deny paths
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tests/india-negative-enterprise-matrix.test.cjs'
+      - '.github/workflows/india-negative-enterprise-matrix-ci.yml'
+      - 'docs/INDIA_NEGATIVE_ALL_ROLES_20261031.md'
+      - 'src/lib/enterprise-navigation.ts'
+      - 'src/lib/boq-domain.ts'
+      - 'src/lib/sales-access.ts'
+      - 'src/app/api/erp/**'
+      - 'src/lib/erp-core.ts'
+permissions:
+  contents: read
+jobs:
+  isolated-negative-role-matrix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: 8 roles x 37 menus plus real ERP route denials on isolated D1 (not live UAT)
+        run: node --test tests/india-negative-enterprise-matrix.test.cjs
+      - name: CRM, quotation, Sales, AI negative route regressions
+        run: npm run test:india-negative
+      - name: Finance GL, AP, Procurement and Cyber Ops SQLite regression
+        run: npm run test:erp
+      - name: SQL trigger and migration negative checks
+        run: node --test tests/india-erp-enterprise-contract.test.cjs
+      - name: Menu and approval integration guards
+        run: npm run test:menu-approval
+      - name: Release evidence fail-closed checks
+        run: npm run test:release-controls
+      - name: Important qualification
+        run: echo 'SOURCE/SYNTHETIC UAT ONLY - NOT signed Cloudflare Access testing, production certification or payment/EDR operations.'
