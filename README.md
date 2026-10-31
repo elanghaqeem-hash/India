@@ -1,6 +1,6 @@
-# ICOP GRC Project Repository
+# INDIA Business Management Platform
 
-Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk proyek ICOP GRC.
+Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk platform INDIA.
 
 ## Struktur Berkas
 

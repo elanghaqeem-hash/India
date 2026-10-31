@@ -1,6 +1,7 @@
 'use client';
 import React,{useEffect,useState} from 'react';
 import {defaultBoqService} from '@/lib/sales-workflow';
+import {SCOPING_SERVICE_TYPES} from '@/lib/scoping-service-options';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
 type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;cost_items?:{code:string;amount:number}[]};
@@ -15,10 +16,45 @@ export default function BoQPage(){
  const canCreate=['finance','admin','presales','sales'].includes(role);
  const canEdit=canCreate&&(!selected||selected.status==='draft');
  const load=async()=>{try{const r=await fetch('/api/boq',{cache:'no-store'}),d=await r.json();if(!r.ok)throw Error(d.message);setList(d.boqs||[]);setRole(d.role);}catch(e){setMsg(String(e));}};
- useEffect(()=>{void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
+ useEffect(()=>{
+   // Import a deliberately unsaved scope from this browser session.
+   // D1 save, opportunity checks, manual price and approval remain mandatory.
+   if(new URLSearchParams(window.location.search).get('from')==='scoping'){
+    try{
+     const raw=sessionStorage.getItem('india_scoping_boq_draft_v1');
+     if(!raw)throw Error('Draft scoping tidak ditemukan pada sesi browser ini.');
+     const draft=JSON.parse(raw);
+     if(!Number.isFinite(draft.createdAt)||draft.createdAt>Date.now()+60000
+       ||Date.now()-draft.createdAt>900000
+       ||!SCOPING_SERVICE_TYPES.includes(draft.service_type))
+       throw Error('Draft scoping tidak valid atau sudah kedaluwarsa.');
+     // Version 1 scopes are still supported; v2 transfers independent VAPT asset rows.
+     const rawItems = draft.version===1
+       ? [{description:draft.description,quantity:draft.quantity,unit:draft.unit,service_type:draft.service_type}]
+       : draft.version===2 && draft.service_type==='VAPT' ? draft.items : null;
+     if(!Array.isArray(rawItems)||rawItems.length<1||rawItems.length>30)
+       throw Error('Draft scoping tidak memiliki daftar aset yang valid.');
+     const items:Item[]=rawItems.map(item=>{
+       if(!item||typeof item.description!=='string'||!item.description.trim()||item.description.length>900
+         ||typeof item.unit!=='string'||!['MD','Bulan','Paket'].includes(item.unit)
+         ||!SCOPING_SERVICE_TYPES.includes(item.service_type)
+         ||item.service_type!==draft.service_type
+         ||(draft.version===2&&(item.unit!=='MD'||item.service_type!=='VAPT'))
+         ||typeof item.quantity!=='number'||!Number.isFinite(item.quantity)
+         ||item.quantity<=0||item.quantity>100000
+         ||Math.round(item.quantity*1000)/1000!==item.quantity)
+         throw Error('Terdapat baris aset yang tidak valid.');
+       return {description:item.description,quantity:item.quantity,unit:item.unit,unit_price:0,service_type:item.service_type};
+     });
+     setForm(f=>({...f,service_type:draft.service_type,line_items:items}));
+     setMsg('Draft scoping berhasil dimuat. Isi opportunity, harga dan data quotation lalu simpan ke D1. Belum ada data tersimpan.');
+     sessionStorage.removeItem('india_scoping_boq_draft_v1');
+    }catch(e){setMsg(e instanceof Error?e.message:'Draft scoping tidak dapat diimpor.');}
+   }
+   void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
   if(id)fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store'}).then(r=>r.json()).then(j=>{
    if(j.success){setForm(f=>({...f,opportunity_id:id,customer_name:j.account.legal_name,project_name:j.deal.title,
-    service_type:defaultBoqService(j.deal.fields.service_family),line_items:f.line_items.map(item=>item.description.trim()?item:{...item,service_type:defaultBoqService(j.deal.fields.service_family)})}));}
+    service_type:new URLSearchParams(window.location.search).get('from')==='scoping'?f.service_type:defaultBoqService(j.deal.fields.service_family),line_items:new URLSearchParams(window.location.search).get('from')==='scoping'?f.line_items:f.line_items.map(item=>item.description.trim()?item:{...item,service_type:defaultBoqService(j.deal.fields.service_family)})}));}
   }).catch(()=>{});
   void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
  const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d,opportunity_id:d.opportunity_id||''});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
@@ -76,7 +112,7 @@ export default function BoQPage(){
     </select><span className="mt-1 block text-[11px] font-normal text-slate-500">BoQ harus terhubung ke opportunity dan approved untuk digunakan sebagai dasar Closed Won.</span></label>{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']
     ] as const).map(([k,l])=><label key={k} className="text-xs">{l}<input disabled={!canEdit} value={form[k]} onChange={e=>change(k,e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}
-    <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>{const type=e.target.value;setForm(p=>({...p,service_type:type,line_items:p.line_items.map(item=>item.description.trim()?item:{...item,service_type:type})}));}} className="mt-1 w-full rounded-lg border p-2 text-sm">{['VAPT','SOC','CTI','ISO','PDP','Hardening','IR','GRC','DFIR','TECHNOLOGY','TRAINING','Lainnya'].map(x=><option key={x}>{x}</option>)}</select></label>
+    <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>change('service_type',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{SCOPING_SERVICE_TYPES.map(x=><option key={x}>{x}</option>)}</select></label>
     <label className="text-xs">PPN (%)<input disabled={!canEdit} type="number" min="0" max="100" value={form.vat_rate*100} onChange={e=>change('vat_rate',Number(e.target.value)/100)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>
     <label className="text-xs">Termin<select disabled={!canEdit} value={form.payment_terms} onChange={e=>change('payment_terms',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['30-50-20','30-60-10','50-50','100'].map(x=><option key={x}>{x}</option>)}</select></label></div>
    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">

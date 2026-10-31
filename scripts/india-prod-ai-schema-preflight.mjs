@@ -63,11 +63,11 @@ async function main(){
   query("SELECT path FROM india_schema_file_manifest WHERE path LIKE 'migrations/00%' ORDER BY path")
  ]);
  const applied=new Set(ledger.map(x=>Number(x.version)));
- const expected=Array.from({length:30},(_,i)=>i+1);
+ const expected=Array.from({length:31},(_,i)=>i+1);
  const missing=expected.filter(v=>!applied.has(v));
  assert(!missing.length,'SCHEMA_INCOMPATIBLE_MISSING_MIGRATIONS_'+missing.join('_'));
  for(const v of ['0027_customer_delivery_cash_renewal','0028_ai_mistral_provider',
-  '0029_indonesia_postal_reference','0030_flexguard_immutable_ledger']){
+  '0029_indonesia_postal_reference','0030_flexguard_immutable_ledger','0031_admin_option_registry']){
   assert(manifest.some(x=>x.path==='migrations/'+v+'.sql'),'MISSING_CANONICAL_MANIFEST_'+v);
  }
  // A bookmark is not an independent original backup. Evidence must be a real verified
@@ -81,13 +81,13 @@ async function main(){
  if(phase==='before'){
   if(env.GITHUB_OUTPUT)appendFileSync(env.GITHUB_OUTPUT,'previous_version='+latest+'\n');
   console.log(JSON.stringify({gate:'PRODUCTION_AI_FULL_WORKER_PREDEPLOY',result:'PASS',
-   release:env.GITHUB_SHA,worker:WORKER,version_before:latest,db_schema:30,
+   release:env.GITHUB_SHA,worker:WORKER,version_before:latest,db_schema:31,
    note:'No production database write performed by this gate.'}));
  }else{
   assert(/^[a-f0-9-]{36}$/.test(env.INDIA_PREVIOUS_VERSION||''),'ROLLBACK_REFERENCE_MISSING');
   assert(latest!==env.INDIA_PREVIOUS_VERSION,'DEPLOYMENT_VERSION_UNCHANGED');
   console.log(JSON.stringify({gate:'PRODUCTION_AI_FULL_WORKER_POSTDEPLOY',result:'PASS',
-   release:env.GITHUB_SHA,version_after:latest,db_schema:30}));
+   release:env.GITHUB_SHA,version_after:latest,db_schema:31}));
  }
 }
 main().catch(e=>{

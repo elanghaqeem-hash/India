@@ -32,3 +32,7 @@ Nilai sumber lama tetap ditampilkan sebagai “data sebelumnya” dan tidak diub
 Validasi perubahan: 56 pengujian Sales lulus, termasuk semua pilihan sumber tersimpan dan terbawa melalui API konversi pada adapter SQLite/D1 terisolasi. Uji browser komponen React pada lebar 390px lulus untuk dropdown native, pilihan kosong wajib, perubahan pilihan, pelestarian sumber historis, dan tidak ada overflow horizontal. Pemeriksaan TypeScript serta build Next.js dan OpenNext Cloudflare lulus.
 
 Status otorisasi: pengguna telah memberikan izin eksplisit untuk seluruh push repository dan produksi pada 25 Oktober 2026. Hasil push, PR dan verifikasi deployment dicatat setelah eksekusi; izin ini tidak dianggap sebagai bukti pengujian operasional.
+
+## Integration review — 31 October 2026
+
+Historical validation above applies to the original branch, not the merged candidate. The canonical Lead and Pipeline forms retain authenticated `ManagedOptionSelect` and D1 Admin-managed options, automatic billing addresses, searchable business types and multi-asset scoping. The 35 service classifications reuse existing BoQ, conversion and Post-PO flows. No production UAT or deployment is asserted by this merge.

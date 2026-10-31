@@ -10,13 +10,13 @@ const exportsObject={};
 vm.runInNewContext(transpiled,{exports:exportsObject,require:n=>{throw Error('Unexpected runtime dependency '+n)}},{filename:file});
 const {INDIA_NAVIGATION,navigationForRole}=exportsObject;
 
-test('ten existing business menu groups, no duplicate or demo routes',()=>{
- assert.equal(INDIA_NAVIGATION.length,10);
- assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,10);
+test('twelve business and administration menu groups, no duplicate or demo routes',()=>{
+ assert.equal(INDIA_NAVIGATION.length,12);
+ assert.equal(new Set(INDIA_NAVIGATION.map(x=>x.id)).size,12);
  const all=INDIA_NAVIGATION.flatMap(x=>x.items.map(i=>i.href));
  assert.equal(new Set(all).size,all.length);
  for(const href of all){
-  assert.match(href,/^\/(?:sales\/|customers$|partners$|reports$|settings\/|boq$|flexguard$|post-po$|approvals$)/);
+  assert.match(href,/^\/(?:sales\/|psa\/timesheets$|erp\/|customers$|partners$|reports$|settings\/|boq(?:\/users)?$|flexguard$|post-po$|approvals$|scoping$)/);
   assert.ok(fs.existsSync(path.join(root,'src/app',href.replace(/^\//,''),'page.tsx')),href);
  }
  for(const legacy of ['/','/pricing','/tender','/proposals'])
@@ -35,6 +35,22 @@ test('user roles are filtered; Admin alone gets secret-management menu',()=>{
  assert.equal(navigationForRole('made-up-role').length,0);
  assert.equal(navigationForRole(null).length,0);
  assert.ok(!navigationForRole('sales').flatMap(x=>x.items.map(i=>i.href)).includes('/sales/billing'));
+});
+
+test('Smart Scoping is discoverable in Presales for Admin, Sales and Presales only',()=>{
+ const presales=INDIA_NAVIGATION.find(group=>group.id==='presales');
+ assert.ok(presales);
+ assert.ok(presales.items.some(item=>item.href==='/scoping'&&item.label==='Smart Scoping & Sizing'));
+ for(const role of ['admin','sales','presales']){
+  const links=navigationForRole(role).flatMap(group=>group.items.map(item=>item.href));
+  assert.ok(links.includes('/scoping'),role);
+ }
+ for(const role of ['finance','approver','legal','marketing','viewer']){
+  const links=navigationForRole(role).flatMap(group=>group.items.map(item=>item.href));
+  assert.ok(!links.includes('/scoping'),role);
+ }
+ const scoped=read('src/app/scoping/page.tsx');
+ assert.match(scoped,/SCOPING_SERVICE_TYPES\.map/);
 });
 
 test('current-user endpoint delegates to server Access and never reads client role',()=>{

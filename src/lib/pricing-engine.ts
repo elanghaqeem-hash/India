@@ -1,5 +1,5 @@
-// ICOP CyberBusiness 360 Dynamic Pricing & BoQ Calculation Engine
-// Sourced from icop_pricing_proposal_schema.sql & ICOP_PreDev_Decisions_v1.0.docx
+// INDIA CyberBusiness 360 Dynamic Pricing & BoQ Calculation Engine
+// Sourced from the pricing/proposal schema & pre-development decisions
 
 import {
   ClientTier,

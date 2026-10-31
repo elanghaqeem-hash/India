@@ -63,6 +63,7 @@ function route(file,role,email,db,additional={}){
   '@/lib/bounded-json':compiledDomain('bounded-json'),
   '@/lib/ai-request-budget':{reserveAIRequest:async()=>{throw Error('Unauthorized AI request reservation reached');}},
   '@/lib/ai-data-policy':aiPolicy,
+  '@/lib/ai-workspace-identity':compiledDomain('ai-workspace-identity'),
   '@/lib/ai-credential-vault':{
    listProviders:async()=>[],readProvider:async()=>null,
    decryptProviderKey:async()=>{throw Error('No provider expected');},

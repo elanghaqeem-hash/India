@@ -1,4 +1,4 @@
-name: INDIA ICOP AI multi-turn browser UAT (isolated mock)
+name: INDIA AI multi-turn browser UAT (isolated mock)
 
 on:
   push:

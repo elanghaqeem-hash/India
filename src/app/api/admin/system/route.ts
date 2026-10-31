@@ -4,6 +4,7 @@ import {TENANT,safeID} from '@/lib/sales-workflow';
 import {atomicSales} from '@/lib/sales-transactions';
 import {operationEvent,txt,jakartaDate,csvText} from '@/lib/operations';
 import {effectiveSetting,validateSetting} from '@/lib/system-settings';
+import {isValidOrganizationParentLevel} from '@/lib/organization-hierarchy';
 import {evaluateSchemaReadiness,pendingMasterReleaseGates} from '@/lib/release-readiness';
 export const dynamic='force-dynamic';
 const reply=(v:unknown,status=200)=>Response.json(v,{status,headers:privateHeaders});
@@ -14,17 +15,27 @@ export async function GET(req:Request){
  try{
   if(section==='health'){
    const start=Date.now();const ping=await db.prepare('SELECT 1 AS ok').first<{ok:number}>();
-   const [migrations,manifest,members,guard,events]=await Promise.all([
+   const [migrations,manifest,members,guard,events,providers,optionCount]=await Promise.all([
     db.prepare('SELECT version,applied_at FROM india_schema_migrations ORDER BY version').all<{version:number|string}>(),
     db.prepare('SELECT path,source_branch FROM india_schema_file_manifest ORDER BY path').all<{path:string}>(),
     db.prepare('SELECT role,count(*) AS active_users FROM india_members WHERE active=1 GROUP BY role').all(),
     db.prepare('SELECT count(*) AS pending FROM india_sales_tx_guards').first(),
-    db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all()
+    db.prepare("SELECT area,action,created_at FROM india_operations_events WHERE tenant_id=? ORDER BY created_at DESC LIMIT 10").bind(TENANT).all(),
+    db.prepare('SELECT enabled,tested_ok,tested_at,key_ciphertext FROM india_ai_providers').all<{enabled:number;tested_ok:number|null;tested_at:string|null;key_ciphertext:string|null}>(),
+    db.prepare('SELECT count(*) AS total FROM india_admin_options WHERE tenant_id=? AND active=1').bind(TENANT).first<{total:number}>()
    ]);
    const schema=evaluateSchemaReadiness(migrations.results,manifest.results);
+   const activeByRole=new Map((members.results as {role:string;active_users:number}[]).map(r=>[r.role,Number(r.active_users)]));
+   const minimumRoles=[{role:'admin',count:2},{role:'sales',count:2},...['marketing','presales','finance','approver','legal','viewer'].map(role=>({role,count:1}))];
+   const roster=minimumRoles.map(r=>({...r,active:activeByRole.get(r.role)||0,pass:(activeByRole.get(r.role)||0)>=r.count}));
+   const enabledProviders=providers.results.filter(p=>p.enabled===1);
+   const testedProviders=enabledProviders.filter(p=>!!p.key_ciphertext&&p.tested_ok===1&&!!p.tested_at);
+   const identityReadiness={roster,minimum_ready:roster.every(r=>r.pass),access_identity_verification:'external_real_jwt_required'};
+   const aiReadiness={configured:providers.results.length,enabled:enabledProviders.length,enabled_with_key:enabledProviders.filter(p=>!!p.key_ciphertext).length,enabled_tested_successfully:testedProviders.length,all_enabled_tested:testedProviders.length===enabledProviders.length,probe_validity:'historical_record_only_not_live_provider_probe'};
    return reply({success:true,role,identityEmail:email,checked_at:new Date().toISOString(),
     database:{ok:ping?.ok===1,latency_ms:Date.now()-start},
     migrations:migrations.results,manifest:manifest.results,members:members.results,transaction_guards:guard,latest_events:events.results,
+    identity_readiness:identityReadiness,ai_readiness:aiReadiness,active_registered_options:Number(optionCount?.total||0),
     release_readiness:{schema,production_gate:'HOLD',master_gates:pendingMasterReleaseGates(),
      required_evidence:[
       'Backup dan restore mandiri + checksum sumber asli',
@@ -45,13 +56,28 @@ export async function GET(req:Request){
    if(u.searchParams.get('format')==='csv')return new Response(csvText(['ID','Area','Entity','Action','Actor','At'],result.results.map((r:Record<string,unknown>)=>[r.id,r.area,r.entity_id,r.action,r.actor_email,r.created_at])),{headers:{...privateHeaders,'Content-Type':'text/csv; charset=utf-8','Content-Disposition':'attachment; filename="INDIA_System_Audit.csv"'}});
    return reply({success:true,role,items:result.results,sales:sales.results,page,next_page:result.results.length===limit||sales.results.length===limit?page+1:null});
   }
-  const [settings,effective,catalog,numbers]=await Promise.all([
+  const [settings,effective,catalog,numbers,activeAdminReviewers]=await Promise.all([
    db.prepare('SELECT * FROM india_setting_versions WHERE tenant_id=? ORDER BY created_at DESC,version DESC LIMIT 500').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_effective_settings WHERE tenant_id=? ORDER BY kind,setting_key').bind(TENANT).all(),
    db.prepare('SELECT * FROM india_catalog ORDER BY category,sku LIMIT 500').all(),
-   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all()
+   db.prepare('SELECT * FROM india_number_reservations WHERE tenant_id=? ORDER BY created_at DESC,sequence DESC LIMIT 100').bind(TENANT).all(),
+   db.prepare("SELECT count(*) AS total FROM india_members WHERE role='admin' AND active=1").first<{total:number}>()
   ]);
-  return reply({success:true,role,identityEmail:email,settings:settings.results,effective:effective.results,catalog:catalog.results,numbers:numbers.results,approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
+  // Hide superseded/withdrawn cards without erasing immutable versions or audit events.
+  const latestVersions:Record<string,number>={};
+  for(const row of settings.results as {kind:string;setting_key:string;version:number}[]){
+   const key=row.kind+':'+row.setting_key;
+   latestVersions[key]=Math.max(latestVersions[key]||0,row.version);
+  }
+  const newestApproved=new Map<string,{version:number;deleted:boolean}>();
+  for(const row of settings.results as {kind:string;setting_key:string;version:number;status:string;data_json:string}[]){
+   if(row.status!=='approved')continue;
+   const key=row.kind+':'+row.setting_key,seen=newestApproved.get(key);
+   if(!seen||row.version>seen.version)newestApproved.set(key,{version:row.version,deleted:JSON.parse(row.data_json).deleted===true});
+  }
+  const revoked=new Set([...newestApproved].filter(([,value])=>value.deleted).map(([key])=>key));
+  const visible=settings.results.filter((r:Record<string,unknown>)=>r.status!=='rejected'&&!revoked.has(String(r.kind)+':'+String(r.setting_key)));
+  return reply({success:true,role,identityEmail:email,settings:visible,latestVersions,effective:effective.results,catalog:catalog.results,numbers:numbers.results,active_admin_reviewers:Number(activeAdminReviewers?.total||0),approval_baseline:{maker_checker:true,minimum_margin_pct:25,cost_roles:['admin','finance'],approval_roles:['admin','approver']}});
  }catch{return fail('Administrasi belum siap. Verifikasi migrasi 0026.',503);}
 }
 export async function POST(req:Request){
@@ -65,21 +91,95 @@ export async function POST(req:Request){
    const old=await db.prepare('SELECT max(version) AS version FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?').bind(TENANT,kind,key).first<{version:number|null}>();
    if(Number(old?.version||0)!==p.version)return fail('Versi pengaturan berubah',409);
    const id=crypto.randomUUID(),version=Number(p.version)+1;
-   await atomicSales(db,'(SELECT coalesce(max(version),0) FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?)=?',[TENANT,kind,key,Number(p.version)],[db.prepare('INSERT INTO india_setting_versions(id,tenant_id,kind,setting_key,title,data_json,version,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,kind,key,title,JSON.stringify(data),version,email),operationEvent(db,'setting',id,'DRAFT',email,{kind,key,title,data,version})]);
+   let guard='(SELECT coalesce(max(version),0) FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?)=?';
+   const args:(string|number|null)[]=[TENANT,kind,key,Number(p.version)];
+   const writes=[db.prepare('INSERT INTO india_setting_versions(id,tenant_id,kind,setting_key,title,data_json,version,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,kind,key,title,JSON.stringify(data),version,email),operationEvent(db,'setting',id,'DRAFT',email,{kind,key,title,data,version})];
+   if(p.source_id!==undefined){
+    if(!safeID(p.source_id))return fail('ID asal revisi tidak valid');
+    const source=await db.prepare('SELECT kind,setting_key,status,created_by FROM india_setting_versions WHERE tenant_id=? AND id=?')
+     .bind(TENANT,String(p.source_id)).first<{kind:string;setting_key:string;status:string;created_by:string}>();
+    if(!source||source.kind!==kind||source.setting_key!==key||!['draft','approved'].includes(source.status))return fail('Sumber revisi tidak valid',409);
+    if(source.status==='draft'){
+     if(source.created_by.toLowerCase()!==email)return fail('Hanya pembuat draft yang dapat merevisinya',403);
+     guard+=" AND EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND id=? AND status='draft' AND lower(created_by)=?)";
+     args.push(TENANT,String(p.source_id),email);
+     writes.unshift(db.prepare("UPDATE india_setting_versions SET status='rejected' WHERE tenant_id=? AND id=? AND status='draft'").bind(TENANT,String(p.source_id)));
+     writes.push(operationEvent(db,'setting',String(p.source_id),'SUPERSEDE_DRAFT',email,{replacement:id}));
+    }
+   }
+   await atomicSales(db,guard,args,writes);
    return reply({success:true,id,version,status:'draft'},201);
+  }
+  if(p.action==='delete_setting'){
+   if(!safeID(p.id)||!Number.isSafeInteger(p.version)||Number(p.version)<1)return fail('ID dan versi pengaturan wajib');
+   const row=await db.prepare('SELECT id,kind,setting_key,title,data_json,status,version,created_by FROM india_setting_versions WHERE tenant_id=? AND id=?')
+    .bind(TENANT,String(p.id)).first<{id:string;kind:string;setting_key:string;title:string;data_json:string;status:string;version:number;created_by:string}>();
+   if(!row)return fail('Pengaturan tidak ditemukan',404);
+   if(row.version!==p.version)return fail('Versi sudah berubah; muat ulang',409);
+   if(row.status==='draft'){
+    if(row.created_by.toLowerCase()!==email)return fail('Hanya pembuat yang boleh membatalkan draft',403);
+    await atomicSales(db,"EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND id=? AND version=? AND status='draft' AND lower(created_by)=?)",
+     [TENANT,row.id,row.version,email],[
+     db.prepare("UPDATE india_setting_versions SET status='rejected' WHERE tenant_id=? AND id=? AND status='draft'").bind(TENANT,row.id),
+     operationEvent(db,'setting',row.id,'DISCARD',email,{kind:row.kind,key:row.setting_key,version:row.version})
+    ]);
+    return reply({success:true,status:'discarded'});
+   }
+   if(row.status!=='approved'||JSON.parse(row.data_json).deleted===true)return fail('Hanya pengaturan aktif atau draft milik Anda yang dapat dihapus',409);
+   const active=await db.prepare('SELECT id FROM india_effective_settings WHERE tenant_id=? AND kind=? AND setting_key=?').bind(TENANT,row.kind,row.setting_key).first<{id:string}>();
+   if(active?.id!==row.id)return fail('Versi ini bukan pengaturan aktif; pilih versi terbaru',409);
+   if(row.kind==='organization'){
+    const depend=await db.prepare("SELECT (EXISTS(SELECT 1 FROM india_effective_settings WHERE tenant_id=? AND kind='organization' AND json_extract(data_json,'$.parent_key')=? AND setting_key!=?) OR EXISTS(SELECT 1 FROM india_member_orgs WHERE unit_key=?)) AS used")
+     .bind(TENANT,row.setting_key,row.setting_key,row.setting_key).first<{used:number}>();
+    if(depend?.used)return fail('Organisasi masih memiliki anak atau digunakan oleh pengguna; pindahkan terlebih dahulu',409);
+   }
+   const latest=await db.prepare('SELECT max(version) AS version FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?')
+    .bind(TENANT,row.kind,row.setting_key).first<{version:number}>();
+   const version=Number(latest?.version||0)+1,id=crypto.randomUUID();
+   let guard="EXISTS(SELECT 1 FROM india_effective_settings WHERE tenant_id=? AND id=?) AND (SELECT max(version) FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=?)=? AND NOT EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=? AND status='draft')";
+   const args:(string|number|null)[]=[TENANT,row.id,TENANT,row.kind,row.setting_key,version-1,TENANT,row.kind,row.setting_key];
+   if(row.kind==='organization'){
+    guard+=" AND NOT EXISTS(SELECT 1 FROM india_effective_settings WHERE tenant_id=? AND kind='organization' AND json_extract(data_json,'$.parent_key')=? AND setting_key!=?) AND NOT EXISTS(SELECT 1 FROM india_member_orgs WHERE unit_key=?)";
+    args.push(TENANT,row.setting_key,row.setting_key,row.setting_key);
+   }
+   await atomicSales(db,guard,args,[
+    db.prepare('INSERT INTO india_setting_versions(id,tenant_id,kind,setting_key,title,data_json,version,created_by) VALUES(?,?,?,?,?,?,?,?)')
+     .bind(id,TENANT,row.kind,row.setting_key,row.title,JSON.stringify({deleted:true}),version,email),
+    operationEvent(db,'setting',id,'DELETE_DRAFT',email,{kind:row.kind,key:row.setting_key,version,previous_id:row.id})
+   ]);
+   return reply({success:true,id,version,status:'deletion_pending'},201);
   }
   if(p.action==='approve'||p.action==='reject'){
    if(!safeID(p.id)||txt(p.notes,1000).length<12)return fail('ID dan catatan review wajib');
    const row=await db.prepare('SELECT * FROM india_setting_versions WHERE tenant_id=? AND id=?').bind(TENANT,p.id as string).first<{id:string;kind:string;setting_key:string;status:string;data_json:string;version:number;created_by:string}>();
    if(!row)return fail('Pengaturan tidak ditemukan',404);if(row.created_by.toLowerCase()===email)return fail('Admin pembuat tidak boleh mereview pengaturannya sendiri',403);if(row.status!=='draft')return fail('Pengaturan bukan draft',409);
    let extra='';const args:(string|number|null)[]=[TENANT,row.id,row.version];
-   if(p.action==='approve'&&row.kind==='organization'){
+   if(p.action==='approve'&&JSON.parse(row.data_json).deleted===true){
+    // A tombstone is only effective after independent approval and must not orphan children/members.
+    extra+=" AND NOT EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND kind=? AND setting_key=? AND version>?)";
+    args.push(TENANT,row.kind,row.setting_key,row.version);
+    if(row.kind==='organization'){
+     const depend=await db.prepare("SELECT (EXISTS(SELECT 1 FROM india_effective_settings WHERE tenant_id=? AND kind='organization' AND json_extract(data_json,'$.parent_key')=? AND setting_key!=?) OR EXISTS(SELECT 1 FROM india_member_orgs WHERE unit_key=?)) AS used")
+      .bind(TENANT,row.setting_key,row.setting_key,row.setting_key).first<{used:number}>();
+     if(depend?.used)return fail('Organisasi masih dipakai anak atau pengguna; penonaktifan ditolak',409);
+     extra+=" AND NOT EXISTS(SELECT 1 FROM india_effective_settings WHERE tenant_id=? AND kind='organization' AND json_extract(data_json,'$.parent_key')=? AND setting_key!=?) AND NOT EXISTS(SELECT 1 FROM india_member_orgs WHERE unit_key=?)";
+     args.push(TENANT,row.setting_key,row.setting_key,row.setting_key);
+    }
+   }
+   if(p.action==='approve'&&row.kind==='organization'&&JSON.parse(row.data_json).deleted!==true){
     const all=await db.prepare("SELECT setting_key,data_json,version FROM india_effective_settings WHERE tenant_id=? AND kind='organization'").bind(TENANT).all<{setting_key:string;data_json:string;version:number}>();
-    const parents=new Map(all.results.map(x=>[x.setting_key,JSON.parse(x.data_json).parent_key as string|null]));
-    const data=JSON.parse(row.data_json);if(data.parent_key&&!parents.has(data.parent_key))return fail('Parent organisasi aktif diperlukan',409);parents.set(row.setting_key,data.parent_key);
-    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)||null;}}
+    const parents=new Map(all.results.map(x=>{const d=JSON.parse(x.data_json) as {level:string;parent_key:string|null};return [x.setting_key,{level:d.level,parentKey:d.parent_key}] as const;}));
+    const data=JSON.parse(row.data_json) as {level:string;parent_key:string|null};
+    if(data.level==='institution'&&data.parent_key)return fail('Institusi tidak boleh memiliki parent',409);
+    if(data.level!=='institution'){
+     const parent=data.parent_key?parents.get(data.parent_key):null;
+     if(!parent)return fail('Parent organisasi aktif diperlukan',409);
+     if(!isValidOrganizationParentLevel(data.level,parent.level))return fail('Tingkat parent harus lebih tinggi daripada organisasi baru',409);
+    }
+    parents.set(row.setting_key,{level:data.level,parentKey:data.parent_key});
+    for(const start of parents.keys()){const seen=new Set<string>();let cursor:string|null=start;while(cursor){if(seen.has(cursor))return fail('Siklus hierarki organisasi ditolak',409);seen.add(cursor);cursor=parents.get(cursor)?.parentKey||null;}}
     // Serialize organizational activations against the complete approved organization version set.
-    extra=" AND (SELECT coalesce(sum(version),0) FROM india_effective_settings WHERE tenant_id=? AND kind='organization')=?";
+    extra+=" AND (SELECT coalesce(sum(version),0) FROM india_effective_settings WHERE tenant_id=? AND kind='organization')=?";
     args.push(TENANT,all.results.reduce((n,x)=>n+x.version,0));
    }
    await atomicSales(db,"EXISTS(SELECT 1 FROM india_setting_versions WHERE tenant_id=? AND id=? AND version=? AND status='draft')"+extra,args,[db.prepare('UPDATE india_setting_versions SET status=?,reviewed_by=? WHERE tenant_id=? AND id=?').bind(p.action==='approve'?'approved':'rejected',email,TENANT,row.id),operationEvent(db,'setting',row.id,String(p.action).toUpperCase(),email,{notes:txt(p.notes,1000),kind:row.kind,key:row.setting_key,version:row.version})]);return reply({success:true});

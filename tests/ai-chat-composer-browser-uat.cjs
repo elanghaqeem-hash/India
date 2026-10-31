@@ -15,7 +15,7 @@ async function check(browser, name, viewport, mobile) {
     await page.goto(baseUrl, { waitUntil: 'domcontentloaded', timeout: 25000 });
     const nav = page.getByRole('navigation', { name: 'Navigasi utama mobile' });
     await page.getByTitle('Buka AI Business Assistant').click();
-    const dialog = page.getByRole('dialog', { name: 'ICOP AI Business Assistant' });
+    const dialog = page.getByRole('dialog', { name: 'INDIA AI Business Assistant' });
     await dialog.waitFor();
     const input = dialog.getByRole('textbox', { name: 'Pesan untuk AI Business Assistant' });
     const send = dialog.getByRole('button', { name: 'Kirim pesan ke AI' });
@@ -25,7 +25,7 @@ async function check(browser, name, viewport, mobile) {
 
     if (mobile) {
       assert.equal(await nav.isVisible(), false, name + ': underlying navigation hidden');
-      assert.equal(await page.evaluate(() => document.body.classList.contains('icop-ai-chat-open')), true);
+      assert.equal(await page.evaluate(() => document.body.classList.contains('india-ai-chat-open')), true);
     }
 
     const bounds = await input.boundingBox();

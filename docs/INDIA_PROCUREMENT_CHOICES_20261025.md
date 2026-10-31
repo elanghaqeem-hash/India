@@ -23,3 +23,7 @@ Pilihan awal kosong. Nilai historis yang belum termasuk daftar tetap ditampilkan
 Validasi: seluruh 15 nilai diuji melalui API registrasi/qualification/konversi pada adapter SQLite/D1 terisolasi dan tetap sama pada Opportunity. Pemeriksaan TypeScript lulus; 192 eksekusi pengujian pada baseline produksi dan build Next.js/OpenNext lulus. Pada implementasi kanonis, 56 pengujian Sales lulus. Render React memastikan 15 opsi, pilihan aktif, field disabled, dan pelestarian nilai historis. Pengujian ini tidak menggantikan UAT transaksi dengan sesi Cloudflare Access asli.
 
 Produksi menggunakan patch lanjutan pada branch release/india-catalog-prod-20261025, mempertahankan pembaruan katalog sebelumnya. Versi Worker sebelum rilis adalah 1b686467-7df5-44ac-a8c1-f71a8b371d3a sebagai titik rollback. Worker, binding D1, Access, kredensial, dan skema tidak diubah oleh patch ini. Hasil deployment dicatat setelah verifikasi.
+
+## Integration review — 31 October 2026
+
+Historical validation above applies to the original branch, not the merged candidate. The canonical Lead and Pipeline forms retain authenticated `ManagedOptionSelect` and D1 Admin-managed options, automatic billing addresses, searchable business types and multi-asset scoping. The 35 service classifications reuse existing BoQ, conversion and Post-PO flows. No production UAT or deployment is asserted by this merge.

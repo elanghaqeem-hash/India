@@ -57,3 +57,7 @@ The Lead and Sales service family catalog expands from 7 to 35 choices. Existing
 ## Release scope
 
 This catalog change adds no D1 migration or remote data write. The user explicitly authorized repository publication and production deployment on 25 October 2026. Existing production recovery, migration and real Cloudflare Access UAT requirements still require actual verification; authorization does not mark them passed.
+
+## Integration review — 31 October 2026
+
+Historical validation above applies to the original branch, not the merged candidate. The canonical Lead and Pipeline forms retain authenticated `ManagedOptionSelect` and D1 Admin-managed options, automatic billing addresses, searchable business types and multi-asset scoping. The 35 service classifications reuse existing BoQ, conversion and Post-PO flows. No production UAT or deployment is asserted by this merge.

@@ -6,8 +6,7 @@ import {SERVICE_CATALOG,SERVICE_GROUPS} from '@/lib/sales-workflow';
 import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
-import {LeadSourceChoice} from '@/components/sales/LeadSourceChoice';
-import {ProcurementProcessChoice} from '@/components/sales/ProcurementProcessChoice';
+import {ManagedOptionSelect} from '@/components/sales/ManagedOptionSelect';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
@@ -196,10 +195,10 @@ export default function MarketingLeads(){
      ['account_name','Perusahaan / Prospek *'],['source','Sumber Lead *'],['campaign','Kampanye / Event'],
      ['contact_name','Nama PIC'],['contact_email','Email PIC'],['assigned_sales_email','Sales Owner (email aktif) *'],
      ['estimated_value_idr','Estimasi nilai IDR'],['expected_closing_date','Target closing']
-    ] as const).map(([key,label])=>key==='source'?<LeadSourceChoice key={key} label={label} required disabled={busy} value={form.source} onChange={source=>setForm(s=>({...s,source}))}/>:<label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
-      <input className={'mt-1 '+cls} disabled={key==='campaign'&&!!form.campaign_id}
+    ] as const).map(([key,label])=><label key={key} className="min-w-0 text-xs font-semibold text-slate-700">{label}
+      {key==='source'?<ManagedOptionSelect group="lead_source" label={label} required value={form.source} onChange={value=>setForm(s=>({...s,source:value}))} className={'mt-1 '+cls}/>:<input className={'mt-1 '+cls} disabled={key==='campaign'&&!!form.campaign_id}
        type={key==='contact_email'||key==='assigned_sales_email'?'email':key==='expected_closing_date'?'date':key==='estimated_value_idr'?'number':'text'}
-       value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/></label>)}
+       value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/>}</label>)}
     <label className="text-xs font-semibold text-slate-700">Jenis produk / layanan *
      <select className={'mt-1 '+cls} value={form.service_family} onChange={e=>setForm(s=>({...s,service_family:e.target.value}))}>
       {SERVICE_GROUPS.map(group=><optgroup key={group} label={group}>{SERVICE_CATALOG.filter(x=>x.group===group).map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</optgroup>)}</select></label>
@@ -213,10 +212,11 @@ export default function MarketingLeads(){
       className="inline-flex items-center gap-1 rounded-lg bg-emerald-700 px-3 py-2 text-xs font-bold text-white"><CheckCircle2 size={15}/> Buka Opportunity <ArrowRight size={13}/></Link>}</div>
     <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-700">Sales Owner: <b>{selected.lead.assigned_sales_email}</b>. Lead Qualified harus memenuhi Need, Budget, Decision Maker dan Procurement. Customer ID diterbitkan saat konversi.</div>
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-     {flds.map(([k,label])=>k==='procurement_process'?<ProcurementProcessChoice key={k} label={label} disabled={busy||selected.lead.status==='converted'} value={qualification[k]||''} onChange={value=>setQualification(q=>({...q,[k]:value}))}/>:<label key={k} className="text-xs font-semibold text-slate-700">{label}
-       <textarea rows={k==='discovery_notes'?3:2} disabled={selected.lead.status==='converted'}
+     {flds.map(([k,label])=><label key={k} className="text-xs font-semibold text-slate-700">{label}
+       {k==='procurement_process'?<ManagedOptionSelect group="procurement_process" label={label} value={qualification[k]||''}
+        disabled={selected.lead.status==='converted'} onChange={value=>setQualification(q=>({...q,[k]:value}))} className={'mt-1 '+cls}/>:<textarea rows={k==='discovery_notes'?3:2} disabled={selected.lead.status==='converted'}
         value={qualification[k]||''} onChange={e=>setQualification(q=>({...q,[k]:e.target.value}))}
-        className={'mt-1 '+cls+' resize-y disabled:bg-slate-100'}/></label>)}
+        className={'mt-1 '+cls+' resize-y disabled:bg-slate-100'}/>}</label>)}
     </div>
     {!['converted','disqualified'].includes(selected.lead.status)&&<div className="flex flex-wrap gap-2">
      {selected.lead.status==='new'&&<button disabled={busy} onClick={()=>changeStatus('assigned')} className="rounded-lg border px-3 py-2 text-xs font-bold">Tandai Assigned</button>}

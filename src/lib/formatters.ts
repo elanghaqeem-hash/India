@@ -1,4 +1,4 @@
-// ICOP CyberBusiness 360 Formatting Utilities
+// INDIA CyberBusiness 360 Formatting Utilities
 
 export function formatIDR(amount: number): string {
   if (isNaN(amount) || amount === null || amount === undefined) return 'Rp 0';

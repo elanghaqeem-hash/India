@@ -39,6 +39,10 @@ const BUSINESS_BY_INDUSTRY:Record<string,readonly string[]> = {
  'Media & Kreatif':['Media dan Penyiaran','Periklanan','Konten Digital','Industri Kreatif'],
  Lainnya:['Jasa Profesional','Konsultan','Perdagangan Umum','Layanan Publik','Yayasan / Nirlaba'],
 };
+/** Stable choices for cross-sector search; data storage still uses the displayed text. */
+export const ALL_BUSINESS_TYPES = [...new Set(Object.values(BUSINESS_BY_INDUSTRY).flat())]
+ .sort((a,b)=>a.localeCompare(b,'id'));
+
 export const POPULAR_BUSINESS_TYPES = [
  'Layanan Teknologi Informasi','Pengembangan Perangkat Lunak','Keamanan Siber',
  'Bank Umum Konvensional','Bank Umum Syariah','Bank Digital',
@@ -47,9 +51,7 @@ export const POPULAR_BUSINESS_TYPES = [
  'Rumah Sakit','Perdagangan Ritel','Manufaktur','Jasa Profesional',
 ] as const;
 
-export const STANDARD_BUSINESS_TYPES=[...new Set<string>([...POPULAR_BUSINESS_TYPES,...Object.values(BUSINESS_BY_INDUSTRY).flat()])];
-
-export function businessTypeOptions(industry:string):string[]{
- // Do not include artificial "Lainnya" as a stored value: users provide the real activity.
- return [...new Set(BUSINESS_BY_INDUSTRY[industry]||STANDARD_BUSINESS_TYPES)];
+export function businessTypeOptions(industry:string,allSectors=false):string[]{
+ // Never store "Lainnya": manual entries are persisted as their real business name.
+ return allSectors?[...ALL_BUSINESS_TYPES]:[...new Set(BUSINESS_BY_INDUSTRY[industry]||POPULAR_BUSINESS_TYPES)];
 }

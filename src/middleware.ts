@@ -20,10 +20,13 @@ const D1_ROUTES = new Set([
   '/api/partners',
   '/api/reports',
   '/api/admin/system',
+  '/api/admin/options',
+  '/api/reference/options',
+  '/api/psa/timesheets',
 ]);
 
 export function isEnabledD1ApiRoute(path: string): boolean {
-  return D1_ROUTES.has(path) || path.startsWith('/api/boq/') || path.startsWith('/api/sales/');
+  return D1_ROUTES.has(path) || path.startsWith('/api/erp/') || path.startsWith('/api/boq/') || path.startsWith('/api/sales/');
 }
 
 export function middleware(request: NextRequest) {

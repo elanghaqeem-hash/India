@@ -7,6 +7,7 @@ import {
   Shield,
   Bell,
   UserCheck,
+  LogOut,
   Search,
   ChevronDown,
   CheckCircle2,
@@ -17,13 +18,16 @@ import {
   Bot,
   RotateCcw,
   Zap,
+  Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
 } from 'lucide-react';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
 import { selectConversationHistory, activeChatTopic, type AIConversationTurn } from '@/lib/ai-conversation';
 
 const WELCOME_MESSAGE = {
   sender: 'ai' as const,
-  text: 'Halo! Saya Asisten AI ICOP CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
+  text: 'Halo! Saya Asisten AI INDIA CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
   provider: 'Informasi awal (bukan hasil model AI)',
 };
 
@@ -31,12 +35,18 @@ interface NavbarProps {
   role: string | null;
   email: string | null;
   pendingApprovalsCount?: number|null;
+  desktopMenuOpen: boolean;
+  mobileMenuOpen: boolean;
+  onToggleMenu: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
   role,
   email,
   pendingApprovalsCount = null,
+  desktopMenuOpen,
+  mobileMenuOpen,
+  onToggleMenu,
 }) => {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
 
@@ -60,7 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
     if (!aiAssistantOpen) return;
     const oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    document.body.classList.add('icop-ai-chat-open');
+    document.body.classList.add('india-ai-chat-open');
 
     const viewport = window.visualViewport;
     const syncViewport = () => {
@@ -84,7 +94,7 @@ export const Navbar: React.FC<NavbarProps> = ({
       window.removeEventListener('resize', syncViewport);
       window.removeEventListener('keydown', onEscape);
       document.body.style.overflow = oldOverflow;
-      document.body.classList.remove('icop-ai-chat-open');
+      document.body.classList.remove('india-ai-chat-open');
       setVisualViewport(null);
     };
   }, [aiAssistantOpen]);
@@ -141,13 +151,34 @@ export const Navbar: React.FC<NavbarProps> = ({
         <div className="flex h-16 min-w-0 items-center justify-between gap-2 px-3 sm:px-6">
           {/* Brand Logo & Name */}
           <div className="flex min-w-0 items-center gap-1.5">
+            {/* Left-side navigation is available even when the panel is collapsed. */}
+            {role&&(
+              <>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-left-sidebar-desktop" aria-expanded={desktopMenuOpen}
+                  aria-label={desktopMenuOpen?'Sembunyikan menu kiri INDIA':'Tampilkan menu kiri INDIA'}
+                  title={desktopMenuOpen?'Sembunyikan menu kiri':'Tampilkan menu kiri'}
+                  className="hidden h-9 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:flex">
+                  {desktopMenuOpen?<PanelLeftClose className="h-4 w-4" aria-hidden="true"/>:<PanelLeftOpen className="h-4 w-4" aria-hidden="true"/>}
+                  <span>Menu</span>
+                </button>
+                <button type="button" onClick={onToggleMenu}
+                  aria-controls="india-left-sidebar-mobile" aria-expanded={mobileMenuOpen}
+                  aria-label={mobileMenuOpen?'Tutup menu kiri INDIA':'Buka menu kiri INDIA'}
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:hidden">
+                  {mobileMenuOpen?<X className="h-4 w-4" aria-hidden="true"/>:<Menu className="h-4 w-4" aria-hidden="true"/>}
+                </button>
+              </>
+            )}
+
+
             <Link href="/" className="flex min-w-0 items-center gap-1.5 transition-transform hover:scale-[1.01]">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-700 to-indigo-900 text-white shadow-md shadow-blue-500/20">
                 <Shield className="h-5 w-5 text-cyan-400" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">ICOP</span>
+                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">INDIA</span>
                   <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">360</span>
                 </div>
                 <p className="hidden text-[10px] font-medium text-slate-500 sm:block -mt-1">
@@ -192,14 +223,26 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </Link>
 
-            {/* Read-only server-verified identity: no selectable demo roles. */}
-            <div className="flex min-w-0 max-w-[110px] items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs text-slate-700 sm:max-w-[260px]">
-              <UserCheck className="h-4 w-4 shrink-0 text-indigo-700" aria-hidden="true"/>
-              <div className="min-w-0">
-                <div className="truncate font-semibold" title={currentRoleInfo.label}>{currentRoleInfo.label}</div>
-                <div className="truncate text-[10px] font-medium text-indigo-700">{currentRoleInfo.badge}</div>
+            {/* The identity is read-only; the dropdown only offers navigation and a real Access logout. */}
+            <details className="group relative min-w-0">
+              <summary aria-label="Menu akun dan logout" title="Menu akun: profil dan keluar"
+                className="flex min-h-11 min-w-0 max-w-[118px] cursor-pointer list-none items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-indigo-500 sm:max-w-[260px] [&::-webkit-details-marker]:hidden">
+                <UserCheck className="h-4 w-4 shrink-0 text-indigo-700" aria-hidden="true"/>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-semibold" title={currentRoleInfo.label}>{currentRoleInfo.label}</span>
+                  <span className="block truncate text-[10px] font-medium text-indigo-700">{currentRoleInfo.badge}</span>
+                </span>
+                <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform group-open:rotate-180" aria-hidden="true"/>
+              </summary>
+              <div className="absolute right-0 top-[calc(100%+8px)] z-[90] w-[min(19rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl">
+                <p className="break-all text-xs font-semibold text-slate-900">{currentRoleInfo.label}</p>
+                <p className="mb-3 text-xs text-indigo-700">Role: {currentRoleInfo.badge}</p>
+                <Link href="/login" className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Halaman login INDIA</Link>
+                <a href="/cdn-cgi/access/logout" className="mt-1 flex min-h-11 items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-rose-500">
+                  <LogOut className="h-4 w-4" aria-hidden="true"/> Keluar / Logout
+                </a>
               </div>
-            </div>
+            </details>
           </div>
         </div>
       </header>
@@ -207,10 +250,10 @@ export const Navbar: React.FC<NavbarProps> = ({
       {/* Global AI Assistant Drawer / Modal */}
       {aiAssistantOpen && typeof document !== 'undefined' && createPortal(
         <div
-          className="icop-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
+          className="india-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
           style={visualViewport ? { top: visualViewport.top + 'px', height: visualViewport.height + 'px', bottom: 'auto' } : undefined}
         >
-          <div role="dialog" aria-modal="true" aria-label="ICOP AI Business Assistant"
+          <div role="dialog" aria-modal="true" aria-label="INDIA AI Business Assistant"
             className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
             <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
@@ -219,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm tracking-tight">ICOP AI Business Assistant</h3>
+                  <h3 className="font-extrabold text-sm tracking-tight">INDIA AI Business Assistant</h3>
                   <div className="text-[10px] text-slate-300 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Koneksi AI Admin: hasil sesuai provider aktif</span>

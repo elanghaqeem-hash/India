@@ -70,7 +70,7 @@ try {
   const release = process.env.GITHUB_SHA || '';
   if (!/^[0-9a-f]{40}$/.test(release) ||
       !readFileSync('src/components/layout/Navbar.tsx', 'utf8').includes('createPortal(') ||
-      !readFileSync('src/app/globals.css', 'utf8').includes('icop-ai-chat-open')) {
+      !readFileSync('src/app/globals.css', 'utf8').includes('india-ai-chat-open')) {
     throw Error('BLOCKED: hotfix source or release SHA missing.');
   }
 

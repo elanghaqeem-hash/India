@@ -39,6 +39,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
     item('Communication Timeline','/sales/communications',['admin','sales','approver','legal']),
   ]},
   {id:'presales',label:'04 · Presales, Tender & Solution',items:[
+    item('Smart Scoping & Sizing','/scoping',['admin','presales','sales']),
     item('Tender Compliance','/sales/compliance',PRESALES),
     item('Bid Readiness','/sales/bid-readiness',PRESALES),
     item('Resource & Solution Feasibility','/sales/feasibility',PRESALES),
@@ -51,6 +52,7 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   ]},
   {id:'delivery',label:'06 · Project Delivery & Operations',items:[
     item('Service Delivery & Projects','/sales/delivery',['admin','presales','finance','approver']),
+    item('Project Timesheets','/psa/timesheets',['admin','presales','finance','approver']),
     item('Official Post-PO Forms','/post-po',['admin','sales','presales','finance','approver','legal']),
   ]},
   {id:'cash',label:'07 · Contract-to-Cash & Renewal',items:[
@@ -65,11 +67,22 @@ export const INDIA_NAVIGATION: readonly IndiaNavGroup[] = [
   ]},
   {id:'reporting',label:'09 · Reporting, Analytics & AI',items:[
     item('Enterprise Reports','/reports',['admin','marketing','sales','finance','approver']),
-    item('AI Connections & API Keys','/settings/ai',['admin']),
   ]},
   {id:'governance',label:'10 · Document Center & Governance',items:[
     item('Secure Document Vault','/sales/documents',COMMERCIAL),
-    item('Administration & System Settings','/settings/system',['admin']),
+  ]},
+  {id:'enterprise_erp',label:'12 · ERP Finance, Procurement & Cybersecurity',items:[
+    item('Organization & ERP Access','/erp/organization',['admin','approver']),
+    item('General Ledger & Journal','/erp/general-ledger',['finance','approver']),
+    item('Procurement & Accounts Payable','/erp/procurement',['admin','presales','finance','approver']),
+    item('Cybersecurity Operations','/erp/cyber-operations',['admin','presales','approver']),
+  ]},
+  {id:'administration',label:'11 · Administrasi · Khusus Admin',items:[
+    item('Registrasi User','/boq/users',['admin']),
+    item('Parameter','/settings/system',['admin']),
+    item('Opsi','/settings/options',['admin']),
+    item('Registrasi Opsi Standar','/settings/option-registry',['admin']),
+    item('API Key','/settings/ai',['admin']),
   ]},
 ] as const;
 
