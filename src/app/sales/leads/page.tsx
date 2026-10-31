@@ -2,7 +2,7 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import Link from 'next/link';
 import {ArrowRight,CheckCircle2,ClipboardList,Megaphone,Plus,Search,UserRoundCheck} from 'lucide-react';
-import {SERVICE_FAMILIES} from '@/lib/sales-workflow';
+import {SERVICE_CATALOG,SERVICE_GROUPS} from '@/lib/sales-workflow';
 import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
@@ -201,7 +201,7 @@ export default function MarketingLeads(){
        value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/>}</label>)}
     <label className="text-xs font-semibold text-slate-700">Jenis produk / layanan *
      <select className={'mt-1 '+cls} value={form.service_family} onChange={e=>setForm(s=>({...s,service_family:e.target.value}))}>
-      {SERVICE_FAMILIES.map(x=><option key={x} value={x}>{x}</option>)}</select></label>
+      {SERVICE_GROUPS.map(group=><optgroup key={group} label={group}>{SERVICE_CATALOG.filter(x=>x.group===group).map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</optgroup>)}</select></label>
     </div>
     <button disabled={busy||!form.account_name.trim()||!form.source.trim()||!form.assigned_sales_email.trim()} onClick={create}
      className="mt-4 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">Simpan Lead</button>

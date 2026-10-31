@@ -1,5 +1,6 @@
 'use client';
 import React,{useEffect,useState} from 'react';
+import {defaultBoqService} from '@/lib/sales-workflow';
 import {SCOPING_SERVICE_TYPES} from '@/lib/scoping-service-options';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
@@ -10,7 +11,7 @@ export default function BoQPage(){
  const [form,setForm]=useState(blank()),[role,setRole]=useState(''),[msg,setMsg]=useState(''),[busy,setBusy]=useState(false);
  const [costs,setCosts]=useState<Record<string,string>>({});
  const [catalog,setCatalog]=useState<Catalog[]>([]),[sku,setSku]=useState('');
- const [salesDeals,setSalesDeals]=useState<{id:string;title:string;company_name:string}[]>([]);
+ const [salesDeals,setSalesDeals]=useState<{id:string;title:string;company_name:string;fields?:{service_family?:string}}[]>([]);
  const isFinance=['finance','admin'].includes(role);
  const canCreate=['finance','admin','presales','sales'].includes(role);
  const canEdit=canCreate&&(!selected||selected.status==='draft');
@@ -53,7 +54,7 @@ export default function BoQPage(){
    void load();void fetch('/api/sales?entity=deals',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setSalesDeals(j.deals||[])}).catch(()=>{});const id=new URLSearchParams(window.location.search).get('opportunity_id');
   if(id)fetch('/api/sales?entity=details&id='+encodeURIComponent(id),{cache:'no-store'}).then(r=>r.json()).then(j=>{
    if(j.success){setForm(f=>({...f,opportunity_id:id,customer_name:j.account.legal_name,project_name:j.deal.title,
-    service_type:new URLSearchParams(window.location.search).get('from')==='scoping'?f.service_type:j.deal.fields.service_family==='SOC/MDR'?'SOC':j.deal.fields.service_family==='Cybersecurity Governance'?'GRC':j.deal.fields.service_family==='Incident Response/DFIR'?'DFIR':j.deal.fields.service_family==='Cybersecurity Technology'?'TECHNOLOGY':j.deal.fields.service_family||'VAPT'}));}
+    service_type:new URLSearchParams(window.location.search).get('from')==='scoping'?f.service_type:defaultBoqService(j.deal.fields.service_family),line_items:new URLSearchParams(window.location.search).get('from')==='scoping'?f.line_items:f.line_items.map(item=>item.description.trim()?item:{...item,service_type:defaultBoqService(j.deal.fields.service_family)})}));}
   }).catch(()=>{});
   void fetch('/api/boq/catalog',{cache:'no-store'}).then(r=>r.json()).then(j=>{if(j.success)setCatalog(j.items||[])}).catch(()=>{});},[]);
  const choose=(d:Doc)=>{setSelected(d);setForm({...blank(),...d,opportunity_id:d.opportunity_id||''});setCosts(Object.fromEntries((d.cost_items||[]).map(x=>[x.code,String(x.amount)])));setMsg('');};
@@ -106,7 +107,7 @@ export default function BoQPage(){
      <input value={form.opportunity_id||''} onChange={e=>change('opportunity_id',e.target.value)} disabled={!canEdit} className="mt-1 w-full rounded-lg border p-2 text-sm" placeholder="Pilih dari Sales Pipeline"/>
    </label>
    <div className="grid gap-3 sm:grid-cols-2"><label className="text-xs font-semibold sm:col-span-2">Link ke Opportunity ID (untuk Won & dokumen)
-    <select disabled={!canEdit} value={form.opportunity_id||''} onChange={e=>{const id=e.target.value;const d=salesDeals.find(o=>o.id===id);setForm(p=>({...p,opportunity_id:id,...(d?{customer_name:d.company_name,project_name:d.title}:{})}));}} className="mt-1 w-full rounded-lg border p-2 text-sm">
+    <select disabled={!canEdit} value={form.opportunity_id||''} onChange={e=>{const id=e.target.value;const d=salesDeals.find(o=>o.id===id);setForm(p=>({...p,opportunity_id:id,...(d?{customer_name:d.company_name,project_name:d.title,service_type:defaultBoqService(d.fields?.service_family||'Other'),line_items:p.line_items.map(item=>item.description.trim()?item:{...item,service_type:defaultBoqService(d.fields?.service_family||'Other')})}:{})}));}} className="mt-1 w-full rounded-lg border p-2 text-sm">
      <option value="">Tanpa Opportunity ID (draft belum terhubung)</option>{salesDeals.map(d=><option key={d.id} value={d.id}>{d.company_name} · {d.title}</option>)}
     </select><span className="mt-1 block text-[11px] font-normal text-slate-500">BoQ harus terhubung ke opportunity dan approved untuk digunakan sebagai dasar Closed Won.</span></label>{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']

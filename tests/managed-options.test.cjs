@@ -5,12 +5,14 @@ const {Harness,expect}=require('./helpers/sales-flow-harness.cjs');
 const {LEAD_SOURCES,PROCUREMENT_PROCESSES,SERVICE_FAMILIES}=require('../src/lib/sales-workflow.ts');
 const source=p=>fs.readFileSync(p,'utf8');
 
-test('audited PR64 option catalogs reused without widening legacy Service Family validation',()=>{
+test('expanded PR64 catalog preserves legacy services and managed option catalogs',()=>{
  assert.equal(LEAD_SOURCES.length,22);
  assert.equal(new Set(LEAD_SOURCES).size,22);
  assert.equal(PROCUREMENT_PROCESSES.length,15);
  assert.equal(new Set(PROCUREMENT_PROCESSES).size,15);
- assert.deepEqual(SERVICE_FAMILIES,['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']);
+ assert.equal(SERVICE_FAMILIES.length,35);
+ assert.equal(new Set(SERVICE_FAMILIES).size,35);
+ for(const legacy of ['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']) assert.ok(SERVICE_FAMILIES.includes(legacy));
 });
 test('Lead, Qualification and Pipeline use the same Admin-managed authenticated dropdown',()=>{
  const widget=source('src/components/sales/ManagedOptionSelect.tsx');
