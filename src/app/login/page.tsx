@@ -1,5 +1,4 @@
 import type {Metadata} from 'next';
-import Link from 'next/link';
 import {ArrowRight, BadgeCheck, Building2, KeyRound, LockKeyhole, LogOut, ShieldCheck} from 'lucide-react';
 import {LoginSessionStatus} from '@/components/auth/LoginSessionStatus';
 
@@ -80,11 +79,11 @@ export default function IndiaLoginPage() {
 
             <LoginSessionStatus />
 
-            <Link href="/" className="mt-6 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#2B124C] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#43206e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
+            <a href="/" className="mt-6 flex min-h-12 w-full items-center justify-center gap-3 rounded-xl bg-[#2B124C] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#43206e] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-600">
               <LockKeyhole className="h-5 w-5 shrink-0" aria-hidden="true" />
               <span className="flex-1 text-center">Masuk dengan Cloudflare Access</span>
               <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
-            </Link>
+            </a>
             <a href="/cdn-cgi/access/logout" className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-2 focus-visible:outline-violet-600">
               <LogOut className="h-4 w-4" aria-hidden="true" /> Logout / Ganti akun
             </a>
