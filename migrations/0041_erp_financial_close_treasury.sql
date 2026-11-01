@@ -44,13 +44,17 @@ WHEN OLD.status!='pending' OR NEW.status NOT IN ('approved','rejected') OR NEW.v
  OR NEW.id IS NOT OLD.id OR NEW.tenant_id IS NOT OLD.tenant_id OR NEW.period_id IS NOT OLD.period_id
  OR NEW.notes IS NOT OLD.notes OR NEW.snapshot_debits IS NOT OLD.snapshot_debits
  OR NEW.snapshot_credits IS NOT OLD.snapshot_credits OR NEW.created_by IS NOT OLD.created_by
- OR lower(NEW.reviewed_by)=lower(OLD.created_by)
+ OR NEW.legal_entity_id IS NOT OLD.legal_entity_id OR NEW.requested_by IS NOT OLD.requested_by
+ OR NEW.reason IS NOT OLD.reason OR NEW.created_at IS NOT OLD.created_at
+ OR NEW.reviewed_by IS NULL OR coalesce(length(NEW.review_notes),0)<12
+ OR lower(NEW.reviewed_by)=lower(coalesce(OLD.created_by,OLD.requested_by))
 BEGIN SELECT RAISE(ABORT,'GL_CLOSE_IMMUTABLE'); END;
 CREATE TRIGGER india_gl_close_no_delete BEFORE DELETE ON india_gl_close_requests BEGIN SELECT RAISE(ABORT,'GL_CLOSE_IMMUTABLE'); END;
 CREATE TRIGGER india_gl_close_apply AFTER UPDATE OF status ON india_gl_close_requests
 WHEN NEW.status='approved' AND OLD.status='pending'
 BEGIN
- SELECT CASE WHEN NOT EXISTS(SELECT 1 FROM india_gl_periods p WHERE p.tenant_id=NEW.tenant_id AND p.id=NEW.period_id AND p.status='open') OR
+ SELECT CASE WHEN NEW.snapshot_debits IS NULL OR NEW.snapshot_credits IS NULL OR
+ NOT EXISTS(SELECT 1 FROM india_gl_periods p WHERE p.tenant_id=NEW.tenant_id AND p.id=NEW.period_id AND p.status='open') OR
  EXISTS(SELECT 1 FROM india_gl_journals j WHERE j.tenant_id=NEW.tenant_id AND j.period_id=NEW.period_id AND j.status IN ('draft','approved')) OR
  (SELECT coalesce(sum(l.debit_cents),0) FROM india_gl_lines l JOIN india_gl_journals j ON j.tenant_id=l.tenant_id AND j.id=l.journal_id
  WHERE j.tenant_id=NEW.tenant_id AND j.period_id=NEW.period_id AND j.status='posted')!=NEW.snapshot_debits OR

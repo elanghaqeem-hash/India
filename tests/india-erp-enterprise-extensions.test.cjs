@@ -144,3 +144,38 @@ test('Cyber connector requires allowlisted secret and independent approval, deli
  await expect(h.call('erp/security-integrations','POST','admin',{action:'send',id:dispatch}),409);
  }finally{globalThis.fetch=previous;h.close();}
 });
+
+test('HR list keeps people and skills within the selected legal entity including departments',async()=>{
+ const h=fixture(45);try{
+ await setup(h);grant(h,users.admin,'hr');
+ for(const [id,kind,parent] of [['entity-other','legal_entity',null],['division-ext','division',legal],['dept-ext','department','division-ext']])
+  await expect(h.call('erp/organization','POST','admin',{action:'create_unit',id,code:id,label:'Synthetic '+id,kind,parent_id:parent}),201);
+ for(const [email,unit] of [[users.finance,'dept-ext'],[users.legal,'entity-other']]){
+  h.sql.prepare("INSERT INTO india_erp_staff_org(tenant_id,email,unit_id,position_title,created_by,status,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?)").run(tenant,email,unit,'QA employee','maker@synthetic.invalid','checker@synthetic.invalid','Independent staff placement');
+  h.sql.prepare("INSERT INTO india_hr_employees(tenant_id,email,employment_type,start_date,created_by) VALUES(?,?,'permanent','2026-01-01',?)").run(tenant,email,users.admin);
+  h.sql.prepare("INSERT INTO india_hr_skills(id,tenant_id,email,skill,level,created_by) VALUES(?,?,?,'Risk assessment','advanced',?)").run(crypto.randomUUID(),tenant,email,users.admin);
+ }
+ const r=await expect(h.call('erp/hr','GET','admin',null,'?legal_entity_id='+legal),200);
+ assert.deepEqual(r.body.people.map(x=>x.email),[users.finance]);
+ assert.deepEqual(r.body.skills.map(x=>x.email),[users.finance]);
+ await expect(h.call('erp/hr','GET','admin',null,'?legal_entity_id=entity-other'),403);
+ }finally{h.close();}
+});
+
+test('0039 historical close survives additive migration; missing snapshots require rejection and preserve maker evidence',async()=>{
+ const h=fixture(39);try{
+ await setup(h);grant(h,users.approver,'finance_gl');
+ h.sql.prepare("INSERT INTO india_gl_periods(id,tenant_id,legal_entity_id,period,created_by) VALUES('legacy-period',?,?,'2026-09',?)").run(tenant,legal,users.finance);
+ h.sql.prepare("INSERT INTO india_gl_close_requests(id,tenant_id,period_id,legal_entity_id,requested_by,reason) VALUES('legacy-close',?,'legacy-period',?,?,?)").run(tenant,legal,users.finance,'Historical close request retained');
+ const fs=require('node:fs'),path=require('node:path');
+ for(const file of fs.readdirSync(path.join(__dirname,'../migrations')).filter(f=>/^004[0-5]_.*\.sql$/.test(f)).sort())h.sql.exec(fs.readFileSync(path.join(__dirname,'../migrations',file),'utf8'));
+ await expect(h.call('erp/ledger','POST','approver',{action:'review_close',id:'legacy-close',version:1,approve:true,notes:'Independent legacy review requires a snapshot'}),409);
+ assert.throws(()=>h.sql.prepare("UPDATE india_gl_close_requests SET status='approved',version=2,reviewed_by=?,review_notes='Independent direct SQL approval' WHERE id='legacy-close'").run(users.approver),/GL_CLOSE_RECONCILIATION/);
+ assert.throws(()=>h.sql.prepare("UPDATE india_gl_close_requests SET status='rejected',version=2,reviewed_by=?,review_notes='Independent review rejected',reason='Rewritten historical evidence' WHERE id='legacy-close'").run(users.approver),/GL_CLOSE_IMMUTABLE/);
+ await expect(h.call('erp/ledger','POST','approver',{action:'review_close',id:'legacy-close',version:1,approve:false,notes:'Reject legacy request for fresh Finance reconciliation'}),200);
+ const old=h.sql.prepare("SELECT * FROM india_gl_close_requests WHERE id='legacy-close'").get();
+ assert.equal(old.requested_by,users.finance);assert.equal(old.reason,'Historical close request retained');assert.equal(old.status,'rejected');
+ assert.equal(h.sql.prepare("SELECT status FROM india_gl_periods WHERE id='legacy-period'").get().status,'open');
+ assert.deepEqual(h.sql.prepare('PRAGMA foreign_key_check').all(),[]);
+ }finally{h.close();}
+});

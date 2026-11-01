@@ -99,16 +99,17 @@ export async function POST(req:Request){
    const rows=await db.prepare("SELECT count(DISTINCT j.id) journal_count,coalesce(sum(l.debit_cents),0) debits,coalesce(sum(l.credit_cents),0) credits FROM india_gl_journals j JOIN india_gl_lines l ON l.tenant_id=j.tenant_id AND l.journal_id=j.id WHERE j.tenant_id=? AND j.period_id=? AND j.status='posted'").bind(TENANT,period.id).first<{journal_count:number;debits:number;credits:number}>();
    erpAssert(rows&&rows.journal_count>0&&rows.debits===rows.credits&&Number.isSafeInteger(rows.debits),'Periode belum memiliki jurnal posted yang seimbang',409);
    const id=crypto.randomUUID();
-   await erpAtom(a.identity,"NOT EXISTS(SELECT 1 FROM india_gl_journals WHERE tenant_id=? AND period_id=? AND status IN ('draft','approved')) AND NOT EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND period_id=?)",
+   await erpAtom(a.identity,"NOT EXISTS(SELECT 1 FROM india_gl_journals WHERE tenant_id=? AND period_id=? AND status IN ('draft','approved')) AND NOT EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND period_id=? AND status IN ('pending','approved'))",
     [TENANT,period.id,TENANT,period.id],[db.prepare("INSERT INTO india_gl_close_requests(id,tenant_id,period_id,legal_entity_id,requested_by,reason,notes,snapshot_debits,snapshot_credits,created_by) VALUES(?,?,?,?,?,?,?,?,?,?)").bind(id,TENANT,period.id,period.legal_entity_id,email,v.notes as string,v.notes as string,rows.debits,rows.credits,email)],'gl',id,'CLOSE_REQUEST',{period_id:period.id,debits:rows.debits});
    return erpReply({success:true,id},201);
   }
   if(action==='review_close'){
    erpAssert(role==='approver'&&erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Review close wajib Approver independen',403);
-   const close=await db.prepare('SELECT x.id,x.period_id,x.status,x.version,x.created_by,p.legal_entity_id FROM india_gl_close_requests x JOIN india_gl_periods p ON p.tenant_id=x.tenant_id AND p.id=x.period_id WHERE x.tenant_id=? AND x.id=?').bind(TENANT,v.id as string).first<{id:string;status:string;version:number;created_by:string;legal_entity_id:string}>();
+   const close=await db.prepare('SELECT x.id,x.period_id,x.status,x.version,coalesce(x.created_by,x.requested_by) created_by,x.snapshot_debits,x.snapshot_credits,p.legal_entity_id FROM india_gl_close_requests x JOIN india_gl_periods p ON p.tenant_id=x.tenant_id AND p.id=x.period_id WHERE x.tenant_id=? AND x.id=?').bind(TENANT,v.id as string).first<{id:string;status:string;version:number;created_by:string;snapshot_debits:number|null;snapshot_credits:number|null;legal_entity_id:string}>();
    erpAssert(close&&close.status==='pending'&&close.version===v.version&&close.created_by.toLowerCase()!==email,'Review close dilarang self-approval',409);
    await erpGrant(a.identity,'finance_gl',close.legal_entity_id);
-   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND id=? AND status='pending' AND version=? AND lower(created_by)!=?)",
+   erpAssert(!v.approve||(Number.isSafeInteger(close.snapshot_debits)&&Number.isSafeInteger(close.snapshot_credits)), 'Permintaan lama belum memiliki snapshot rekonsiliasi; tolak lalu ajukan kembali oleh Finance',409);
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_gl_close_requests WHERE tenant_id=? AND id=? AND status='pending' AND version=? AND lower(coalesce(created_by,requested_by))!=?)",
     [TENANT,close.id,close.version,email],[db.prepare("UPDATE india_gl_close_requests SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?").bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,close.id)],'gl',close.id,'CLOSE_REVIEW',{approved:v.approve});return erpReply({success:true});
   }
   throw new ERPError('Aksi GL tidak tersedia');

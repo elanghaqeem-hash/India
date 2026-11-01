@@ -10,11 +10,12 @@ export async function GET(req:Request){
   const a=auth.identity,legal=new URL(req.url).searchParams.get('legal_entity_id');
   erpAssert(erpId(legal),'Legal entity wajib');
   await erpGrant(a,'hr',legal);
+  const scopedUnits=`WITH RECURSIVE scoped_units(id) AS (SELECT id FROM india_erp_org_units WHERE tenant_id=? AND id=? AND kind='legal_entity' UNION SELECT u.id FROM india_erp_org_units u JOIN scoped_units p ON u.parent_id=p.id WHERE u.tenant_id=?) `;
   const [people,policies,leave,skills,assets]=await Promise.all([
-   a.db.prepare("SELECT e.email,e.employment_type,e.start_date,e.end_date,e.status,e.version,s.position_title,s.unit_id FROM india_hr_employees e JOIN india_erp_staff_org s ON s.tenant_id=e.tenant_id AND s.email=e.email AND s.status='approved' WHERE e.tenant_id=? ORDER BY e.email LIMIT 200").bind(TENANT).all(),
+   a.db.prepare(scopedUnits+"SELECT e.email,e.employment_type,e.start_date,e.end_date,e.status,e.version,s.position_title,s.unit_id FROM india_hr_employees e JOIN india_erp_staff_org s ON s.tenant_id=e.tenant_id AND s.email=e.email AND s.status='approved' WHERE e.tenant_id=? AND s.unit_id IN (SELECT id FROM scoped_units) ORDER BY e.email LIMIT 200").bind(TENANT,legal,TENANT,TENANT).all(),
    a.db.prepare("SELECT id,leave_type,calendar_year,days_entitlement,status FROM india_hr_leave_policies WHERE tenant_id=? AND legal_entity_id=?").bind(TENANT,legal).all(),
    a.db.prepare("SELECT l.id,l.email,l.policy_id,l.from_date,l.to_date,l.business_days,l.status,l.version FROM india_hr_leave_requests l JOIN india_hr_leave_policies p ON p.id=l.policy_id AND p.tenant_id=l.tenant_id WHERE l.tenant_id=? AND p.legal_entity_id=? ORDER BY l.from_date DESC LIMIT 200").bind(TENANT,legal).all(),
-   a.db.prepare('SELECT id,email,skill,level,expires_at FROM india_hr_skills WHERE tenant_id=? LIMIT 250').bind(TENANT).all(),
+   a.db.prepare(scopedUnits+"SELECT k.id,k.email,k.skill,k.level,k.expires_at FROM india_hr_skills k JOIN india_erp_staff_org s ON s.tenant_id=k.tenant_id AND lower(s.email)=lower(k.email) AND s.status='approved' WHERE k.tenant_id=? AND s.unit_id IN (SELECT id FROM scoped_units) LIMIT 250").bind(TENANT,legal,TENANT,TENANT).all(),
    a.db.prepare('SELECT id,tag,category,model,status,assigned_to FROM india_hr_assets WHERE tenant_id=? AND legal_entity_id=? LIMIT 250').bind(TENANT,legal).all()
   ]);
   return erpReply({success:true,people:people.results,policies:policies.results,leave:leave.results,skills:skills.results,assets:assets.results,sensitive_payroll_enabled:false});
