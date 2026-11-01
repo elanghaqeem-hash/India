@@ -27,7 +27,7 @@ export default function BoQUsers(){
  };
  const remove=async(m:Member)=>{
   if(m.active){setError('Nonaktifkan pengguna dahulu sebelum menghapus registrasi.');return;}
-  if(!window.confirm('Hapus registrasi '+m.email+' secara permanen? Akses INDIA akan dicabut. Riwayat audit tetap disimpan.'))return;
+  if(!window.confirm('Hapus registrasi '+m.email+' secara permanen? Akses RTICORE akan dicabut. Riwayat audit tetap disimpan.'))return;
   setBusy(true);setError('');setNotice('');
   try{
    const r=await fetch('/api/boq/members',{method:'DELETE',credentials:'same-origin',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:m.email})});
@@ -41,7 +41,7 @@ export default function BoQUsers(){
  };
  return <main className="mx-auto max-w-5xl space-y-5 pb-20">
   <AdminNavigation/>
-  <header className="rounded-2xl border bg-white p-5"><p className="text-xs font-bold text-indigo-700">INDIA · KHUSUS ADMIN</p><h1 className="mt-1 text-2xl font-bold">Registrasi User</h1>
+  <header className="rounded-2xl border bg-white p-5"><p className="text-xs font-bold text-indigo-700">RTICORE · KHUSUS ADMIN</p><h1 className="mt-1 text-2xl font-bold">Registrasi User</h1>
    <p className="mt-2 text-sm text-slate-600">Daftarkan email, tetapkan peran dan unit kerja, serta kelola status akses pengguna. Identitas juga harus diizinkan oleh kebijakan login Cloudflare Access.</p>
   </header>
   {loading&&<p role="status" className="rounded-xl border bg-white p-4 text-sm">Memverifikasi akses Admin…</p>}
