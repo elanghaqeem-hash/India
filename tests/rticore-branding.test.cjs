@@ -37,3 +37,14 @@ test('Legacy tenant, AI model, database and routes remain stable during a brandi
   assert.match(read('src/app/api/boq/route.ts'), /'defendit360'/);
   assert.match(read('src/lib/ai-engine.ts'), /technotama-expert-v2/);
 });
+
+test('Every application page and shared UI component uses RTICORE / RTI labels', () => {
+  const folders = ['src/app', 'src/components'];
+  const walk = (dir) => fs.readdirSync(path.join(root, dir), {withFileTypes:true}).flatMap(entry => {
+    const rel = path.join(dir, entry.name);
+    return entry.isDirectory() ? walk(rel) : entry.name.endsWith('.tsx') ? [rel] : [];
+  });
+  for (const file of folders.flatMap(walk)) {
+    assert.doesNotMatch(read(file), /DefendIT360|Technotama|\bINDIA\b(?![-_./])/i, file);
+  }
+});
