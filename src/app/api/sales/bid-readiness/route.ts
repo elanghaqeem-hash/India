@@ -51,7 +51,7 @@ export async function GET(req:Request){
    if(!['matrix','checklist','report'].includes(output))return fail('Jenis output tidak dikenal',422);
    const csv=output==='matrix'?matrixCSV(data.clauses,data.requirements):output==='checklist'?checklistCSV(data.checklist):reportCSV(report,id,d.title);
    return new Response(csv,{status:200,headers:{...privateHeaders,'Content-Type':'text/csv; charset=utf-8',
-    'Content-Disposition':'attachment; filename="india-'+output+'-'+id+'.csv"'}});
+    'Content-Disposition':'attachment; filename="rticore-'+output+'-'+id+'.csv"'}});
   }
   return reply({success:true,role,identityEmail:email,deal:{id,title:d.title,stage:d.stage,flow_version:d.flow_version},
    ...data,report,sqlReady});
