@@ -350,7 +350,7 @@ export default function SmartScopingPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Smart Scoping Assessment Engine</h1>
               <p className="text-xs text-slate-500">
-                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS Technotama.
+                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS RTI.
               </p>
             </div>
           </div>
@@ -494,7 +494,7 @@ export default function SmartScopingPage() {
       <section aria-label="Pilih jenis layanan" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="mb-3 px-1">
           <h2 className="text-sm font-bold text-slate-900">Pilih Jenis Layanan untuk Scoping</h2>
-          <p className="text-xs text-slate-500">Parameter, satuan dan output otomatis menyesuaikan kategori layanan Technotama.</p>
+          <p className="text-xs text-slate-500">Parameter, satuan dan output otomatis menyesuaikan kategori layanan RTI.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
           {SCOPING_SERVICE_TYPES.map(service=><button key={service} type="button" onClick={()=>setActiveTab(service)}
