@@ -1,0 +1,33 @@
+name: INDIA v3.0-RTI WP01/WP06 foundation
+on:
+  pull_request:
+    paths:
+      - 'migrations/004*.sql'
+      - 'src/lib/rti/**'
+      - 'scripts/rti/**'
+      - 'tests/rti-v3-foundation.test.cjs'
+      - 'tests/helpers/ts-load.cjs'
+      - 'tests/modules-13-15.test.cjs'
+      - '.github/workflows/india-rti-v3-foundation-ci.yml'
+      - 'package.json'
+permissions:
+  contents: read
+jobs:
+  rti-foundation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Generated migrations 0040/0041 match TS seed
+        run: node scripts/rti/build-migrations.cjs --check
+      - name: ORG/RBAC/GL/FML/ACD/close foundation tests (synthetic data only)
+        run: node --test tests/rti-v3-foundation.test.cjs
+      - name: Canonical schema chain and ERP regression
+        run: npm run test:modules-13-15 && npm run test:erp && node --test tests/india-erp-enterprise-contract.test.cjs
+      - name: TypeScript contract
+        run: npm run typecheck
