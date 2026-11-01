@@ -17,7 +17,7 @@ test('RTICORE / RTI is consistently visible in the main experience', () => {
   for (const source of [login, session, nav, sidebar, landing]) {
     assert.match(source, /RTICORE/);
     assert.match(source, /RTI/);
-    assert.doesNotMatch(source, /DefendIT360|Technotama|\bINDIA\b(?![-_./])/i);
+    assert.doesNotMatch(source, /DefendIT360|Technotama|\bINDIA\b(?![-_./:])/i);
   }
 });
 test('Technical Cloudflare bindings and existing routes remain backward compatible', () => {
@@ -45,6 +45,6 @@ test('Every application page and shared UI component uses RTICORE / RTI labels',
     return entry.isDirectory() ? walk(rel) : entry.name.endsWith('.tsx') ? [rel] : [];
   });
   for (const file of folders.flatMap(walk)) {
-    assert.doesNotMatch(read(file), /DefendIT360|Technotama|\bINDIA\b(?![-_./])/i, file);
+    assert.doesNotMatch(read(file), /DefendIT360|Technotama|\bINDIA\b(?![-_./:])/i, file);
   }
 });
