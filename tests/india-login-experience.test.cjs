@@ -5,7 +5,7 @@ const read=p=>fs.readFileSync(p,'utf8');
 
 test('INDIA login is a complete branded entry with Access and logout',()=>{
  const page=read('src/app/login/page.tsx');
- assert.match(page,/Login INDIA/);
+ assert.match(page,/Login RTICORE/);
  assert.match(page,/RTI/);
  assert.match(page,/Masuk dengan Cloudflare Access/);
  assert.match(page,/<a href="\/" /);
