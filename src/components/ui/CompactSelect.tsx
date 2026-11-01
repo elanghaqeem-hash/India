@@ -5,7 +5,7 @@ import {Check,ChevronDown,Search} from 'lucide-react';
 
 export type CompactChoice={value:string;label:string;group?:string;disabled?:boolean};
 type Props={
- label:string;value:string;options:readonly CompactChoice[];
+ id?:string;label:string;value:string;options:readonly CompactChoice[];
  onChange:(value:string)=>void;
  placeholder?:string;disabled?:boolean;required?:boolean;
  className?:string;name?:string;searchable?:boolean;
@@ -16,7 +16,7 @@ type Props={
  * Android/iOS native <select> dialogs ignore option font-size; this keeps the
  * 13px menu typography and 40px touch rows consistent on all browsers.
  */
-export function CompactSelect({label,value,options,onChange,placeholder='— Pilih —',
+export function CompactSelect({id,label,value,options,onChange,placeholder='— Pilih —',
  disabled=false,required=false,className='',name,searchable}:Props){
  const [open,setOpen]=useState(false);
  const [query,setQuery]=useState('');
@@ -56,7 +56,7 @@ export function CompactSelect({label,value,options,onChange,placeholder='— Pil
  };
  return <div ref={rootRef} className={'ui-compact-select min-w-0 '+(open?'ui-compact-select--open':'')}>
   {name&&<input type="hidden" name={name} value={value}/>}
-  <button ref={triggerRef} type="button" role="combobox" aria-label={label}
+  <button id={id} ref={triggerRef} type="button" role="combobox" aria-label={label}
    aria-haspopup="listbox" aria-controls={menuId} aria-expanded={open}
    aria-required={required} disabled={disabled}
    className={'ui-compact-select-trigger '+className}
@@ -76,8 +76,8 @@ export function CompactSelect({label,value,options,onChange,placeholder='— Pil
      if(event.key==='Escape'){event.preventDefault();close();}
      else if(event.key==='ArrowDown'||event.key==='ArrowUp'){
       event.preventDefault();moveFocus(event.key==='ArrowDown'?1:-1);
-     }else if(event.key==='Home'){event.preventDefault();moveFocus(-99999);}
-     else if(event.key==='End'){event.preventDefault();moveFocus(99999);}
+     }else if(event.key==='Home'){event.preventDefault();menuRef.current?.querySelector<HTMLButtonElement>('[role="option"]:not(:disabled)')?.focus();}
+     else if(event.key==='End'){event.preventDefault();const items=menuRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]:not(:disabled)');items?.[items.length-1]?.focus();}
     }}>
     {showSearch&&<div className="ui-compact-select-search">
      <Search size={15} aria-hidden="true"/>
