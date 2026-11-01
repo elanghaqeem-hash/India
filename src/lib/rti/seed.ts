@@ -97,18 +97,20 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
       ...(code === 'DEVELOPER' ? P('swe', 'release', ['deploy'], 'unit') : []),
       ...(code === 'SWE_LEAD' ? P('swe', 'release', ['approve'], 'unit') : []),
       ...(code.startsWith('SOC') ? P('svc', 'incident', ['view', 'edit'], 'unit') : []),
+      ...(['SOC_MGR', 'SOC_ANALYST', 'DFIR', 'CTI', 'VAPT_LEAD'].includes(code) ? P('cyb', 'case', ['view', 'create', 'close'], 'unit') : []),
+      ...(code === 'SOC_MGR' ? P('cyb', 'case', ['approve'], 'unit') : []),
     ],
   })),
   // Corporate
-  { code: 'FIN_MGR', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('fin', 'journal', ['view', 'approve', 'post', 'reverse'], 'entity'), ...P('fin', 'period13', ['post'], 'entity'), ...P('fin', 'close', ['submit'], 'entity'), ...P('fin', 'report', ['view', 'export'], 'entity'), ...P('fin', 'posting_rule', ['configure'], 'entity')] },
-  { code: 'ACCOUNTANT', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('fin', 'journal', ['view', 'create', 'submit', 'post'], 'entity'), ...P('fin', 'reconciliation', ['create', 'submit'], 'entity'), ...P('fin', 'report', ['view'], 'entity')] },
+  { code: 'FIN_MGR', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('fin', 'account', ['view', 'create', 'edit'], 'entity'), ...P('fin', 'period', ['create'], 'entity'), ...P('fin', 'journal', ['view', 'approve', 'post', 'reverse'], 'entity'), ...P('fin', 'period13', ['post'], 'entity'), ...P('fin', 'close', ['submit'], 'entity'), ...P('fin', 'report', ['view', 'export'], 'entity'), ...P('fin', 'posting_rule', ['configure'], 'entity')] },
+  { code: 'ACCOUNTANT', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('fin', 'account', ['view', 'create'], 'entity'), ...P('fin', 'period', ['create'], 'entity'), ...P('ap', 'invoice', ['view', 'create'], 'entity'), ...P('fin', 'journal', ['view', 'create', 'submit', 'post'], 'entity'), ...P('fin', 'reconciliation', ['create', 'submit'], 'entity'), ...P('fin', 'report', ['view'], 'entity')] },
   { code: 'TAX_OFFICER', group: 'Corporate', scope: 'entity', mfa: true, permissions: P('tax', 'workpaper', ['view', 'create', 'submit'], 'entity') },
   { code: 'TREASURY', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('trs', 'payment', ['view', 'approve'], 'limit:PAYMENT_RELEASE_L1'), ...P('trs', 'bank_recon', ['create'], 'entity')] },
   { code: 'AR_OFFICER', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('ar', 'invoice', ['view', 'create', 'submit'], 'entity')] },
   { code: 'COLLECTION_OFFICER', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('ar', 'cash_receipt', ['view', 'create'], 'entity')] },
   { code: 'AP_OFFICER', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('ap', 'invoice', ['view', 'create', 'submit'], 'entity'), ...P('ap', 'payment', ['create'], 'entity')] },
   { code: 'PROCUREMENT', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('prc', 'po', ['view', 'create', 'submit'], 'entity'), ...P('prc', 'vendor', ['create', 'edit'], 'entity')] },
-  { code: 'WAREHOUSE', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('prc', 'goods_receipt', ['create'], 'entity')] },
+  { code: 'WAREHOUSE', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('prc', 'goods_receipt', ['create'], 'entity'), ...P('prc', 'po', ['view'], 'entity')] },
   { code: 'HR', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('hr', 'employee', ['view', 'create', 'edit'], 'entity'), ...P('org', 'change', ['create', 'submit'], 'entity')] },
   { code: 'PAYROLL', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('hr', 'payroll_master', ['edit'], 'entity'), ...P('hr', 'payroll', ['view', 'create', 'submit'], 'entity')] },
   { code: 'PAYROLL_APPROVER', group: 'Corporate', scope: 'entity', mfa: true, permissions: [...P('hr', 'payroll', ['view', 'approve'], 'entity')] },
@@ -119,10 +121,13 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
   { code: 'COMPLIANCE', group: 'Assurance', scope: 'all', mfa: true, permissions: P('grc', 'compliance', ['view', 'create', 'edit'], 'all') },
   { code: 'INTERNAL_AUDITOR', group: 'Assurance', scope: 'all', mfa: true, permissions: ['*.*.view:all', '*.*.export:all'] },
   { code: 'DPO', group: 'Assurance', scope: 'all', mfa: true, permissions: P('pdp', 'ropa', ['view', 'create', 'edit', 'approve'], 'all') },
-  { code: 'INDEPENDENT_APPROVER', group: 'Assurance', scope: 'all', mfa: true, permissions: P('org', 'change', ['approve'], 'all') },
+  { code: 'INDEPENDENT_APPROVER', group: 'Assurance', scope: 'all', mfa: true, permissions: [
+    ...P('org', 'change', ['approve'], 'all'), ...P('org', 'staff', ['approve'], 'all'), ...P('org', 'scope', ['approve'], 'all'), ...P('iam', 'binding', ['approve'], 'all'),
+    ...P('fin', 'journal', ['view', 'approve'], 'entity'), ...P('prc', 'po', ['view', 'approve'], 'entity'), ...P('ap', 'invoice', ['view', 'approve'], 'entity'), ...P('cyb', 'case', ['view', 'approve'], 'entity'),
+  ] },
   // Admin
   { code: 'SUPER_ADMIN', group: 'Admin', scope: 'all', mfa: true, pam: true, permissions: ['*.*.*:all'] },
-  { code: 'SYS_ADMIN', group: 'Admin', scope: 'all', mfa: true, pam: true, permissions: [...P('sys', 'parameter', ['view', 'create', 'submit'], 'all'), ...P('sys', 'job', ['view', 'configure'], 'all')] },
+  { code: 'SYS_ADMIN', group: 'Admin', scope: 'all', mfa: true, pam: true, permissions: [...P('org', 'unit', ['view', 'create'], 'all'), ...P('org', 'staff', ['assign'], 'all'), ...P('org', 'scope', ['create'], 'all'), ...P('iam', 'binding', ['create'], 'all'), ...P('sys', 'parameter', ['view', 'create', 'submit'], 'all'), ...P('sys', 'job', ['view', 'configure'], 'all')] },
   { code: 'SEC_ADMIN', group: 'Admin', scope: 'all', mfa: true, pam: true, permissions: [...P('iam', 'role', ['view', 'create', 'edit', 'approve'], 'all'), ...P('iam', 'binding', ['create', 'submit'], 'all')] },
   { code: 'INTEGRATION_ADMIN', group: 'Admin', scope: 'all', mfa: true, pam: true, permissions: P('int', 'connector', ['view', 'configure'], 'all') },
   // External
@@ -147,7 +152,7 @@ export const SOD_RULES: SodRule[] = [
 
 /** Eight existing login roles (india_members.role) mapped to v3 templates. */
 export const LEGACY_ROLE_MAP: Record<string, string[]> = {
-  admin: ['SYS_ADMIN'], marketing: ['MKT_OFF'], sales: ['AE'], presales: ['PRESALES'],
+  admin: ['SYS_ADMIN'], marketing: ['MKT_OFF'], sales: ['AE'], presales: ['PRESALES', 'WAREHOUSE'],
   finance: ['ACCOUNTANT'], approver: ['INDEPENDENT_APPROVER'], legal: ['LEGAL'], viewer: [],
 };
 

@@ -3,11 +3,12 @@ import {TENANT,safeID} from './sales-workflow';
 import {atomicSales} from './sales-transactions';
 import {operationEvent} from './operations';
 import {privateHeaders} from './boq-auth';
+import {policyCheck,PolicyDenied,type PolicyRequest} from './rti/runtime';
 
 export class ERPError extends Error{constructor(message:string,public status=422){super(message);}}
 export function erpAssert(condition:unknown,message:string,status=422):asserts condition{if(!condition)throw new ERPError(message,status);}
 export const erpReply=(x:unknown,status=200)=>Response.json(x,{status,headers:privateHeaders});
-export const erpError=(e:unknown)=>e instanceof ERPError?erpReply({success:false,message:e.message},e.status):
+export const erpError=(e:unknown)=>e instanceof PolicyDenied?erpReply({success:false,message:'Akses ditolak oleh kebijakan RBAC/SoD: '+e.decision.reason},403):e instanceof ERPError?erpReply({success:false,message:e.message},e.status):
  erpReply({success:false,message:/constraint|CONFLICT|IMMUTABLE|INVALID|UNBALANCED|OVER_RECEIPT|MATCH|CAPACITY|SCOPE|FOREIGN KEY|UNIQUE/i.test(String(e))
  ?'Transaksi ditolak: referensi, versi, nominal atau pengendalian tidak valid.':'Modul ERP belum siap; periksa migrasi D1 0034–0037.'},/constraint|CONFLICT|IMMUTABLE|INVALID|UNBALANCED|OVER_RECEIPT|MATCH|CAPACITY|SCOPE|FOREIGN KEY|UNIQUE/i.test(String(e))?409:503);
 export const erpId=(x:unknown):x is string=>safeID(x);
@@ -16,7 +17,17 @@ export const erpPositiveCents=(x:unknown):x is number=>Number.isSafeInteger(x)&&
 export const erpDate=(x:unknown):x is string=>typeof x==='string'&&/^20\d\d-\d\d-\d\d$/.test(x)&&!Number.isNaN(Date.parse(x+'T00:00:00Z'))&&new Date(x+'T00:00:00Z').toISOString().slice(0,10)===x;
 export const erpPeriod=(x:unknown):x is string=>typeof x==='string'&&/^20\d\d-(0[1-9]|1[0-2])$/.test(x);
 export function erpOrigin(req:Request){const origin=req.headers.get('origin');if(origin&&origin!==new URL(req.url).origin)throw new ERPError('Origin tidak diizinkan',403);}
-export async function erpGrant(a:BoQIdentity,capability:string,unitId?:string){
+const DEFAULT_PERMISSION:Record<string,string>={finance_gl:'fin.journal.view',finance_ap:'ap.invoice.view',procurement:'prc.po.view',cyber_ops:'cyb.case.view',resource:'psa.resource.view',hr:'hr.employee.view',audit:'grc.compliance.view'};
+/** Legacy capability grant (0034) AND the v3 policy engine (shadow or enforce per security.policy_enforcement). */
+export async function erpGrant(a:BoQIdentity,capability:string,unitId?:string,policy?:Omit<PolicyRequest,'legacyUnitId'>){
+ await erpLegacyGrant(a,capability,unitId);
+ await policyCheck(a.db,TENANT,a,{permission:policy?.permission||DEFAULT_PERMISSION[capability]||'erp.unknown.view',legacyUnitId:unitId??null,resource:policy?.resource});
+}
+/** v3 policy check for actions not covered by a legacy capability grant (organization administration). */
+export async function erpPolicy(a:BoQIdentity,permission:string,unitId?:string|null,resource?:PolicyRequest['resource']){
+ await policyCheck(a.db,TENANT,a,{permission,legacyUnitId:unitId??null,resource});
+}
+async function erpLegacyGrant(a:BoQIdentity,capability:string,unitId?:string){
  // Every grant must have a separately approved employee-unit affiliation.
  // Recursively accept grants for the employee's unit or its ancestors.
  const q=await a.db.prepare(`WITH RECURSIVE scoped_units(unit_id) AS (

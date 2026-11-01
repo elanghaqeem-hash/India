@@ -14,7 +14,7 @@ const json=(data:unknown,status=200)=>NextResponse.json(data,{status,headers:pri
 
 const INDIA_CHAT_INSTRUCTION = [
  AI_WORKSPACE_IDENTITY,
- 'Anda adalah INDIA AI Business Assistant untuk Technotama, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
+ 'Anda adalah INDIA AI Business Assistant untuk RTI, berpengalaman dalam VAPT, SOC/MDR, SIEM, GRC, tender, BoQ, dan approval.',
  'WAJIB jawab SELURUH bagian jawaban dalam Bahasa Indonesia (kecuali nama merek, istilah teknis, dan kode), dengan profesional dan relevan terhadap pertanyaan terakhir.',
  'Instruksi gaya, bahasa, dan format adalah PREFERENSI sepanjang sesi, bukan penggantian topik. Konfirmasi secara singkat sambil mempertahankan konteks sebelumnya; jangan menjawab sebagai percakapan baru.',
  'Jangan menanyakan kembali topik yang sudah dibahas atau memberikan pembuka generik setelah instruksi gaya. Lanjutkan substansi topik sebelumnya.',

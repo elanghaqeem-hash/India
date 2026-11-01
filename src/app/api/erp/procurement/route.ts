@@ -29,7 +29,7 @@ export async function POST(req:Request){
    erpAssert(erpId(v.offer_id)&&erpText(v.po_number,3,100)&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0,'Vendor offer, PO dan kuantitas wajib');
    const offer=await db.prepare('SELECT o.id,o.vendor_id,o.opportunity_id,o.quantity,o.unit_price_idr,o.status,o.valid_until,v.status AS vendor_status,v.valid_until AS vendor_valid FROM india_vendor_offers o JOIN india_vendors v ON v.id=o.vendor_id AND v.tenant_id=o.tenant_id WHERE o.tenant_id=? AND o.id=?').bind(TENANT,v.offer_id as string).first<{id:string;vendor_id:string;opportunity_id:string;quantity:number;unit_price_idr:number;status:string;valid_until:string;vendor_status:string;vendor_valid:string}>();
    erpAssert(offer&&offer.status==='validated'&&offer.vendor_status==='validated','Vendor dan offer harus tervalidasi',409);
-   const unit=await erpOpportunityUnit(db,offer.opportunity_id);await erpGrant(a.identity,'procurement',unit);
+   const unit=await erpOpportunityUnit(db,offer.opportunity_id);await erpGrant(a.identity,'procurement',unit,{permission:'prc.po.create'});
    const cents=Math.round(offer.unit_price_idr*100);erpAssert(erpPositiveCents(cents)&&offer.quantity>=Number(v.qty),'Nilai atau kuantitas offer tidak valid');
    const id=crypto.randomUUID();
    await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_purchase_orders(id,tenant_id,vendor_id,offer_id,opportunity_id,po_number,qty,unit_price_cents,created_by) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,TENANT,offer.vendor_id,offer.id,offer.opportunity_id,(v.po_number as string).trim(),v.qty as number,cents,email)],'procurement',id,'CREATE_PO',{offer_id:offer.id,qty:v.qty});return erpReply({success:true,id},201);
@@ -40,18 +40,18 @@ export async function POST(req:Request){
    erpAssert(po,'PO tidak ditemukan',404);const unit=await erpOpportunityUnit(db,po.opportunity_id);
    if(v.action==='review_po'){
     erpAssert(role==='approver','Review PO hanya Approver independen',403);
-    await erpGrant(a.identity,'procurement',unit);
+    await erpGrant(a.identity,'procurement',unit,{permission:'prc.po.approve'});
     erpAssert(po.status==='draft'&&po.version===v.version&&po.created_by.toLowerCase()!==email&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Review PO tidak valid atau self-approval',403);
     await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_purchase_orders WHERE tenant_id=? AND id=? AND status='draft' AND version=? AND lower(created_by)!=?)",[TENANT,po.id,po.version,email],[db.prepare('UPDATE india_purchase_orders SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,po.id)],'procurement',po.id,'REVIEW_PO',{approved:v.approve});return erpReply({success:true});
    }
    if(v.action==='receipt'){
-    erpAssert(['presales','admin'].includes(role),'Penerimaan harus Procurement yang bergrant',403);await erpGrant(a.identity,'procurement',unit);
+    erpAssert(['presales','admin'].includes(role),'Penerimaan harus Procurement yang bergrant',403);await erpGrant(a.identity,'procurement',unit,{permission:'prc.goods_receipt.create'});
     erpAssert(po.status==='approved'&&po.created_by.toLowerCase()!==email&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0&&erpId(v.document_id),'Penerimaan berbeda pembuat PO dan membutuhkan bukti asli',403);
     await supportingOriginal(db,v.document_id as string,po.opportunity_id);
     const id=crypto.randomUUID();
     await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_purchase_receipts(id,tenant_id,po_id,qty,evidence_document_id,received_by) VALUES(?,?,?,?,?,?)').bind(id,TENANT,po.id,v.qty as number,v.document_id as string,email)],'procurement',id,'RECEIPT',{po_id:po.id,qty:v.qty,document_id:v.document_id});return erpReply({success:true,id},201);
    }
-   erpAssert(role==='finance','Supplier Invoice hanya Finance',403);await erpGrant(a.identity,'finance_ap',unit);
+   erpAssert(role==='finance','Supplier Invoice hanya Finance',403);await erpGrant(a.identity,'finance_ap',unit,{permission:'ap.invoice.create'});
    erpAssert(po.status==='approved'&&erpText(v.supplier_invoice_number,3,100)&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0&&erpId(v.document_id)&&erpDate(v.due_date),'Dokumen, jumlah dan jatuh tempo supplier invoice wajib');
    await supportingOriginal(db,v.document_id as string,po.opportunity_id);
    const amt=(v.qty as number)*po.unit_price_cents;erpAssert(erpPositiveCents(amt),'Jumlah invoice melampaui presisi');
@@ -63,7 +63,7 @@ export async function POST(req:Request){
    erpAssert(erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Keputusan AP tidak valid');
    const invoice=await db.prepare('SELECT i.*,p.opportunity_id FROM india_ap_supplier_invoices i JOIN india_purchase_orders p ON p.id=i.po_id AND p.tenant_id=i.tenant_id WHERE i.tenant_id=? AND i.id=?').bind(TENANT,v.id as string).first<AP>();
    erpAssert(invoice&&invoice.status==='draft'&&invoice.version===v.version&&invoice.created_by.toLowerCase()!==email,'Invoice berubah atau self-approval',409);
-   await erpGrant(a.identity,'finance_ap',await erpOpportunityUnit(db,invoice.opportunity_id));
+   await erpGrant(a.identity,'finance_ap',await erpOpportunityUnit(db,invoice.opportunity_id),{permission:'ap.invoice.approve'});
    await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_ap_supplier_invoices WHERE tenant_id=? AND id=? AND status='draft' AND version=? AND lower(created_by)!=?)",[TENANT,v.id as string,v.version as number,email],[db.prepare('UPDATE india_ap_supplier_invoices SET status=?,version=version+1,reviewed_by=?,review_notes=?,reviewed_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.id as string)],'ap',v.id as string,'REVIEW_SUPPLIER_INVOICE',{approved:v.approve});
    return erpReply({success:true});
   }

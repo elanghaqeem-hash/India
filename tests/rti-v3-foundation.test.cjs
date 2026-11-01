@@ -18,13 +18,15 @@ const ctx = (closure, extra = {}) => ({ templates: seed.ROLE_TEMPLATES, closure,
 const bind = (template, unit, le = 'RTI-LE01', id = template + '@' + unit) => ({ id, template, org_unit_id: unit, legal_entity_id: le, valid_from: '2026-11-01', valid_to: null, status: 'approved' });
 
 // ---------------- Parameter Center ----------------
-test('PARAM: defaults validate with no BLOCKER, VERIFY keys are flagged, exact DPP 11/12', () => {
+test('PARAM: defaults validate with no BLOCKER, all statutory keys VERIFIED with legal basis, exact DPP 11/12', () => {
   const f = params.validateParameters();
   assert.equal(f.filter(x => x.severity === 'BLOCKER').length, 0);
   assert.equal(f.filter(x => x.severity === 'HIGH').length, 0);
   const flat = params.flattenParameters();
-  for (const k of ['tax.ppn_rate', 'tax.pph23_service_rate', 'accounting.framework', 'payroll.bpjs_tk']) assert.equal(flat.find(p => p.key === k).verify, 'VERIFY', k);
-  assert.equal(flat.find(p => p.key === 'company.legal_name').verify, 'VERIFIED');
+  assert.equal(flat.filter(p => p.verify === 'VERIFY').length, 0);
+  for (const [k, re] of [['tax.ppn_rate', /HPP/], ['tax.ppn_dpp_factor', /PMK 131\/2024/], ['tax.pph21_ter_table', /PP 58\/2023/], ['payroll.bpjs_tk', /PP 45\/2015/], ['accounting.framework', /SAK EP/], ['approval_limits', /L1\/L2\/L3/]])
+    assert.match(flat.find(p => p.key === k).source, re, k);
+  assert.equal(params.DEFAULT_PARAMETERS.security.policy_enforcement, 'shadow');
   const bad = structuredClone(params.DEFAULT_PARAMETERS); bad.tax.ppn_dpp_factor = '0.9166667'; bad.company.partners[0].partner_share = '0.45';
   const fb = params.validateParameters(bad);
   assert.ok(fb.some(x => x.key === 'tax.ppn_dpp_factor' && x.severity === 'HIGH'));
@@ -313,6 +315,16 @@ test('Close calendar: WD+3 soft / WD+5 hard close, quarterly WD+10, holidays res
 });
 
 // ---------------- DoD 21 ----------------
+test('Tenant key: storage key equals Parameter Center value; no legacy brand labels in UI source', () => {
+  assert.equal(load('src/lib/sales-workflow').TENANT, params.DEFAULT_PARAMETERS.company.tenant_key);
+  for (const m of ['src/lib/tenant', 'src/lib/sales-transactions', 'src/lib/tender-readiness']) assert.equal(load(m).TENANT_KEY, params.DEFAULT_PARAMETERS.company.tenant_key, m);
+  const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
+  for (const f of walk(path.join(root, 'src')).filter(f => /\.tsx?$/.test(f) && !f.includes('/lib/rti/'))) {
+    const src = fs.readFileSync(f, 'utf8');
+    assert.doesNotMatch(src, /Technotama|TECHNOTAMA|DefendIT ?360/, f);
+    assert.doesNotMatch(src.replace(/export const TENANT(_KEY)?='defendit360';/, ''), /'defendit360'/, f);
+  }
+});
 test('DoD-21: no company names, tax rates or thresholds hardcoded in rti engine modules', () => {
   const dir = path.join(root, 'src/lib/rti');
   for (const f of ['org-model.ts', 'policy-engine.ts', 'posting-engine.ts', 'close-calendar.ts', 'money.ts']) {

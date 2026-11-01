@@ -7,11 +7,11 @@
 | WP | Status | Evidence |
 |---|---|---|
 | WP00 Current State Audit | READY FOR UAT (review Business Owner/CFO) | Dokumen ini: §2 konflik parameter, §3 matriks M01–M24, §4 release blocker |
-| WP01 Parameter center, Org-as-Data, policy engine | IN DEVELOPMENT | Migrasi 0040, `src/lib/rti/{parameters,seed,org-model,policy-engine}.ts`, test ORG-01..03, RBAC-01 PASS (sintetis) |
-| WP06 Posting engine, formula library, close | IN DEVELOPMENT | Migrasi 0041, `src/lib/rti/{formulas,posting-engine,close-calendar,money}.ts`, test GL-01..03, FML-01, ACD-01 PASS (sintetis) |
+| WP01 Parameter center, Org-as-Data, policy engine | READY FOR UAT (mode shadow) | Migrasi 0040 + 0043, policy engine terpasang di seluruh route ERP; test ORG-01..03, RBAC-01, enforce + IDOR di level route PASS |
+| WP06 Posting engine, formula library, close | READY FOR UAT | Migrasi 0041–0043, posting worker outbox → GL, tabel pajak/BPJS statutory; test GL-01..03, FML-01, ACD-01, worker, outbox invoice/payment/payroll PASS |
 | WP02–WP05, WP07–WP11 | NOT STARTED | — |
 
-Alasan WP01/WP06 belum READY FOR UAT: engine domain dan skema sudah teruji, tetapi route handler existing belum memanggil `authorize()` dan posting worker belum menulis ke `india_gl_journals` (lihat RB-02, RB-07). Pengujian: `npm run test:rti` 18/18 PASS; seluruh rantai test `build:cf` 491/491 PASS; `tsc --noEmit` bersih. Semua data uji sintetis, tanpa identitas atau saldo nyata.
+Pengujian iterasi 2: `npm run test:rti` 26/26 PASS; rantai test `build:cf` + regresi ERP 532/532 PASS; `tsc --noEmit` bersih; `next build` sukses. Semua data uji sintetis, tanpa identitas atau saldo nyata. Lihat §8 untuk keputusan Business Owner dan perubahan iterasi 2.
 
 ## 2. Validasi parameter terhadap repo dan database
 
@@ -100,3 +100,41 @@ Parameter bertanda VERIFY (14 kunci, tersimpan `verify_status='VERIFY'` di `indi
 2. WP01 wiring: `authorize()` dan `scopeFilter()` di route ERP, binding dari legacy role map, API/UI M02 untuk change request dan apply job terjadwal.
 3. WP06 wiring: posting worker Cloudflare Queue dari `india_accounting_events` ke `india_gl_journals`/`india_gl_lines` + `india_gl_journal_links`; mekanisme reopen periode GL; validator P13.
 4. Migrasi label branding ke parameter (RB-01), lalu WP02 INDIA Vivid.
+
+## 8. Iterasi 2 — keputusan Business Owner dan eksekusi (1 November 2026)
+
+### Keputusan yang diterapkan
+| No | Keputusan | Implementasi |
+|---|---|---|
+| 1 | DPP PPN pecahan 11/12 disetujui | `tax.ppn_dpp_factor='11/12'`, tabel `india_tax_rates` PPN_NON_LUXURY |
+| 2 | SAK EP tanpa kapitalisasi R&D disetujui | `accounting.*` VERIFIED dengan dasar keputusan |
+| 3 | Role COLLECTION_OFFICER, PAYROLL_APPROVER, WAREHOUSE disetujui | Template v1 approved; tidak ada template default yang konflik SoD |
+| 4 | Semua label menjadi RTI | 29 file `src` (UI, quotation, BoQ export, Word post-PO, AI prompt) diganti; tidak ada lagi Technotama/DefendIT360 di `src` (dijaga test). Kunci teknis tenant D1 `defendit360` dipertahankan sebagai storage key karena trigger immutabilitas melarang penulisan ulang `tenant_id`; literal di route dihapus dan dipusatkan |
+| 5 | Tabel pajak sesuai regulasi | Migrasi 0042: TER bulanan A (44), B (40), C (41) + TER harian (PP 58/2023), PTKP (PMK 101/2016), tarif Pasal 17, tarif PPN/PPh 23/PPh 4(2)/PPh 26/PPh badan, iuran BPJS (batas upah JP Rp11.086.300 sejak Maret 2026), kelas JKK; profil pajak karyawan (NIK/NPWP hanya token vault), payroll run + lines dengan maker-checker |
+| 6 | Parameter VERIFY diselesaikan, struktur organisasi dikonfirmasi | Seluruh parameter VERIFIED dengan `reason` berisi dasar hukum; `org.seed_confirmed=true`; ambang approval L1/L2/L3 disetujui |
+
+### Wiring policy engine (RB-02 ditutup)
+- `erpGrant()` kini menjalankan grant legacy **dan** policy engine v3 dengan permission eksplisit per aksi (fin.account/period/journal create–approve–post, prc.po create/approve, prc.goods_receipt.create, ap.invoice create/approve, cyb.case create/approve/close). Route organisasi memakai `erpPolicy()` (org.unit, org.staff, org.scope, iam.binding).
+- Mode `security.policy_enforcement`: **shadow** (default, log tanpa blokir) → **enforce** setelah seluruh user aktif memiliki binding. Setiap keputusan tercatat append-only di `india_policy_decisions`.
+- Unit legacy dipetakan ke model v3 lewat `india_org_unit_legacy_map` (maker-checker). Unit tak terpetakan = `LEGACY_UNIT_UNMAPPED` (fail-closed di enforce).
+- Fallback binding dari 8 role login via `india_iam_legacy_role_map` selama masa transisi.
+- Test enforce di level route: alur GL maker-checker lolos dengan binding; user tanpa binding ditolak; IDOR lintas legal entity ditolak walau grant legacy valid.
+
+### Posting worker (RB-07 ditutup)
+- Outbox transaksional: trigger D1 menulis `india_accounting_events` dalam transaksi yang sama saat invoice pelanggan, pembayaran, dan payroll run disetujui (hanya bila legal entity proyek terpetakan).
+- `runPostingBatch()` memposting tiap event dalam satu batch D1 atomik ke `india_gl_journals`/`india_gl_lines` (status posted, reviewer = aturan posting yang di-approve), plus `india_gl_journal_links` dan `india_gl_line_dimensions`. Gagal → exception queue dengan kode (PERIOD_CLOSED, PERIOD_NOT_DEFINED, DIMENSION_REQUIRED, ENTITY_NOT_MAPPED_TO_LEDGER, NO_ACTIVE_RULE), dapat di-requeue.
+- Accrual auto-reversal dibuat sebagai event periode berikutnya; reversal manual tetap via jurnal baru.
+- API `/api/erp/posting`: GET antrean/exception/riwayat run; POST `run`, `requeue`, `enqueue` (event manual terbatas). Jadwal: workflow `india-posting-worker-schedule.yml` (Access service token + secret `INDIA_JOB_TOKEN`).
+
+### Sisa blocker
+| ID | Status |
+|---|---|
+| RB-01 | Ditutup untuk label; template Word resmi V.042026 (hash-locked) perlu diterbitkan ulang Legal dengan identitas RTI lalu hash baru di-approve |
+| RB-02, RB-04, RB-05, RB-06, RB-07 | Ditutup |
+| RB-03 | Masih terbuka: reopen `india_gl_periods` (close run sudah mendukung RESTATED) |
+| RB-08 | Tetap: UAT manusia Cloudflare Access, D1 restore, sign-off |
+| RB-09 (baru) | Sebelum enforce: buat binding untuk semua user aktif, petakan unit legacy, review log shadow minimal satu siklus close |
+| RB-10 (baru) | Set secret `INDIA_JOB_TOKEN`, Access service token, dan secret GitHub untuk jadwal posting |
+
+### Sumber regulasi
+PP 58/2023 dan lampiran TER; PMK 168/2023; PMK 101/2016; UU 7/2021 (HPP); PMK 131/2024; UU PPh Pasal 21, 23, 26, 31E; PMK 112/2022; PMK 81/2024; Perpres 64/2020; PP 44/2015, PP 45/2015, PP 46/2015; SE BPJS Ketenagakerjaan B/1226/022026.

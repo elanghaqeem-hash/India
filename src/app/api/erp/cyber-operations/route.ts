@@ -21,14 +21,14 @@ export async function POST(req:Request){
   if(v.action==='open'){
    erpAssert(['presales','admin'].includes(role),'Case hanya dibuat oleh operator bergrant',403);
    erpAssert(erpId(v.project_id)&&erpText(v.external_ref,3,120)&&erpText(v.title,8,240)&&['vapt_finding','soc_incident','dfir_incident'].includes(String(v.kind))&&['critical','high','medium','low','informational'].includes(String(v.severity))&&['confidential','restricted'].includes(String(v.classification)),'Metadata keamanan tidak valid');
-   const unit=await erpProjectUnit(db,v.project_id as string);await erpGrant(a.identity,'cyber_ops',unit);
+   const unit=await erpProjectUnit(db,v.project_id as string);await erpGrant(a.identity,'cyber_ops',unit,{permission:'cyb.case.create'});
    const id=crypto.randomUUID();
    await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_cyber_cases(id,tenant_id,project_id,kind,external_ref,title,severity,classification,created_by) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,TENANT,v.project_id as string,v.kind as string,(v.external_ref as string).trim(),(v.title as string).trim(),v.severity as string,v.classification as string,email)],'cyber',id,'CASE_OPEN',{project_id:v.project_id,kind:v.kind,severity:v.severity});return erpReply({success:true,id},201);
   }
   if(v.action==='review'||v.action==='close'){
    erpAssert(erpId(v.id)&&Number.isSafeInteger(v.version),'ID dan versi case wajib');
    const c=await db.prepare('SELECT c.*,p.opportunity_id FROM india_cyber_cases c JOIN india_delivery_projects p ON p.id=c.project_id AND p.tenant_id=c.tenant_id WHERE c.tenant_id=? AND c.id=?').bind(TENANT,v.id as string).first<Case>();
-   erpAssert(c,'Case tidak ditemukan',404);await erpGrant(a.identity,'cyber_ops',await erpProjectUnit(db,c.project_id));
+   erpAssert(c,'Case tidak ditemukan',404);await erpGrant(a.identity,'cyber_ops',await erpProjectUnit(db,c.project_id),{permission:v.action==='review'?'cyb.case.approve':'cyb.case.close'});
    erpAssert(v.version===c.version,'Versi case berubah',409);
    if(v.action==='review'){
     erpAssert(role==='approver'&&c.created_by.toLowerCase()!==email&&c.status==='open','QA harus reviewer independen',403);

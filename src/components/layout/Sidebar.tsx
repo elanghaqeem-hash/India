@@ -57,7 +57,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
               <ShieldCheck className="h-6 w-6 text-cyan-300" aria-hidden="true"/>
             </span>
             <div className="min-w-0">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">Technotama</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">RTI</p>
               <h2 className="text-base font-extrabold tracking-tight">INDIA Navigation</h2>
               <p className="text-[11px] text-slate-300">Menu lengkap sesuai hak akses</p>
             </div>

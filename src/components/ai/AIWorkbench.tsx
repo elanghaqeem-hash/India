@@ -5,7 +5,7 @@ import { Sparkles,X,Copy,LoaderCircle } from 'lucide-react';
 type Provider={id:string;name:string;model:string;priority:number};
 const purposes:Record<string,{name:string;purpose:string;starter:string}>={
  '/sales/pipeline':{name:'Sales Pipeline',purpose:'sales',starter:'Analisis risiko sales pipeline dan susun next action berdasarkan ringkasan anonim berikut: '},
- '/scoping':{name:'Technical Scoping',purpose:'scoping',starter:'Tinjau scope dan identifikasi parameter teknis yang belum lengkap untuk layanan Technotama berikut: '},
+ '/scoping':{name:'Technical Scoping',purpose:'scoping',starter:'Tinjau scope dan identifikasi parameter teknis yang belum lengkap untuk layanan RTI berikut: '},
  '/pricing':{name:'Pricing',purpose:'pricing',starter:'Tinjau asumsi komersial dan kelengkapan pricing tanpa mengarang harga, HPP, atau margin berikut: '},
  '/boq':{name:'BoQ',purpose:'boq',starter:'Tinjau konsistensi deskripsi, quantity, unit, SLA dan deliverables untuk BoQ berikut: '},
  '/proposals':{name:'Quotation & Proposal',purpose:'quotation',starter:'Susun draft narasi quotation profesional dari scope anonim berikut; tandai bagian yang belum didukung data: '},
@@ -14,7 +14,7 @@ const purposes:Record<string,{name:string;purpose:string;starter:string}>={
 };
 export function AIWorkbench(){
  const pathname=usePathname();
- const mode=purposes[pathname]||{name:'INDIA Workspace',purpose:'analysis',starter:'Analisis permintaan kerja Technotama berikut: '};
+ const mode=purposes[pathname]||{name:'INDIA Workspace',purpose:'analysis',starter:'Analisis permintaan kerja RTI berikut: '};
  const [open,setOpen]=useState(false),[providers,setProviders]=useState<Provider[]>([]);
  const [provider,setProvider]=useState('auto'),[prompt,setPrompt]=useState('');
  const [approved,setApproved]=useState(false),[busy,setBusy]=useState(false);

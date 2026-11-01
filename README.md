@@ -1,4 +1,4 @@
-# INDIA Business Management Platform
+# INDIA — RTI Enterprise Operating System (PT Riset Teknologi Indonesia)
 
 Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk platform INDIA.
 

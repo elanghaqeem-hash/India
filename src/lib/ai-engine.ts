@@ -52,7 +52,7 @@ export const DEFAULT_AI_CONFIGS: AIProviderConfig[] = [
     provider: 'local',
     name: 'Built-in INDIA Cybersecurity Expert System (Local Fallback)',
     apiKey: 'INTERNAL_BUILTIN',
-    model: 'technotama-expert-v2',
+    model: 'rti-expert-v2',
     priority: 5, // Fallback
     isEnabled: true,
     status: 'active',
@@ -259,7 +259,7 @@ function generateLocalExpertResponse(prompt: string): string {
   if (lower.includes('tender') || lower.includes('bid') || lower.includes('hps') || lower.includes('lpse')) {
     return `### Rekomendasi Evaluasi Tender & Kepatuhan:
 1. **Bid / No-Bid Decision Scorecard**:
-   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment Technotama).
+   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment RTI).
    - Kepatuhan Legalitas: Terdaftar LK SMPI BSSN, sertifikasi ISO 27001 aktif.
    - Rekomendasi: **GO (Lanjutkan Pengajuan Penawaran)**.
 2. **Persyaratan Wajib (Mandatory Checklist)**:
@@ -288,7 +288,7 @@ export async function executeAIPrompt(
     .sort((a, b) => a.priority - b.priority);
 
   const sysPrompt = AI_WORKSPACE_IDENTITY+'\n'+(context?.systemPrompt ||
-    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for INDIA (Technotama). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.');
+    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for INDIA (RTI). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.');
 
   // Attempt each provider in priority order
   for (const provider of activeChain) {
@@ -328,7 +328,7 @@ export async function executeAIPrompt(
   const fallbackContent = generateLocalExpertResponse(prompt);
   return {
     providerUsed: 'Built-in INDIA Cybersecurity Expert System (Local Fallback)',
-    modelUsed: 'technotama-expert-v2',
+    modelUsed: 'rti-expert-v2',
     content: fallbackContent,
     latencyMs: Date.now() - startTime,
     tokensEstimate: Math.round(fallbackContent.length / 4),

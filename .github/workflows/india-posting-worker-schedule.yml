@@ -1,0 +1,32 @@
+name: INDIA posting worker schedule
+# Drains the accounting-event outbox into the general ledger. Runs only when the deployment secrets exist:
+#   INDIA_BASE_URL            e.g. https://india.example.com
+#   CF_ACCESS_CLIENT_ID/SECRET Cloudflare Access service token allowed by a "Service Auth" policy on /api/erp/posting
+#   INDIA_JOB_TOKEN           same value as the Worker secret INDIA_JOB_TOKEN (>= 32 chars)
+on:
+  schedule:
+    - cron: '7 * * * *'   # hourly; month-end batch is the same endpoint after WD+0 cut-off
+  workflow_dispatch: {}
+permissions:
+  contents: read
+jobs:
+  run-posting-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      BASE: ${{ secrets.INDIA_BASE_URL }}
+      CID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+      CSEC: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+      JOB: ${{ secrets.INDIA_JOB_TOKEN }}
+    steps:
+      - name: Skip when not configured
+        if: env.BASE == '' || env.JOB == ''
+        run: echo "Posting worker schedule not configured; skipping."
+      - name: Run posting batch
+        if: env.BASE != '' && env.JOB != ''
+        run: |
+          code=$(curl -sS -o out.json -w '%{http_code}' -X POST "$BASE/api/erp/posting" \
+            -H "CF-Access-Client-Id: $CID" -H "CF-Access-Client-Secret: $CSEC" \
+            -H "x-india-job-token: $JOB" -H 'Content-Type: application/json' -d '{}')
+          jq '{picked,posted,exceptions:(.exceptions|length)}' out.json || cat out.json
+          test "$code" = "200"

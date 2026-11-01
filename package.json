@@ -47,7 +47,7 @@
     "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs tests/admin-user-delete.test.cjs && node --test tests/audit-remediation.test.cjs",
     "test:erp": "node --test tests/india-erp-foundation.test.cjs",
     "gate:erp": "npm run typecheck && npm run test:psa-timesheets && npm run test:erp",
-    "test:rti": "node scripts/rti/build-migrations.cjs --check && node --test tests/rti-v3-foundation.test.cjs",
+    "test:rti": "node scripts/rti/build-migrations.cjs --check && node --test tests/rti-v3-foundation.test.cjs tests/rti-v3-wiring.test.cjs",
     "gen:rti-migrations": "node scripts/rti/build-migrations.cjs",
     "gate:rti": "npm run typecheck && npm run test:rti && npm run test:erp && npm run test:modules-13-15"
   },

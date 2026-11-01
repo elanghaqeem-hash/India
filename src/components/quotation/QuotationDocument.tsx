@@ -21,11 +21,11 @@ const UNKNOWN = 'Belum diisi - perlu konfirmasi Sales/Pre-Sales dan persetujuan 
 
 function Brand() {
   return <div className="quote-brand">
-    <div className="quote-brand-logo" aria-label="Technotama">
-      <div><div className="quote-logo-text">TECHNOTAMA</div>
+    <div className="quote-brand-logo" aria-label="RTI">
+      <div><div className="quote-logo-text">RTI</div>
       <div className="quote-logo-member">INDIA Business Management Platform</div></div>
     </div>
-    <div className="quote-brand-address"><b>TECHNOTAMA</b><br/>
+    <div className="quote-brand-address"><b>RTI</b><br/>
       [Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]
     </div>
   </div>;
@@ -84,8 +84,8 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
       </div>
       <div className="quote-subject"><b>Perihal</b><span>:</span><b>Penawaran Harga Pengadaan {p.opportunity_name}</b></div>
       <div className="quote-letter-body">
-        <p>Terima kasih atas kesempatan yang diberikan kepada Technotama
-          (Technotama) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
+        <p>Terima kasih atas kesempatan yang diberikan kepada PT Riset Teknologi Indonesia
+          (RTI) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
           {' '}{d.endUser || p.company_name}. Sehubungan dengan rencana pekerjaan tersebut, kami
           menyampaikan penawaran sebesar <b>{totalPrice}</b> belum termasuk PPN sesuai rincian harga terlampir.</p>
         <p>Penawaran ini berlaku selama <b>{p.valid_days} hari kalender</b> sejak tanggal surat
@@ -160,7 +160,7 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
           <li>Surat Pesanan (Purchase Order) dan NDA jika dipersyaratkan</li></ul>
       </section>
       <p className="quote-end-note">Terima kasih atas perhatian Anda. Jika memiliki pertanyaan,
-        silakan menghubungi <i>[Kontak resmi Technotama]</i>.</p>
+        silakan menghubungi <i>[Kontak resmi RTI]</i>.</p>
       <p className="quote-draft-label">DRAFT - Seluruh lingkup dan ketentuan yang belum diisi harus disetujui sebelum quotation diterbitkan.</p>
     </Paper>
   </div>;

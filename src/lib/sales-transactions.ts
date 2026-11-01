@@ -1,10 +1,13 @@
+// Technical D1 tenant key, declared locally so this pure module loads under --experimental-strip-types (no value
+// imports). Tests assert it equals sales-workflow TENANT and Parameter Center company.tenant_key.
+export const TENANT_KEY='defendit360';
 import type {D1DB,D1Prepared} from './boq-auth';
 export type FlowDeal={id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_by:string;flow_version:number};
 export type SalesRelease={id:string;tenant_id:string;opportunity_id:string;version:number;status:'scoped'|'proposed'|'approved'|'superseded';scope_snapshot:string;account_snapshot:string;scope_notes:string;scoped_by:string;proposal_reference:string|null;proposal_sha256:string|null;proposal_notes:string|null;proposed_by:string|null;boq_id:string|null;boq_version:number|null;boq_edit_seq:number|null;approved_by:string|null;approved_at:string|null};
-export const currentRelease=(db:D1DB,id:string)=>db.prepare("SELECT * FROM india_sales_releases WHERE tenant_id='defendit360' AND opportunity_id=? AND status!='superseded'").bind(id).first<SalesRelease>();
+export const currentRelease=(db:D1DB,id:string)=>db.prepare("SELECT * FROM india_sales_releases WHERE tenant_id=? AND opportunity_id=? AND status!='superseded'").bind(TENANT_KEY,id).first<SalesRelease>();
 export const salesAudit=(db:D1DB,id:string,action:string,email:string,summary='',from:string|null=null,to:string|null=null)=>
  db.prepare('INSERT INTO india_sales_audit(id,tenant_id,entity_type,entity_id,action,actor_email,summary,from_stage,to_stage) VALUES (?,?,?,?,?,?,?,?,?)')
- .bind(crypto.randomUUID(),'defendit360','deal',id,action,email,summary.slice(0,300),from,to);
+ .bind(crypto.randomUUID(),TENANT_KEY,'deal',id,action,email,summary.slice(0,300),from,to);
 /** D1 batch is one transaction. A failed optimistic guard or audit rolls back all writes. */
 export async function atomicSales(db:D1DB,condition:string,args:(string|number|null)[],writes:D1Prepared[]){
  const token=crypto.randomUUID();
@@ -15,7 +18,7 @@ export async function atomicSales(db:D1DB,condition:string,args:(string|number|n
  ]);
 }
 export function dealGuard(d:FlowDeal){
- return {condition:"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id='defendit360' AND flow_version=?)",args:[d.id,d.flow_version]};
+ return {condition:"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id=? AND flow_version=?)",args:[d.id,TENANT_KEY,d.flow_version]};
 }
 export function transactionError(e:unknown){
  return /FLOW_CONFLICT|COMPLIANCE_CONFLICT|READINESS_CONFLICT|REVENUE_CONFLICT|FEASIBILITY_CONFLICT|RESOURCE_CAPACITY_CONFLICT|CHECK constraint|UNIQUE constraint|FOREIGN KEY constraint/i.test(String(e))

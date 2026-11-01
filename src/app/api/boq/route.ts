@@ -1,3 +1,4 @@
+import {TENANT_KEY} from '@/lib/tenant';
 import { NextResponse } from 'next/server';
 import { authorizeBoQ, privateHeaders } from '@/lib/boq-auth';
 import { validateBoQ, boqTotals, can } from '@/lib/boq-domain';
@@ -19,8 +20,8 @@ export async function GET(req:Request){
  try{
   const {db,role}=a.identity;
   const result=role==='sales'
-   ?await db.prepare("SELECT b.* FROM india_boq b LEFT JOIN india_sales_opportunities d ON b.opportunity_id=d.id AND b.tenant_id=d.tenant_id WHERE b.tenant_id=? AND (b.created_by=? OR d.created_by=?) ORDER BY b.updated_at DESC LIMIT 100").bind('defendit360',a.identity.email,a.identity.email).all<Row>()
-   :await db.prepare('SELECT * FROM india_boq WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 100').bind('defendit360').all<Row>();
+   ?await db.prepare("SELECT b.* FROM india_boq b LEFT JOIN india_sales_opportunities d ON b.opportunity_id=d.id AND b.tenant_id=d.tenant_id WHERE b.tenant_id=? AND (b.created_by=? OR d.created_by=?) ORDER BY b.updated_at DESC LIMIT 100").bind(TENANT_KEY,a.identity.email,a.identity.email).all<Row>()
+   :await db.prepare('SELECT * FROM india_boq WHERE tenant_id=? ORDER BY updated_at DESC LIMIT 100').bind(TENANT_KEY).all<Row>();
   return respond({success:true,role,boqs:result.results.map(row=>visible(row,role))});
  }catch{return problem('Database BoQ tidak dapat dibaca',500);}
 }
@@ -34,16 +35,16 @@ export async function POST(req:Request){
   const value=validateBoQ(JSON.parse(text));
   if(value.cost_items?.length&&!can(role,'edit_cost'))return problem('HPP hanya untuk Finance',403);
    if(!value.opportunity_id)return problem('Opportunity ID wajib untuk semua BoQ komersial INDIA',422);
-   const deal=await db.prepare('SELECT id,company_id,title,stage,created_by,data_json FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind('defendit360',value.opportunity_id).first<{id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string}>();
-   const account=deal?await db.prepare('SELECT id,legal_name FROM india_sales_accounts WHERE tenant_id=? AND id=?').bind('defendit360',deal.company_id).first<{id:string;legal_name:string}>():null;
+   const deal=await db.prepare('SELECT id,company_id,title,stage,created_by,data_json FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT_KEY,value.opportunity_id).first<{id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string}>();
+   const account=deal?await db.prepare('SELECT id,legal_name FROM india_sales_accounts WHERE tenant_id=? AND id=?').bind(TENANT_KEY,deal.company_id).first<{id:string;legal_name:string}>():null;
    const linkError=checkBoqLink(value,deal,account,role,email);
    if(linkError)return problem(linkError,409);
   const id=crypto.randomUUID();
-  await atomicSales(db,"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id=? AND stage=? AND data_json=?)",[deal!.id,'defendit360',deal!.stage,deal!.data_json],[db.prepare('INSERT INTO india_boq (id,tenant_id,project_name,customer_name,quotation_number,service_type,opportunity_id,vat_rate,payment_terms,line_items_json,cost_items_json,notes,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
-  .bind(id,'defendit360',value.project_name,value.customer_name,value.quotation_number,value.service_type,
+  await atomicSales(db,"EXISTS(SELECT 1 FROM india_sales_opportunities WHERE id=? AND tenant_id=? AND stage=? AND data_json=?)",[deal!.id,TENANT_KEY,deal!.stage,deal!.data_json],[db.prepare('INSERT INTO india_boq (id,tenant_id,project_name,customer_name,quotation_number,service_type,opportunity_id,vat_rate,payment_terms,line_items_json,cost_items_json,notes,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)')
+  .bind(id,TENANT_KEY,value.project_name,value.customer_name,value.quotation_number,value.service_type,
    value.opportunity_id||null,value.vat_rate,value.payment_terms,JSON.stringify(value.line_items),JSON.stringify(value.cost_items||[]),value.notes||null,email,email),
   db.prepare('INSERT INTO india_audit_log(id,tenant_id,boq_id,action,actor_email) VALUES (?,?,?,?,?)')
-  .bind(crypto.randomUUID(),'defendit360',id,'CREATE',email)]);
+  .bind(crypto.randomUUID(),TENANT_KEY,id,'CREATE',email)]);
   const row=await db.prepare('SELECT * FROM india_boq WHERE id=?').bind(id).first<Row>();
   return respond({success:true,boq:visible(row!,role)},201);
  }catch(e){const m=e instanceof Error?e.message:'Gagal menyimpan BoQ';return problem(m,m.includes('UNIQUE constraint')?409:400);}

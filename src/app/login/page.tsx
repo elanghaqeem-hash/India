@@ -3,7 +3,7 @@ import {ArrowRight, BadgeCheck, Building2, KeyRound, LockKeyhole, LogOut, Shield
 import {LoginSessionStatus} from '@/components/auth/LoginSessionStatus';
 
 export const metadata: Metadata = {
-  title: 'Login INDIA | Technotama',
+  title: 'Login INDIA | RTI',
   description: 'Masuk ke INDIA Enterprise ERP & PSA melalui Cloudflare Access dan hak akses sesuai role.',
 };
 
@@ -24,7 +24,7 @@ export default function IndiaLoginPage() {
             </span>
             <div>
               <p className="text-2xl font-extrabold tracking-tight">INDIA</p>
-              <p className="text-xs font-semibold tracking-wide text-slate-300">TECHNOTAMA · ENTERPRISE PLATFORM</p>
+              <p className="text-xs font-semibold tracking-wide text-slate-300">RTI · ENTERPRISE PLATFORM</p>
             </div>
           </header>
 
@@ -55,7 +55,7 @@ export default function IndiaLoginPage() {
               <p className="mt-1 text-xs leading-5 text-slate-300">Audit & identitas</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400">© 2026 Technotama · Internal Business Platform</p>
+          <p className="text-xs text-slate-400">© 2026 RTI · Internal Business Platform</p>
         </section>
 
         <section aria-labelledby="login-heading" className="mx-auto w-full max-w-md">
@@ -66,7 +66,7 @@ export default function IndiaLoginPage() {
               </span>
               <div>
                 <p className="text-xl font-extrabold tracking-tight">INDIA</p>
-                <p className="text-xs text-slate-500">Technotama Enterprise Platform</p>
+                <p className="text-xs text-slate-500">RTI Enterprise Platform</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-[#522b86]">
@@ -98,7 +98,7 @@ export default function IndiaLoginPage() {
               </p>
             </div>
           </div>
-          <p className="mt-5 text-center text-xs leading-5 text-slate-400 lg:hidden">© 2026 Technotama · Secure Enterprise Access</p>
+          <p className="mt-5 text-center text-xs leading-5 text-slate-400 lg:hidden">© 2026 RTI · Secure Enterprise Access</p>
         </section>
       </div>
     </main>

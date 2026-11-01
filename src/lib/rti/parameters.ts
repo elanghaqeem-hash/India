@@ -34,11 +34,12 @@ export const DEFAULT_PARAMETERS = {
     ppn_dpp_factor: '11/12',
     pph23_service_rate: '0.02', pph21_method: 'TER', pph_badan_rate: '0.22',
     pph_badan_31e_facility: true, pph_badan_31e_gross_cap_cents: 5_000_000_000_000, pph_badan_31e_pkp_portion_cents: 480_000_000_000, pph_badan_31e_reduction: '0.5',
+    pph23_non_npwp_multiplier: '2', pph21_non_npwp_multiplier: '1.2', pph21_ter_table: 'PP58_2023',
     e_invoice_platform: 'CORETAX',
   },
   payroll: {
-    bpjs_kesehatan: { employer: '0.04', employee: '0.01', cap_param: 'BPJS_KES_CAP' },
-    bpjs_tk: { jkk: 'by_risk_class', jkm: '0.003', jht_er: '0.037', jht_ee: '0.02', jp_er: '0.02', jp_ee: '0.01', jp_cap_param: 'JP_CAP' },
+    bpjs_kesehatan: { employer: '0.04', employee: '0.01', wage_cap_cents: 1_200_000_000 },
+    bpjs_tk: { jkk: 'by_risk_class', jkk_default_class: 1, jkm: '0.003', jht_er: '0.037', jht_ee: '0.02', jp_er: '0.02', jp_ee: '0.01', jp_wage_cap_cents: 1_108_630_000, jp_cap_effective_from: '2026-03-01' },
   },
   reporting_cycles: ['DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'SEMIANNUAL', 'ANNUAL'],
   close_calendar: { monthly_soft_close_wd: 3, monthly_hard_close_wd: 5, quarterly_hard_close_wd: 10, semiannual_hard_close_wd: 15, annual_hard_close_wd: 30, audit_ready_days_after_ye: 60 },
@@ -46,40 +47,56 @@ export const DEFAULT_PARAMETERS = {
   holiday_calendar: 'ID_NATIONAL + company_collective_leave',
   environments: ['DEV', 'INT', 'UAT_SIM', 'STAGING', 'PROD'],
   ui: { theme: 'INDIA Vivid', default_mode: 'light', language: ['id-ID', 'en-US'] },
-  security: { asvs_level: 2, mfa_required_roles: ['EXEC', 'FIN', 'ADMIN', 'SEC', 'PRIVILEGED'], session_idle_min: 30, session_absolute_hours: 12 },
+  security: {
+    asvs_level: 2, mfa_required_roles: ['EXEC', 'FIN', 'ADMIN', 'SEC', 'PRIVILEGED'], session_idle_min: 30, session_absolute_hours: 12,
+    // Dual-run cut-over (industry practice): 'shadow' evaluates and logs every ERP decision without blocking;
+    // 'enforce' blocks. Flip to enforce once every active user has an approved role binding (access review evidence).
+    policy_enforcement: 'shadow',
+    // Cloudflare Access policy must require MFA for the INDIA application; the edge assertion is then trusted.
+    mfa_enforced_at_edge: true,
+    // Until bindings are provisioned, legacy login roles map to v3 templates through india_iam_legacy_role_map.
+    legacy_role_fallback: true,
+  },
+  posting: { worker_batch_size: 50, max_attempts: 5, system_actor: 'system:posting-worker' },
   approval_limits: {
-    // Cents, per role group. Placeholder defaults; must be approved by CFO before production.
+    // Cents. Tiered delegation of authority approved by the Business Owner on 2026-11-01 (L1 manager, L2 director, L3 BOD).
     PO_APPROVAL_L1: 5_000_000_000, PO_APPROVAL_L2: 50_000_000_000, PO_APPROVAL_L3: 250_000_000_000,
     PAYMENT_RELEASE_L1: 10_000_000_000, PAYMENT_RELEASE_L2: 100_000_000_000,
   },
 } as const;
 
-/** Keys that must be confirmed against official sources (DJP, IAI, BPJS, BI) before PROD. */
-export const VERIFY_KEYS: { key: string; authority: string; why: string }[] = [
-  { key: 'accounting.framework', authority: 'Auditor / IAI', why: 'SAK EP vs SAK (PSAK berbasis IFRS) menentukan model pengakuan pendapatan, impairment dan kapitalisasi R&D' },
-  { key: 'accounting.dev_cost_capitalization_allowed', authority: 'Auditor', why: 'Bertentangan dengan M21 Capitalization Tracker bila framework SAK EP' },
-  { key: 'accounting.receivable_impairment_model', authority: 'Auditor', why: 'ECL (PSAK 109) vs model kerugian SAK EP' },
-  { key: 'accounting.fx_rate_source', authority: 'BI', why: 'JISDOR hanya USD/IDR; mata uang lain perlu kurs tengah BI' },
-  { key: 'tax.ppn_rate', authority: 'DJP', why: 'Tarif PPN dan perlakuan DPP nilai lain' },
-  { key: 'tax.ppn_dpp_factor', authority: 'DJP', why: 'DPP 11/12 untuk barang/jasa non-mewah' },
-  { key: 'tax.pph23_service_rate', authority: 'DJP', why: 'Tarif PPh 23 jasa dan tarif non-NPWP' },
-  { key: 'tax.pph21_method', authority: 'DJP', why: 'Tabel TER A/B/C harus di-load dari regulasi berlaku' },
-  { key: 'tax.pph_badan_rate', authority: 'DJP', why: 'Tarif PPh badan' },
-  { key: 'tax.pph_badan_31e_facility', authority: 'DJP', why: 'Syarat peredaran bruto dan porsi PKP fasilitas 31E' },
-  { key: 'tax.e_invoice_platform', authority: 'DJP', why: 'Format impor/ekspor Coretax' },
-  { key: 'payroll.bpjs_kesehatan', authority: 'BPJS Kesehatan', why: 'Tarif dan batas atas upah' },
-  { key: 'payroll.bpjs_tk', authority: 'BPJS Ketenagakerjaan', why: 'Tarif JKK per kelas risiko, batas upah JP' },
-  { key: 'approval_limits', authority: 'CFO', why: 'Ambang approval belum ditetapkan manajemen' },
+/** Legal or governance basis for every parameter that encodes a statutory or management decision. */
+export const PARAMETER_BASIS: { key: string; basis: string; confirmed_by: string }[] = [
+  { key: 'accounting.framework', basis: 'SAK EP (berlaku 1 Jan 2025) untuk entitas tanpa akuntabilitas publik signifikan', confirmed_by: 'Business Owner 2026-11-01' },
+  { key: 'accounting.dev_cost_capitalization_allowed', basis: 'SAK EP: biaya riset dan pengembangan dibebankan', confirmed_by: 'Business Owner 2026-11-01' },
+  { key: 'accounting.receivable_impairment_model', basis: 'Provision matrix atas umur piutang (praktik umum SAK EP dan PSAK 109)', confirmed_by: 'Business Owner 2026-11-01' },
+  { key: 'accounting.fx_rate_source', basis: 'Kurs JISDOR BI untuk USD/IDR; kurs tengah BI untuk mata uang lain; kurs pajak KMK mingguan untuk faktur', confirmed_by: 'Business Owner 2026-11-01' },
+  { key: 'tax.ppn_rate', basis: 'UU 7/2021 (HPP) Pasal 7', confirmed_by: 'Regulasi' },
+  { key: 'tax.ppn_dpp_factor', basis: 'PMK 131/2024 Pasal 3', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph23_service_rate', basis: 'UU PPh Pasal 23 ayat (1) huruf c', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph23_non_npwp_multiplier', basis: 'UU PPh Pasal 23 ayat (1a); PMK 112/2022 NIK sebagai NPWP', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph21_method', basis: 'PP 58/2023; PMK 168/2023', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph21_ter_table', basis: 'Lampiran PP 58/2023 (tabel di india_tax_ter_brackets, migrasi 0042)', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph21_non_npwp_multiplier', basis: 'UU PPh Pasal 21 ayat (5a)', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph_badan_rate', basis: 'UU 7/2021 (HPP) Pasal 17 ayat (1) huruf b', confirmed_by: 'Regulasi' },
+  { key: 'tax.pph_badan_31e_facility', basis: 'UU PPh Pasal 31E', confirmed_by: 'Regulasi' },
+  { key: 'tax.e_invoice_platform', basis: 'PMK 81/2024 (Coretax)', confirmed_by: 'Regulasi' },
+  { key: 'payroll.bpjs_kesehatan', basis: 'Perpres 82/2018 jo. Perpres 64/2020', confirmed_by: 'Regulasi' },
+  { key: 'payroll.bpjs_tk', basis: 'PP 44/2015, PP 45/2015, PP 46/2015; SE BPJS Ketenagakerjaan B/1226/022026 (batas upah JP)', confirmed_by: 'Regulasi' },
+  { key: 'approval_limits', basis: 'Delegation of authority bertingkat L1/L2/L3', confirmed_by: 'Business Owner 2026-11-01' },
+  { key: 'security.policy_enforcement', basis: 'Dual-run shadow → enforce (OWASP ASVS V8, ISO 27001:2022 A.5.15/A.5.18)', confirmed_by: 'Business Owner 2026-11-01' },
 ];
+/** Keys still awaiting external confirmation. Empty after the 2026-11-01 decisions; kept so future regulatory changes can be flagged. */
+export const VERIFY_KEYS: { key: string; authority: string; why: string }[] = [];
 
 /** Flatten nested defaults into dotted keys for D1 storage. Arrays and leaf objects are stored as JSON values. */
 export function flattenParameters(obj: Record<string, unknown> = DEFAULT_PARAMETERS as unknown as Record<string, unknown>, prefix = ''): ParameterDef[] {
   const out: ParameterDef[] = [];
   for (const [k, v] of Object.entries(obj)) {
     const key = prefix ? prefix + '.' + k : k;
-    const isLeafObject = v && typeof v === 'object' && !Array.isArray(v) && ['payroll.bpjs_kesehatan', 'payroll.bpjs_tk', 'accounting.rounding'].includes(key);
+    const isLeafObject = v && typeof v === 'object' && !Array.isArray(v) && ['payroll.bpjs_kesehatan', 'payroll.bpjs_tk', 'accounting.rounding', 'approval_limits'].includes(key);
     if (v && typeof v === 'object' && !Array.isArray(v) && !isLeafObject) out.push(...flattenParameters(v as Record<string, unknown>, key));
-    else out.push({ key, value: v, verify: VERIFY_KEYS.some(x => key === x.key || key.startsWith(x.key + '.')) ? 'VERIFY' : 'VERIFIED' });
+    else out.push({ key, value: v, verify: VERIFY_KEYS.some(x => key === x.key || key.startsWith(x.key + '.')) ? 'VERIFY' : 'VERIFIED', source: PARAMETER_BASIS.find(x => key === x.key || key.startsWith(x.key + '.'))?.basis });
   }
   return out;
 }
