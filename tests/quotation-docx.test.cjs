@@ -114,7 +114,7 @@ test('quotation uses supplied authorized signatory instead of template sample na
   quotationDate:'2026-10-19'
  }),'word/document.xml');
  assert.match(xml,/Pengirim Disetujui/);
- assert.match(xml,/Sales Manager \| Technotama/);
+ assert.match(xml,/Sales Manager \| RTI/);
  assert.match(xml,/Tim Procurement/);
  assert.doesNotMatch(xml,/Maria Hayu Utaminingtyas/);
  const noSign=unpack(api.createQuotationDocx(base,'mobile'),'word/document.xml');
