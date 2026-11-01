@@ -27,7 +27,7 @@ import { selectConversationHistory, activeChatTopic, type AIConversationTurn } f
 
 const WELCOME_MESSAGE = {
   sender: 'ai' as const,
-  text: 'Halo! Saya Asisten AI INDIA CyberBusiness 360. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
+  text: 'Halo! Saya Asisten AI RTICORE. Ada yang bisa saya bantu terkait scoping teknis, perhitungan harga BoQ, mitigasi risiko tender, atau status otorisasi DoA?',
   provider: 'Informasi awal (bukan hasil model AI)',
 };
 
@@ -156,7 +156,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <>
                 <button type="button" onClick={onToggleMenu}
                   aria-controls="india-left-sidebar-desktop" aria-expanded={desktopMenuOpen}
-                  aria-label={desktopMenuOpen?'Sembunyikan menu kiri INDIA':'Tampilkan menu kiri INDIA'}
+                  aria-label={desktopMenuOpen?'Sembunyikan menu kiri RTICORE':'Tampilkan menu kiri RTICORE'}
                   title={desktopMenuOpen?'Sembunyikan menu kiri':'Tampilkan menu kiri'}
                   className="hidden h-9 items-center gap-2 rounded-xl border border-indigo-200 bg-indigo-50 px-3 text-xs font-bold text-indigo-800 transition hover:border-indigo-400 hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:flex">
                   {desktopMenuOpen?<PanelLeftClose className="h-4 w-4" aria-hidden="true"/>:<PanelLeftOpen className="h-4 w-4" aria-hidden="true"/>}
@@ -164,7 +164,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </button>
                 <button type="button" onClick={onToggleMenu}
                   aria-controls="india-left-sidebar-mobile" aria-expanded={mobileMenuOpen}
-                  aria-label={mobileMenuOpen?'Tutup menu kiri INDIA':'Buka menu kiri INDIA'}
+                  aria-label={mobileMenuOpen?'Tutup menu kiri RTICORE':'Buka menu kiri RTICORE'}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-800 transition hover:bg-indigo-100 focus-visible:outline-2 focus-visible:outline-indigo-500 lg:hidden">
                   {mobileMenuOpen?<X className="h-4 w-4" aria-hidden="true"/>:<Menu className="h-4 w-4" aria-hidden="true"/>}
                 </button>
@@ -178,7 +178,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">INDIA</span>
+                  <span className="font-extrabold tracking-tight text-slate-900 text-base sm:text-lg">RTICORE</span>
                   <span className="rounded-md bg-blue-50 px-1.5 py-0.5 text-[11px] font-bold text-blue-700 border border-blue-200/60">360</span>
                 </div>
                 <p className="hidden text-[10px] font-medium text-slate-500 sm:block -mt-1">
@@ -237,7 +237,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               <div className="absolute right-0 top-[calc(100%+8px)] z-[90] w-[min(19rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl">
                 <p className="break-all text-xs font-semibold text-slate-900">{currentRoleInfo.label}</p>
                 <p className="mb-3 text-xs text-indigo-700">Role: {currentRoleInfo.badge}</p>
-                <Link href="/login" className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Halaman login INDIA</Link>
+                <Link href="/login" className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Halaman login RTICORE</Link>
                 <a href="/cdn-cgi/access/logout" className="mt-1 flex min-h-11 items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-rose-500">
                   <LogOut className="h-4 w-4" aria-hidden="true"/> Keluar / Logout
                 </a>
@@ -253,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           className="india-ai-chat-overlay fixed inset-0 z-[200] flex h-[100dvh] items-stretch justify-center bg-slate-900/40 p-0 backdrop-blur-xs sm:items-center sm:justify-end sm:p-4 animate-in fade-in"
           style={visualViewport ? { top: visualViewport.top + 'px', height: visualViewport.height + 'px', bottom: 'auto' } : undefined}
         >
-          <div role="dialog" aria-modal="true" aria-label="INDIA AI Business Assistant"
+          <div role="dialog" aria-modal="true" aria-label="RTICORE AI Business Assistant"
             className="flex h-full max-h-full min-h-0 w-full flex-col overflow-hidden bg-white shadow-2xl sm:h-[85dvh] sm:max-h-[85dvh] sm:w-[440px] sm:rounded-2xl sm:border sm:border-slate-200">
             {/* Drawer Header */}
             <div className="flex shrink-0 items-center justify-between gap-2 bg-gradient-to-r from-slate-900 via-indigo-950 to-purple-950 p-3 text-white sm:p-4">
@@ -262,7 +262,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <Bot className="h-5 w-5" />
                 </div>
                 <div>
-                  <h3 className="font-extrabold text-sm tracking-tight">INDIA AI Business Assistant</h3>
+                  <h3 className="font-extrabold text-sm tracking-tight">RTICORE AI Business Assistant</h3>
                   <div className="text-[10px] text-slate-300 flex items-center gap-1">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     <span>Koneksi AI Admin: hasil sesuai provider aktif</span>

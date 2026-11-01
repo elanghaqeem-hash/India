@@ -316,13 +316,14 @@ test('Close calendar: WD+3 soft / WD+5 hard close, quarterly WD+10, holidays res
 
 // ---------------- DoD 21 ----------------
 test('Tenant key: storage key equals Parameter Center value; no legacy brand labels in UI source', () => {
+  assert.equal(params.DEFAULT_PARAMETERS.company.tenant_key, 'rti');
   assert.equal(load('src/lib/sales-workflow').TENANT, params.DEFAULT_PARAMETERS.company.tenant_key);
   for (const m of ['src/lib/tenant', 'src/lib/sales-transactions', 'src/lib/tender-readiness']) assert.equal(load(m).TENANT_KEY, params.DEFAULT_PARAMETERS.company.tenant_key, m);
   const walk = d => fs.readdirSync(d, { withFileTypes: true }).flatMap(e => e.isDirectory() ? walk(path.join(d, e.name)) : [path.join(d, e.name)]);
   for (const f of walk(path.join(root, 'src')).filter(f => /\.tsx?$/.test(f) && !f.includes('/lib/rti/'))) {
     const src = fs.readFileSync(f, 'utf8');
     assert.doesNotMatch(src, /Technotama|TECHNOTAMA|DefendIT ?360/, f);
-    assert.doesNotMatch(src.replace(/export const TENANT(_KEY)?='defendit360';/, ''), /'defendit360'/, f);
+    assert.doesNotMatch(src.replace("const LEGACY_TENANT_AAD='defendit360';", ''), /defendit360/i, f);
   }
 });
 test('DoD-21: no company names, tax rates or thresholds hardcoded in rti engine modules', () => {

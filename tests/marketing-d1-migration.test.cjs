@@ -41,20 +41,20 @@ test('transactional Lead -> Account -> Opportunity link is one-to-one and foreig
  db.exec(migration('0007_quotation_submission.sql'));
  db.exec(migration('0008_po_legal_evidence.sql'));
  db.prepare("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,service_family,assigned_sales_email,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?)")
- .run('lead-1','defendit360','LD-UAT-1','PT Test','Webinar','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
+ .run('lead-1','rti','LD-UAT-1','PT Test','Webinar','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
  db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES (?,?,?,?,?)")
-  .run('customer-1','defendit360','PT Test','IND-TEST-1','sales@example.test');
+  .run('customer-1','rti','PT Test','IND-TEST-1','sales@example.test');
  assert.throws(()=>db.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES (?,?,?,?,?)")
-  .run('customer-duplicate','defendit360','pt test','IND-TEST-2','sales@example.test'));
+  .run('customer-duplicate','rti','pt test','IND-TEST-2','sales@example.test'));
  db.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,created_by) VALUES (?,?,?,?,?,?,?)")
-  .run('opp-1','defendit360','customer-1','VAPT TEST','prospecting',120000000,'sales@example.test');
+  .run('opp-1','rti','customer-1','VAPT TEST','prospecting',120000000,'sales@example.test');
  db.prepare("INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)")
- .run('defendit360','lead-1','customer-1','opp-1','sales@example.test');
+ .run('rti','lead-1','customer-1','opp-1','sales@example.test');
  assert.equal(db.prepare("SELECT count(*) AS n FROM india_sales_lead_links").get().n,1);
  assert.throws(()=>db.prepare("INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)")
-  .run('defendit360','lead-1','customer-1','opp-1','sales@example.test'));
+  .run('rti','lead-1','customer-1','opp-1','sales@example.test'));
  assert.throws(()=>db.prepare("INSERT INTO india_sales_lead_links(tenant_id,lead_id,customer_id,opportunity_id,converted_by) VALUES (?,?,?,?,?)")
-  .run('defendit360','missing-lead','customer-1','opp-2','sales@example.test'));
+  .run('rti','missing-lead','customer-1','opp-2','sales@example.test'));
  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
  db.close();
 });

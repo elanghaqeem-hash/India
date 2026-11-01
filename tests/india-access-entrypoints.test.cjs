@@ -19,7 +19,7 @@ test('INDIA account dropdown exposes Cloudflare Access logout on mobile and desk
 test('INDIA login page uses Cloudflare Access instead of a second insecure password mechanism',()=>{
   const page=read('src/app/login/page.tsx');
   const shell=read('src/components/layout/AppShell.tsx');
-  assert.match(page, /Login INDIA/);
+  assert.match(page, /Login RTICORE/);
   assert.match(page, /Masuk dengan Cloudflare Access/);
   assert.match(page, /<a href="\/" /);
   assert.match(page, /href="\/cdn-cgi\/access\/logout"/);
@@ -27,7 +27,7 @@ test('INDIA login page uses Cloudflare Access instead of a second insecure passw
   assert.match(shell, /const isLoginPage=pathname==='\/login'/);
   assert.match(shell, /if\(isLoginPage\)return <>{children}<\/>/);
   assert.match(shell, /if\(isLoginPage\)return; \/\/ Public-facing login UI/);
-  assert.match(shell, /Buka halaman login INDIA/);
+  assert.match(shell, /Buka halaman login RTICORE/);
 });
 
 test('real transactional identity remains JWT and D1 backed',()=>{

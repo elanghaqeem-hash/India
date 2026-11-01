@@ -135,70 +135,70 @@ CREATE TABLE india_iam_break_glass_events(
 CREATE TRIGGER india_iam_break_glass_no_delete BEFORE DELETE ON india_iam_break_glass_events BEGIN SELECT RAISE(ABORT,'BREAK_GLASS_IMMUTABLE'); END;
 -- Seed: parameters (approved defaults; VERIFY rows must be re-approved against official sources before PROD use).
 INSERT INTO india_sys_parameters(id,tenant_id,key,value_json,verify_status,effective_from,status,maker,checker,reason,approved_at) VALUES
- ('PRM-0001','defendit360','system.code','"INDIA"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0002','defendit360','system.name','"Integrated Cybersecurity & IT Enterprise ERP + PSA"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0003','defendit360','system.repository','"https://github.com/elanghaqeem-hash/india"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0004','defendit360','system.main_branch','"main"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0005','defendit360','company.holding_code','"RTI"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0006','defendit360','company.legal_name','"PT Riset Teknologi Indonesia"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0007','defendit360','company.brand','"Risetin"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0008','defendit360','company.domain','"risetin.co.id"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0009','defendit360','company.hq_address','"Graha Mustika Ratu Lt. 7, Jl. Jend. Gatot Subroto Kav. 74-75, Menteng Dalam, Tebet, Jakarta Selatan"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0010','defendit360','company.business_lines','["ADVISORY","SOFTWARE","IT_SUPPORT","GOVERNANCE","CYBERSECURITY","TRAINING","TECH_TRADING"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0011','defendit360','company.affiliated_entities','[{"code":"TAR","legal_name":"PT Technotama Artha Raya","status":"onboarding"}]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0012','defendit360','company.partners','[{"code":"ADTC","name":"AD Training Center","scheme":"revenue_share","rti_share":"0.60","partner_share":"0.40","base":"net_distributable_revenue"}]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0013','defendit360','company.tenant_key','"defendit360"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0014','defendit360','accounting.framework','"SAK_EP"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: SAK EP (berlaku 1 Jan 2025) untuk entitas tanpa akuntabilitas publik signifikan','2026-11-01'),
- ('PRM-0015','defendit360','accounting.functional_currency','"IDR"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0016','defendit360','accounting.reporting_currencies','["IDR","USD"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0017','defendit360','accounting.fiscal_year_start_month','1','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0018','defendit360','accounting.period_type','"monthly"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0019','defendit360','accounting.adjustment_period','13','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0020','defendit360','accounting.rounding','{"mode":"HALF_UP","minor_units":2}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0021','defendit360','accounting.fx_rate_source','"BI_JISDOR"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Kurs JISDOR BI untuk USD/IDR; kurs tengah BI untuk mata uang lain; kurs pajak KMK mingguan untuk faktur','2026-11-01'),
- ('PRM-0022','defendit360','accounting.dev_cost_capitalization_allowed','false','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: SAK EP: biaya riset dan pengembangan dibebankan','2026-11-01'),
- ('PRM-0023','defendit360','accounting.receivable_impairment_model','"PROVISION_MATRIX"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Provision matrix atas umur piutang (praktik umum SAK EP dan PSAK 109)','2026-11-01'),
- ('PRM-0024','defendit360','accounting.flux_threshold_pct','"0.10"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0025','defendit360','accounting.flux_threshold_amount_cents','5000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0026','defendit360','tax.ppn_rate','"0.12"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU 7/2021 (HPP) Pasal 7','2026-11-01'),
- ('PRM-0027','defendit360','tax.ppn_dpp_factor','"11/12"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PMK 131/2024 Pasal 3','2026-11-01'),
- ('PRM-0028','defendit360','tax.pph23_service_rate','"0.02"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 23 ayat (1) huruf c','2026-11-01'),
- ('PRM-0029','defendit360','tax.pph21_method','"TER"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PP 58/2023; PMK 168/2023','2026-11-01'),
- ('PRM-0030','defendit360','tax.pph_badan_rate','"0.22"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU 7/2021 (HPP) Pasal 17 ayat (1) huruf b','2026-11-01'),
- ('PRM-0031','defendit360','tax.pph_badan_31e_facility','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 31E','2026-11-01'),
- ('PRM-0032','defendit360','tax.pph_badan_31e_gross_cap_cents','5000000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0033','defendit360','tax.pph_badan_31e_pkp_portion_cents','480000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0034','defendit360','tax.pph_badan_31e_reduction','"0.5"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0035','defendit360','tax.pph23_non_npwp_multiplier','"2"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 23 ayat (1a); PMK 112/2022 NIK sebagai NPWP','2026-11-01'),
- ('PRM-0036','defendit360','tax.pph21_non_npwp_multiplier','"1.2"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 21 ayat (5a)','2026-11-01'),
- ('PRM-0037','defendit360','tax.pph21_ter_table','"PP58_2023"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Lampiran PP 58/2023 (tabel di india_tax_ter_brackets, migrasi 0042)','2026-11-01'),
- ('PRM-0038','defendit360','tax.e_invoice_platform','"CORETAX"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PMK 81/2024 (Coretax)','2026-11-01'),
- ('PRM-0039','defendit360','payroll.bpjs_kesehatan','{"employer":"0.04","employee":"0.01","wage_cap_cents":1200000000}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Perpres 82/2018 jo. Perpres 64/2020','2026-11-01'),
- ('PRM-0040','defendit360','payroll.bpjs_tk','{"jkk":"by_risk_class","jkk_default_class":1,"jkm":"0.003","jht_er":"0.037","jht_ee":"0.02","jp_er":"0.02","jp_ee":"0.01","jp_wage_cap_cents":1108630000,"jp_cap_effective_from":"2026-03-01"}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PP 44/2015, PP 45/2015, PP 46/2015; SE BPJS Ketenagakerjaan B/1226/022026 (batas upah JP)','2026-11-01'),
- ('PRM-0041','defendit360','reporting_cycles','["DAILY","WEEKLY","MONTHLY","QUARTERLY","SEMIANNUAL","ANNUAL"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0042','defendit360','close_calendar.monthly_soft_close_wd','3','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0043','defendit360','close_calendar.monthly_hard_close_wd','5','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0044','defendit360','close_calendar.quarterly_hard_close_wd','10','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0045','defendit360','close_calendar.semiannual_hard_close_wd','15','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0046','defendit360','close_calendar.annual_hard_close_wd','30','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0047','defendit360','close_calendar.audit_ready_days_after_ye','60','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0048','defendit360','timezone','"Asia/Jakarta"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0049','defendit360','holiday_calendar','"ID_NATIONAL + company_collective_leave"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0050','defendit360','environments','["DEV","INT","UAT_SIM","STAGING","PROD"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0051','defendit360','ui.theme','"INDIA Vivid"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0052','defendit360','ui.default_mode','"light"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0053','defendit360','ui.language','["id-ID","en-US"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0054','defendit360','security.asvs_level','2','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0055','defendit360','security.mfa_required_roles','["EXEC","FIN","ADMIN","SEC","PRIVILEGED"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0056','defendit360','security.session_idle_min','30','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0057','defendit360','security.session_absolute_hours','12','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0058','defendit360','security.policy_enforcement','"shadow"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Dual-run shadow → enforce (OWASP ASVS V8, ISO 27001:2022 A.5.15/A.5.18)','2026-11-01'),
- ('PRM-0059','defendit360','security.mfa_enforced_at_edge','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0060','defendit360','security.legacy_role_fallback','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0061','defendit360','posting.worker_batch_size','50','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0062','defendit360','posting.max_attempts','5','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0063','defendit360','posting.system_actor','"system:posting-worker"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
- ('PRM-0064','defendit360','approval_limits','{"PO_APPROVAL_L1":5000000000,"PO_APPROVAL_L2":50000000000,"PO_APPROVAL_L3":250000000000,"PAYMENT_RELEASE_L1":10000000000,"PAYMENT_RELEASE_L2":100000000000}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Delegation of authority bertingkat L1/L2/L3','2026-11-01');
+ ('PRM-0001','rti','system.code','"RTICORE"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0002','rti','system.name','"RTICORE — Centralized Operations & Resource Enterprise (ERP + PSA)"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0003','rti','system.repository','"https://github.com/elanghaqeem-hash/india"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0004','rti','system.main_branch','"main"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0005','rti','company.holding_code','"RTI"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0006','rti','company.legal_name','"PT Riset Teknologi Indonesia"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0007','rti','company.brand','"Risetin"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0008','rti','company.domain','"risetin.co.id"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0009','rti','company.hq_address','"Graha Mustika Ratu Lt. 7, Jl. Jend. Gatot Subroto Kav. 74-75, Menteng Dalam, Tebet, Jakarta Selatan"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0010','rti','company.business_lines','["ADVISORY","SOFTWARE","IT_SUPPORT","GOVERNANCE","CYBERSECURITY","TRAINING","TECH_TRADING"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0011','rti','company.affiliated_entities','[{"code":"TAR","legal_name":"PT Technotama Artha Raya","status":"onboarding"}]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0012','rti','company.partners','[{"code":"ADTC","name":"AD Training Center","scheme":"revenue_share","rti_share":"0.60","partner_share":"0.40","base":"net_distributable_revenue"}]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0013','rti','company.tenant_key','"rti"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0014','rti','accounting.framework','"SAK_EP"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: SAK EP (berlaku 1 Jan 2025) untuk entitas tanpa akuntabilitas publik signifikan','2026-11-01'),
+ ('PRM-0015','rti','accounting.functional_currency','"IDR"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0016','rti','accounting.reporting_currencies','["IDR","USD"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0017','rti','accounting.fiscal_year_start_month','1','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0018','rti','accounting.period_type','"monthly"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0019','rti','accounting.adjustment_period','13','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0020','rti','accounting.rounding','{"mode":"HALF_UP","minor_units":2}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0021','rti','accounting.fx_rate_source','"BI_JISDOR"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Kurs JISDOR BI untuk USD/IDR; kurs tengah BI untuk mata uang lain; kurs pajak KMK mingguan untuk faktur','2026-11-01'),
+ ('PRM-0022','rti','accounting.dev_cost_capitalization_allowed','false','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: SAK EP: biaya riset dan pengembangan dibebankan','2026-11-01'),
+ ('PRM-0023','rti','accounting.receivable_impairment_model','"PROVISION_MATRIX"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Provision matrix atas umur piutang (praktik umum SAK EP dan PSAK 109)','2026-11-01'),
+ ('PRM-0024','rti','accounting.flux_threshold_pct','"0.10"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0025','rti','accounting.flux_threshold_amount_cents','5000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0026','rti','tax.ppn_rate','"0.12"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU 7/2021 (HPP) Pasal 7','2026-11-01'),
+ ('PRM-0027','rti','tax.ppn_dpp_factor','"11/12"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PMK 131/2024 Pasal 3','2026-11-01'),
+ ('PRM-0028','rti','tax.pph23_service_rate','"0.02"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 23 ayat (1) huruf c','2026-11-01'),
+ ('PRM-0029','rti','tax.pph21_method','"TER"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PP 58/2023; PMK 168/2023','2026-11-01'),
+ ('PRM-0030','rti','tax.pph_badan_rate','"0.22"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU 7/2021 (HPP) Pasal 17 ayat (1) huruf b','2026-11-01'),
+ ('PRM-0031','rti','tax.pph_badan_31e_facility','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 31E','2026-11-01'),
+ ('PRM-0032','rti','tax.pph_badan_31e_gross_cap_cents','5000000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0033','rti','tax.pph_badan_31e_pkp_portion_cents','480000000000','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0034','rti','tax.pph_badan_31e_reduction','"0.5"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0035','rti','tax.pph23_non_npwp_multiplier','"2"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 23 ayat (1a); PMK 112/2022 NIK sebagai NPWP','2026-11-01'),
+ ('PRM-0036','rti','tax.pph21_non_npwp_multiplier','"1.2"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: UU PPh Pasal 21 ayat (5a)','2026-11-01'),
+ ('PRM-0037','rti','tax.pph21_ter_table','"PP58_2023"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Lampiran PP 58/2023 (tabel di india_tax_ter_brackets, migrasi 0042)','2026-11-01'),
+ ('PRM-0038','rti','tax.e_invoice_platform','"CORETAX"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PMK 81/2024 (Coretax)','2026-11-01'),
+ ('PRM-0039','rti','payroll.bpjs_kesehatan','{"employer":"0.04","employee":"0.01","wage_cap_cents":1200000000}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Perpres 82/2018 jo. Perpres 64/2020','2026-11-01'),
+ ('PRM-0040','rti','payroll.bpjs_tk','{"jkk":"by_risk_class","jkk_default_class":1,"jkm":"0.003","jht_er":"0.037","jht_ee":"0.02","jp_er":"0.02","jp_ee":"0.01","jp_wage_cap_cents":1108630000,"jp_cap_effective_from":"2026-03-01"}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: PP 44/2015, PP 45/2015, PP 46/2015; SE BPJS Ketenagakerjaan B/1226/022026 (batas upah JP)','2026-11-01'),
+ ('PRM-0041','rti','reporting_cycles','["DAILY","WEEKLY","MONTHLY","QUARTERLY","SEMIANNUAL","ANNUAL"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0042','rti','close_calendar.monthly_soft_close_wd','3','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0043','rti','close_calendar.monthly_hard_close_wd','5','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0044','rti','close_calendar.quarterly_hard_close_wd','10','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0045','rti','close_calendar.semiannual_hard_close_wd','15','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0046','rti','close_calendar.annual_hard_close_wd','30','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0047','rti','close_calendar.audit_ready_days_after_ye','60','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0048','rti','timezone','"Asia/Jakarta"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0049','rti','holiday_calendar','"ID_NATIONAL + company_collective_leave"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0050','rti','environments','["DEV","INT","UAT_SIM","STAGING","PROD"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0051','rti','ui.theme','"RTICORE Vivid"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0052','rti','ui.default_mode','"light"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0053','rti','ui.language','["id-ID","en-US"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0054','rti','security.asvs_level','2','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0055','rti','security.mfa_required_roles','["EXEC","FIN","ADMIN","SEC","PRIVILEGED"]','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0056','rti','security.session_idle_min','30','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0057','rti','security.session_absolute_hours','12','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0058','rti','security.policy_enforcement','"shadow"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Dual-run shadow → enforce (OWASP ASVS V8, ISO 27001:2022 A.5.15/A.5.18)','2026-11-01'),
+ ('PRM-0059','rti','security.mfa_enforced_at_edge','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0060','rti','security.legacy_role_fallback','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0061','rti','posting.worker_batch_size','50','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0062','rti','posting.max_attempts','5','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0063','rti','posting.system_actor','"system:posting-worker"','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Default dari master prompt v3.0-RTI','2026-11-01'),
+ ('PRM-0064','rti','approval_limits','{"PO_APPROVAL_L1":5000000000,"PO_APPROVAL_L2":50000000000,"PO_APPROVAL_L3":250000000000,"PAYMENT_RELEASE_L1":10000000000,"PAYMENT_RELEASE_L2":100000000000}','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','system:migration-0040','Dasar: Delegation of authority bertingkat L1/L2/L3','2026-11-01');
 INSERT INTO india_org_unit_types(code,allowed_parent_types_json,can_own_budget,can_be_profit_center,can_hold_employees) VALUES
  ('HOLDING','[]',1,1,0),
  ('LEGAL_ENTITY','["HOLDING"]',1,1,1),
@@ -213,157 +213,157 @@ INSERT INTO india_org_unit_types(code,allowed_parent_types_json,can_own_budget,c
  ('PARTNER_ORG','["DIVISION","DEPARTMENT","LEGAL_ENTITY"]',0,0,0);
 -- Seed: RTI organization structure, confirmed by the Business Owner on 2026-11-01 (org.seed_confirmed=true).
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','RTI',1,'RTI','PT Riset Teknologi Indonesia','HOLDING',NULL,NULL,'RTI',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','RTI',1,'RTI','PT Riset Teknologi Indonesia','HOLDING',NULL,NULL,'RTI',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','RTI-LE01',1,'RTI-LE01','PT Riset Teknologi Indonesia','LEGAL_ENTITY','RTI','RTI-LE01','RTI-LE01',1,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','RTI-LE01',1,'RTI-LE01','PT Riset Teknologi Indonesia','LEGAL_ENTITY','RTI','RTI-LE01','RTI-LE01',1,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','BOD',1,'BOD','Board of Directors / Office of CEO','DIRECTORATE','RTI-LE01','RTI-LE01','BOD',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','BOD',1,'BOD','Board of Directors / Office of CEO','DIRECTORATE','RTI-LE01','RTI-LE01','BOD',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIR-COM',1,'DIR-COM','Commercial & Growth','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-COM',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIR-COM',1,'DIR-COM','Commercial & Growth','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-COM',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-MKT',1,'DIV-MKT','Marketing & Partnership','DIVISION','DIR-COM','RTI-LE01','DIV-MKT',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-MKT',1,'DIV-MKT','Marketing & Partnership','DIVISION','DIR-COM','RTI-LE01','DIV-MKT',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-SAL',1,'DIV-SAL','Sales & Account Management','DIVISION','DIR-COM','RTI-LE01','DIV-SAL',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-SAL',1,'DIV-SAL','Sales & Account Management','DIVISION','DIR-COM','RTI-LE01','DIV-SAL',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-BID',1,'DIV-BID','Presales, Tender & Bid','DIVISION','DIR-COM','RTI-LE01','DIV-BID',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-BID',1,'DIV-BID','Presales, Tender & Bid','DIVISION','DIR-COM','RTI-LE01','DIV-BID',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIR-OPS',1,'DIR-OPS','Delivery & Operations','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-OPS',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIR-OPS',1,'DIR-OPS','Delivery & Operations','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-OPS',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-CYB',1,'DIV-CYB','Cybersecurity Services','DIVISION','DIR-OPS','RTI-LE01','DIV-CYB',1,'CYBERSECURITY','2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-CYB',1,'DIV-CYB','Cybersecurity Services','DIVISION','DIR-OPS','RTI-LE01','DIV-CYB',1,'CYBERSECURITY','2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-VAPT',1,'DEP-VAPT','VAPT','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-VAPT',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-VAPT',1,'DEP-VAPT','VAPT','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-VAPT',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-SOC',1,'DEP-SOC','SOC/MDR','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-SOC',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-SOC',1,'DEP-SOC','SOC/MDR','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-SOC',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-DFIR',1,'DEP-DFIR','DFIR & CTI','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-DFIR',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-DFIR',1,'DEP-DFIR','DFIR & CTI','DEPARTMENT','DIV-CYB','RTI-LE01','DEP-DFIR',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-GRC',1,'DIV-GRC','Governance, Risk & Advisory','DIVISION','DIR-OPS','RTI-LE01','DIV-GRC',1,'GOVERNANCE','2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-GRC',1,'DIV-GRC','Governance, Risk & Advisory','DIVISION','DIR-OPS','RTI-LE01','DIV-GRC',1,'GOVERNANCE','2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-SWE',1,'DIV-SWE','Software Engineering & Product','DIVISION','DIR-OPS','RTI-LE01','DIV-SWE',1,'SOFTWARE','2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-SWE',1,'DIV-SWE','Software Engineering & Product','DIVISION','DIR-OPS','RTI-LE01','DIV-SWE',1,'SOFTWARE','2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-ITS',1,'DIV-ITS','IT Managed Support & Service Desk','DIVISION','DIR-OPS','RTI-LE01','DIV-ITS',1,'IT_SUPPORT','2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-ITS',1,'DIV-ITS','IT Managed Support & Service Desk','DIVISION','DIR-OPS','RTI-LE01','DIV-ITS',1,'IT_SUPPORT','2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-ACD',1,'DIV-ACD','Training & Cybersecurity Academy','DIVISION','DIR-OPS','RTI-LE01','DIV-ACD',1,'TRAINING','2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-ACD',1,'DIV-ACD','Training & Cybersecurity Academy','DIVISION','DIR-OPS','RTI-LE01','DIV-ACD',1,'TRAINING','2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIV-PMO',1,'DIV-PMO','PMO & Resource Management','DIVISION','DIR-OPS','RTI-LE01','DIV-PMO',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIV-PMO',1,'DIV-PMO','PMO & Resource Management','DIVISION','DIR-OPS','RTI-LE01','DIV-PMO',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIR-FIN',1,'DIR-FIN','Finance, Procurement & Corporate','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-FIN',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIR-FIN',1,'DIR-FIN','Finance, Procurement & Corporate','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-FIN',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-ACC',1,'DEP-ACC','Accounting & Tax','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-ACC',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-ACC',1,'DEP-ACC','Accounting & Tax','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-ACC',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-TRS',1,'DEP-TRS','Treasury & Collection','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-TRS',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-TRS',1,'DEP-TRS','Treasury & Collection','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-TRS',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-PRC',1,'DEP-PRC','Procurement & Vendor','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-PRC',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-PRC',1,'DEP-PRC','Procurement & Vendor','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-PRC',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-HCM',1,'DEP-HCM','Human Capital','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-HCM',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-HCM',1,'DEP-HCM','Human Capital','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-HCM',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DEP-GA',1,'DEP-GA','General Affairs & Asset','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-GA',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DEP-GA',1,'DEP-GA','General Affairs & Asset','DEPARTMENT','DIR-FIN','RTI-LE01','DEP-GA',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIR-GOV',1,'DIR-GOV','Risk, Compliance, Legal & Internal Audit','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-GOV',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIR-GOV',1,'DIR-GOV','Risk, Compliance, Legal & Internal Audit','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-GOV',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','DIR-TEC',1,'DIR-TEC','Internal IT & Information Security','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-TEC',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','DIR-TEC',1,'DIR-TEC','Internal IT & Information Security','DIRECTORATE','RTI-LE01','RTI-LE01','DIR-TEC',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,business_line,valid_from,source) VALUES
- ('defendit360','PRT-ADTC',1,'PRT-ADTC','AD Training Center (partner)','PARTNER_ORG','DIV-ACD','RTI-LE01','PRT-ADTC',0,NULL,'2026-11-01','RTI_SEED_v3');
+ ('rti','PRT-ADTC',1,'PRT-ADTC','AD Training Center (partner)','PARTNER_ORG','DIV-ACD','RTI-LE01','PRT-ADTC',0,NULL,'2026-11-01','RTI_SEED_v3');
 INSERT INTO india_org_closure(tenant_id,ancestor,descendant,depth) VALUES
- ('defendit360','RTI','RTI',0),
- ('defendit360','RTI-LE01','RTI-LE01',0),
- ('defendit360','RTI','RTI-LE01',1),
- ('defendit360','BOD','BOD',0),
- ('defendit360','RTI-LE01','BOD',1),
- ('defendit360','RTI','BOD',2),
- ('defendit360','DIR-COM','DIR-COM',0),
- ('defendit360','RTI-LE01','DIR-COM',1),
- ('defendit360','RTI','DIR-COM',2),
- ('defendit360','DIV-MKT','DIV-MKT',0),
- ('defendit360','DIR-COM','DIV-MKT',1),
- ('defendit360','RTI-LE01','DIV-MKT',2),
- ('defendit360','RTI','DIV-MKT',3),
- ('defendit360','DIV-SAL','DIV-SAL',0),
- ('defendit360','DIR-COM','DIV-SAL',1),
- ('defendit360','RTI-LE01','DIV-SAL',2),
- ('defendit360','RTI','DIV-SAL',3),
- ('defendit360','DIV-BID','DIV-BID',0),
- ('defendit360','DIR-COM','DIV-BID',1),
- ('defendit360','RTI-LE01','DIV-BID',2),
- ('defendit360','RTI','DIV-BID',3),
- ('defendit360','DIR-OPS','DIR-OPS',0),
- ('defendit360','RTI-LE01','DIR-OPS',1),
- ('defendit360','RTI','DIR-OPS',2),
- ('defendit360','DIV-CYB','DIV-CYB',0),
- ('defendit360','DIR-OPS','DIV-CYB',1),
- ('defendit360','RTI-LE01','DIV-CYB',2),
- ('defendit360','RTI','DIV-CYB',3),
- ('defendit360','DEP-VAPT','DEP-VAPT',0),
- ('defendit360','DIV-CYB','DEP-VAPT',1),
- ('defendit360','DIR-OPS','DEP-VAPT',2),
- ('defendit360','RTI-LE01','DEP-VAPT',3),
- ('defendit360','RTI','DEP-VAPT',4),
- ('defendit360','DEP-SOC','DEP-SOC',0),
- ('defendit360','DIV-CYB','DEP-SOC',1),
- ('defendit360','DIR-OPS','DEP-SOC',2),
- ('defendit360','RTI-LE01','DEP-SOC',3),
- ('defendit360','RTI','DEP-SOC',4),
- ('defendit360','DEP-DFIR','DEP-DFIR',0),
- ('defendit360','DIV-CYB','DEP-DFIR',1),
- ('defendit360','DIR-OPS','DEP-DFIR',2),
- ('defendit360','RTI-LE01','DEP-DFIR',3),
- ('defendit360','RTI','DEP-DFIR',4),
- ('defendit360','DIV-GRC','DIV-GRC',0),
- ('defendit360','DIR-OPS','DIV-GRC',1),
- ('defendit360','RTI-LE01','DIV-GRC',2),
- ('defendit360','RTI','DIV-GRC',3),
- ('defendit360','DIV-SWE','DIV-SWE',0),
- ('defendit360','DIR-OPS','DIV-SWE',1),
- ('defendit360','RTI-LE01','DIV-SWE',2),
- ('defendit360','RTI','DIV-SWE',3),
- ('defendit360','DIV-ITS','DIV-ITS',0),
- ('defendit360','DIR-OPS','DIV-ITS',1),
- ('defendit360','RTI-LE01','DIV-ITS',2),
- ('defendit360','RTI','DIV-ITS',3),
- ('defendit360','DIV-ACD','DIV-ACD',0),
- ('defendit360','DIR-OPS','DIV-ACD',1),
- ('defendit360','RTI-LE01','DIV-ACD',2),
- ('defendit360','RTI','DIV-ACD',3),
- ('defendit360','DIV-PMO','DIV-PMO',0),
- ('defendit360','DIR-OPS','DIV-PMO',1),
- ('defendit360','RTI-LE01','DIV-PMO',2),
- ('defendit360','RTI','DIV-PMO',3),
- ('defendit360','DIR-FIN','DIR-FIN',0),
- ('defendit360','RTI-LE01','DIR-FIN',1),
- ('defendit360','RTI','DIR-FIN',2),
- ('defendit360','DEP-ACC','DEP-ACC',0),
- ('defendit360','DIR-FIN','DEP-ACC',1),
- ('defendit360','RTI-LE01','DEP-ACC',2),
- ('defendit360','RTI','DEP-ACC',3),
- ('defendit360','DEP-TRS','DEP-TRS',0),
- ('defendit360','DIR-FIN','DEP-TRS',1),
- ('defendit360','RTI-LE01','DEP-TRS',2),
- ('defendit360','RTI','DEP-TRS',3),
- ('defendit360','DEP-PRC','DEP-PRC',0),
- ('defendit360','DIR-FIN','DEP-PRC',1),
- ('defendit360','RTI-LE01','DEP-PRC',2),
- ('defendit360','RTI','DEP-PRC',3),
- ('defendit360','DEP-HCM','DEP-HCM',0),
- ('defendit360','DIR-FIN','DEP-HCM',1),
- ('defendit360','RTI-LE01','DEP-HCM',2),
- ('defendit360','RTI','DEP-HCM',3),
- ('defendit360','DEP-GA','DEP-GA',0),
- ('defendit360','DIR-FIN','DEP-GA',1),
- ('defendit360','RTI-LE01','DEP-GA',2),
- ('defendit360','RTI','DEP-GA',3),
- ('defendit360','DIR-GOV','DIR-GOV',0),
- ('defendit360','RTI-LE01','DIR-GOV',1),
- ('defendit360','RTI','DIR-GOV',2),
- ('defendit360','DIR-TEC','DIR-TEC',0),
- ('defendit360','RTI-LE01','DIR-TEC',1),
- ('defendit360','RTI','DIR-TEC',2),
- ('defendit360','PRT-ADTC','PRT-ADTC',0),
- ('defendit360','DIV-ACD','PRT-ADTC',1),
- ('defendit360','DIR-OPS','PRT-ADTC',2),
- ('defendit360','RTI-LE01','PRT-ADTC',3),
- ('defendit360','RTI','PRT-ADTC',4);
+ ('rti','RTI','RTI',0),
+ ('rti','RTI-LE01','RTI-LE01',0),
+ ('rti','RTI','RTI-LE01',1),
+ ('rti','BOD','BOD',0),
+ ('rti','RTI-LE01','BOD',1),
+ ('rti','RTI','BOD',2),
+ ('rti','DIR-COM','DIR-COM',0),
+ ('rti','RTI-LE01','DIR-COM',1),
+ ('rti','RTI','DIR-COM',2),
+ ('rti','DIV-MKT','DIV-MKT',0),
+ ('rti','DIR-COM','DIV-MKT',1),
+ ('rti','RTI-LE01','DIV-MKT',2),
+ ('rti','RTI','DIV-MKT',3),
+ ('rti','DIV-SAL','DIV-SAL',0),
+ ('rti','DIR-COM','DIV-SAL',1),
+ ('rti','RTI-LE01','DIV-SAL',2),
+ ('rti','RTI','DIV-SAL',3),
+ ('rti','DIV-BID','DIV-BID',0),
+ ('rti','DIR-COM','DIV-BID',1),
+ ('rti','RTI-LE01','DIV-BID',2),
+ ('rti','RTI','DIV-BID',3),
+ ('rti','DIR-OPS','DIR-OPS',0),
+ ('rti','RTI-LE01','DIR-OPS',1),
+ ('rti','RTI','DIR-OPS',2),
+ ('rti','DIV-CYB','DIV-CYB',0),
+ ('rti','DIR-OPS','DIV-CYB',1),
+ ('rti','RTI-LE01','DIV-CYB',2),
+ ('rti','RTI','DIV-CYB',3),
+ ('rti','DEP-VAPT','DEP-VAPT',0),
+ ('rti','DIV-CYB','DEP-VAPT',1),
+ ('rti','DIR-OPS','DEP-VAPT',2),
+ ('rti','RTI-LE01','DEP-VAPT',3),
+ ('rti','RTI','DEP-VAPT',4),
+ ('rti','DEP-SOC','DEP-SOC',0),
+ ('rti','DIV-CYB','DEP-SOC',1),
+ ('rti','DIR-OPS','DEP-SOC',2),
+ ('rti','RTI-LE01','DEP-SOC',3),
+ ('rti','RTI','DEP-SOC',4),
+ ('rti','DEP-DFIR','DEP-DFIR',0),
+ ('rti','DIV-CYB','DEP-DFIR',1),
+ ('rti','DIR-OPS','DEP-DFIR',2),
+ ('rti','RTI-LE01','DEP-DFIR',3),
+ ('rti','RTI','DEP-DFIR',4),
+ ('rti','DIV-GRC','DIV-GRC',0),
+ ('rti','DIR-OPS','DIV-GRC',1),
+ ('rti','RTI-LE01','DIV-GRC',2),
+ ('rti','RTI','DIV-GRC',3),
+ ('rti','DIV-SWE','DIV-SWE',0),
+ ('rti','DIR-OPS','DIV-SWE',1),
+ ('rti','RTI-LE01','DIV-SWE',2),
+ ('rti','RTI','DIV-SWE',3),
+ ('rti','DIV-ITS','DIV-ITS',0),
+ ('rti','DIR-OPS','DIV-ITS',1),
+ ('rti','RTI-LE01','DIV-ITS',2),
+ ('rti','RTI','DIV-ITS',3),
+ ('rti','DIV-ACD','DIV-ACD',0),
+ ('rti','DIR-OPS','DIV-ACD',1),
+ ('rti','RTI-LE01','DIV-ACD',2),
+ ('rti','RTI','DIV-ACD',3),
+ ('rti','DIV-PMO','DIV-PMO',0),
+ ('rti','DIR-OPS','DIV-PMO',1),
+ ('rti','RTI-LE01','DIV-PMO',2),
+ ('rti','RTI','DIV-PMO',3),
+ ('rti','DIR-FIN','DIR-FIN',0),
+ ('rti','RTI-LE01','DIR-FIN',1),
+ ('rti','RTI','DIR-FIN',2),
+ ('rti','DEP-ACC','DEP-ACC',0),
+ ('rti','DIR-FIN','DEP-ACC',1),
+ ('rti','RTI-LE01','DEP-ACC',2),
+ ('rti','RTI','DEP-ACC',3),
+ ('rti','DEP-TRS','DEP-TRS',0),
+ ('rti','DIR-FIN','DEP-TRS',1),
+ ('rti','RTI-LE01','DEP-TRS',2),
+ ('rti','RTI','DEP-TRS',3),
+ ('rti','DEP-PRC','DEP-PRC',0),
+ ('rti','DIR-FIN','DEP-PRC',1),
+ ('rti','RTI-LE01','DEP-PRC',2),
+ ('rti','RTI','DEP-PRC',3),
+ ('rti','DEP-HCM','DEP-HCM',0),
+ ('rti','DIR-FIN','DEP-HCM',1),
+ ('rti','RTI-LE01','DEP-HCM',2),
+ ('rti','RTI','DEP-HCM',3),
+ ('rti','DEP-GA','DEP-GA',0),
+ ('rti','DIR-FIN','DEP-GA',1),
+ ('rti','RTI-LE01','DEP-GA',2),
+ ('rti','RTI','DEP-GA',3),
+ ('rti','DIR-GOV','DIR-GOV',0),
+ ('rti','RTI-LE01','DIR-GOV',1),
+ ('rti','RTI','DIR-GOV',2),
+ ('rti','DIR-TEC','DIR-TEC',0),
+ ('rti','RTI-LE01','DIR-TEC',1),
+ ('rti','RTI','DIR-TEC',2),
+ ('rti','PRT-ADTC','PRT-ADTC',0),
+ ('rti','DIV-ACD','PRT-ADTC',1),
+ ('rti','DIR-OPS','PRT-ADTC',2),
+ ('rti','RTI-LE01','PRT-ADTC',3),
+ ('rti','RTI','PRT-ADTC',4);
 INSERT INTO india_sys_parameters(id,tenant_id,key,value_json,verify_status,effective_from,status,maker,checker,reason,approved_at) VALUES
- ('PRM-ORG-SEED','defendit360','org.seed_confirmed','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','business-owner:2026-11-01','Struktur organisasi RTI dikonfirmasi Business Owner 2026-11-01','2026-11-01');
+ ('PRM-ORG-SEED','rti','org.seed_confirmed','true','VERIFIED','2026-11-01','approved','system:seed-v3.0-RTI','business-owner:2026-11-01','Struktur organisasi RTI dikonfirmasi Business Owner 2026-11-01','2026-11-01');
 INSERT INTO india_iam_permissions(code,module,resource,action,source) VALUES
  ('*.*.*','*','*','*','role_template_seed'),
  ('*.*.export','*','*','export','role_template_seed'),

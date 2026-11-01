@@ -9,7 +9,7 @@ export type ParameterDef = { key: string; value: unknown; verify: VerifyStatus; 
 export const PROMPT_VERSION = '3.0-RTI';
 
 export const DEFAULT_PARAMETERS = {
-  system: { code: 'INDIA', name: 'Integrated Cybersecurity & IT Enterprise ERP + PSA', repository: 'https://github.com/elanghaqeem-hash/india', main_branch: 'main' },
+  system: { code: 'RTICORE', name: 'RTICORE — Centralized Operations & Resource Enterprise (ERP + PSA)', repository: 'https://github.com/elanghaqeem-hash/india', main_branch: 'main' },
   company: {
     holding_code: 'RTI', legal_name: 'PT Riset Teknologi Indonesia', brand: 'Risetin', domain: 'risetin.co.id',
     hq_address: 'Graha Mustika Ratu Lt. 7, Jl. Jend. Gatot Subroto Kav. 74-75, Menteng Dalam, Tebet, Jakarta Selatan',
@@ -17,7 +17,7 @@ export const DEFAULT_PARAMETERS = {
     affiliated_entities: [{ code: 'TAR', legal_name: 'PT Technotama Artha Raya', status: 'onboarding' }],
     partners: [{ code: 'ADTC', name: 'AD Training Center', scheme: 'revenue_share', rti_share: '0.60', partner_share: '0.40', base: 'net_distributable_revenue' }],
     // Legacy D1 tenant key. Renaming it is a data migration, not a label change (see WP00 audit C-03).
-    tenant_key: 'defendit360',
+    tenant_key: 'rti',
   },
   accounting: {
     framework: 'SAK_EP', functional_currency: 'IDR', reporting_currencies: ['IDR', 'USD'],
@@ -46,13 +46,13 @@ export const DEFAULT_PARAMETERS = {
   timezone: 'Asia/Jakarta',
   holiday_calendar: 'ID_NATIONAL + company_collective_leave',
   environments: ['DEV', 'INT', 'UAT_SIM', 'STAGING', 'PROD'],
-  ui: { theme: 'INDIA Vivid', default_mode: 'light', language: ['id-ID', 'en-US'] },
+  ui: { theme: 'RTICORE Vivid', default_mode: 'light', language: ['id-ID', 'en-US'] },
   security: {
     asvs_level: 2, mfa_required_roles: ['EXEC', 'FIN', 'ADMIN', 'SEC', 'PRIVILEGED'], session_idle_min: 30, session_absolute_hours: 12,
     // Dual-run cut-over (industry practice): 'shadow' evaluates and logs every ERP decision without blocking;
     // 'enforce' blocks. Flip to enforce once every active user has an approved role binding (access review evidence).
     policy_enforcement: 'shadow',
-    // Cloudflare Access policy must require MFA for the INDIA application; the edge assertion is then trusted.
+    // Cloudflare Access policy must require MFA for the RTICORE application; the edge assertion is then trusted.
     mfa_enforced_at_edge: true,
     // Until bindings are provisioned, legacy login roles map to v3 templates through india_iam_legacy_role_map.
     legacy_role_fallback: true,

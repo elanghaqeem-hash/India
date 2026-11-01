@@ -23,7 +23,7 @@ function Brand() {
   return <div className="quote-brand">
     <div className="quote-brand-logo" aria-label="RTI">
       <div><div className="quote-logo-text">RTI</div>
-      <div className="quote-logo-member">INDIA Business Management Platform</div></div>
+      <div className="quote-logo-member">RTICORE Enterprise Platform</div></div>
     </div>
     <div className="quote-brand-address"><b>RTI</b><br/>
       [Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]

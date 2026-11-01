@@ -382,7 +382,7 @@ export default function SmartScopingPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Unggah file RKS, KAK, atau TOR untuk membaca teks, atau tempelkan isi dokumen secara manual. Periksa teks sebelum mengirimkannya ke AI yang dikonfigurasi di India.
+              Unggah file RKS, KAK, atau TOR untuk membaca teks, atau tempelkan isi dokumen secara manual. Periksa teks sebelum mengirimkannya ke AI yang dikonfigurasi di RTICORE.
             </p>
 
             <div className="space-y-3 rounded-xl border border-dashed border-indigo-300 bg-indigo-50/40 p-4">
@@ -437,7 +437,7 @@ export default function SmartScopingPage() {
             )}
             <label className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-600">
               <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300" checked={aiConsent} onChange={e => setAiConsent(e.target.checked)} />
-              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi India dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
+              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi RTICORE dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
             </label>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button

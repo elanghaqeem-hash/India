@@ -138,3 +138,16 @@ Parameter bertanda VERIFY (14 kunci, tersimpan `verify_status='VERIFY'` di `indi
 
 ### Sumber regulasi
 PP 58/2023 dan lampiran TER; PMK 168/2023; PMK 101/2016; UU 7/2021 (HPP); PMK 131/2024; UU PPh Pasal 21, 23, 26, 31E; PMK 112/2022; PMK 81/2024; Perpres 64/2020; PP 44/2015, PP 45/2015, PP 46/2015; SE BPJS Ketenagakerjaan B/1226/022026.
+
+## 9. Iterasi 3 — tenant key RTI, rename RTICORE, rilis produksi (1 November 2026)
+
+| Item | Implementasi | Evidence |
+|---|---|---|
+| Kunci tenant D1 `defendit360` → `rti` | Migrasi 0044 di-generate dari skema 0043: `PRAGMA defer_foreign_keys`, drop 233 trigger, update `tenant_id` di 116 tabel, recreate trigger verbatim. Kode memakai `rti` | Rehearsal `tests/rti-v3-tenant-migration.test.cjs`: data hasil alur nyata dipindah ke key lama lalu dimigrasi; jumlah baris tetap, trigger identik, FK bersih, aplikasi tetap bisa bertransaksi |
+| Dokumen Vault terenkripsi | AES-GCM AAD dokumen lama terikat ke tenant lama; dekripsi kini mencoba key baru lalu fallback ke key lama (tetap terautentikasi) | Mutation test: tanpa fallback, dokumen lama gagal dibuka; dengan fallback lolos; dokumen yang dimanipulasi tetap ditolak |
+| Konstanta kriptografi | `INDIA-AI:` dan `INDIA-DOCUMENT-v1` sengaja **tidak** diubah, karena merupakan bagian ciphertext yang sudah tersimpan | Test keamanan AI vault |
+| INDIA → RTICORE | Semua label UI, judul halaman, prompt AI, dokumen dan nama file ekspor; `system.code=RTICORE`; tema `RTICORE Vivid` | Test login, navigasi, layout diperbarui |
+| Tetap bernama `india` | Nama Worker Cloudflare, database D1, prefix tabel `india_*`, variabel lingkungan `INDIA_*`, repository | Mengubahnya mengganti target deploy, binding dan URL; dilakukan terpisah bila diperlukan |
+| Rilis produksi | Workflow `rticore-production-release.yml`: gate test → build → export D1 + bookmark Time Travel → migrasi tertunda → deploy → verifikasi D1/HTTP → rollback otomatis Worker dan D1 | Berjalan otomatis saat merge ke `main` |
+
+Regresi: 598/598 test PASS, typecheck bersih.

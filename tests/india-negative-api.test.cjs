@@ -15,9 +15,9 @@ const fakeAuth=(role,email,db)=>({
  authorizeBoQ:async()=>({ok:true,identity:{role,email,db}}),
  privateHeaders:{'Cache-Control':'private, no-store'}
 });
-const accountA={id:'acc-A',tenant_id:'defendit360',legal_name:'TEST Company A',customer_number:'TEST-A',data_json:'{}',created_at:'',created_by:'sales.a@uat.invalid'};
+const accountA={id:'acc-A',tenant_id:'rti',legal_name:'TEST Company A',customer_number:'TEST-A',data_json:'{}',created_at:'',created_by:'sales.a@uat.invalid'};
 const accountB={...accountA,id:'acc-B',legal_name:'TEST Company B',created_by:'sales.b@uat.invalid'};
-const dealA={id:'deal-A',tenant_id:'defendit360',company_id:'acc-A',title:'TEST Opportunity',stage:'prospecting',
+const dealA={id:'deal-A',tenant_id:'rti',company_id:'acc-A',title:'TEST Opportunity',stage:'prospecting',
  estimated_value_idr:1000000,data_json:'{}',created_at:'',created_by:'sales.a@uat.invalid'};
 function mockDb({accounts=[accountA,accountB],opportunity=dealA}={}){
  const calls=[];

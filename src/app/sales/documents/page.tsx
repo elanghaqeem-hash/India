@@ -61,7 +61,7 @@ export default function DocumentVaultPage(){
  const allowedUpload=(role==='finance'&&kind==='supporting')||['admin','sales'].includes(role)||(role==='presales'&&['rks','kak','supporting'].includes(kind));
  return <main className="mx-auto w-full max-w-7xl min-w-0 space-y-5 px-3 py-5 pb-24 sm:px-6">
   <header className="rounded-2xl bg-slate-900 p-5 text-white">
-   <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">India · Secure Document Management</p>
+   <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">RTICORE · Secure Document Management</p>
    <h1 className="mt-1 text-2xl font-bold">Document Vault</h1>
    <p className="mt-2 max-w-3xl text-sm text-slate-200">Arsip asli terenkripsi, riwayat versi, SHA-256, akses berbasis role, kebijakan retensi dan audit unduhan. File historis tidak ditimpa saat revisi.</p>
   </header>

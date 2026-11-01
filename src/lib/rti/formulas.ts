@@ -1,4 +1,4 @@
-// Versioned formula library (prompt §7). Every financial or KPI number in INDIA must come from one of these entries.
+// Versioned formula library (prompt §7). Every financial or KPI number in RTICORE must come from one of these entries.
 // Money: integer minor units (cents). Ratios: basis points (10000 = 100%). Durations: minutes. Days: hundredths (x100).
 import { applyRate, divRound, prorate, rate, ratioBp, toBig, toNum, allocate, type Rate } from './money';
 

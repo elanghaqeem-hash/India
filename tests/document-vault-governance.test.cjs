@@ -100,7 +100,7 @@ test('migration 0021 is additive, backfills numbered originals and rolls back at
   d.sql.exec(fs.readFileSync(path.join(__dirname,'../migrations/0015_secure_document_vault.sql'),'utf8'));
   await expect(d.flow('scope','presales'),201);
   const release=d.release();
-  d.sql.prepare('INSERT INTO india_document_vault(id,tenant_id,opportunity_id,release_id,kind,file_name,media_type,byte_length,sha256,iv,chunk_count,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac','defendit360','opp-qa',release.id,'proposal','legacy.pdf','application/pdf',10,'a'.repeat(64),'b'.repeat(16),1,'sales@flow.invalid');
+  d.sql.prepare('INSERT INTO india_document_vault(id,tenant_id,opportunity_id,release_id,kind,file_name,media_type,byte_length,sha256,iv,chunk_count,created_by) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)').run('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac','rti','opp-qa',release.id,'proposal','legacy.pdf','application/pdf',10,'a'.repeat(64),'b'.repeat(16),1,'sales@flow.invalid');
   d.sql.prepare('INSERT INTO india_document_chunks(document_id,part,ciphertext) VALUES(?,?,?)').run('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaac',0,'AAAA');
   const m=fs.readFileSync(path.join(__dirname,'../migrations/0022_document_vault_governance.sql'),'utf8');
   d.sql.exec('BEGIN');assert.throws(()=>d.sql.exec(m+"INSERT INTO india_sales_tx_guards(id,ok) VALUES('bad',0);"),/CHECK/);d.sql.exec('ROLLBACK');

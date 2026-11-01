@@ -22,7 +22,9 @@ export async function documentKey(){
  if(bytes.length!==32)throw Error('VAULT_KEY_UNAVAILABLE');
  return crypto.subtle.importKey('raw',new Uint8Array(bytes),'AES-GCM',false,['encrypt','decrypt']);
 }
-const aad=(d:VaultDoc)=>utf8.encode(JSON.stringify(['INDIA-DOCUMENT-v1',d.id,d.tenant_id,d.opportunity_id,d.release_id,d.kind,d.file_name,d.media_type,d.byte_length,d.sha256]));
+// Documents sealed before migration 0044 are bound to the previous tenant key; decryption retries with it.
+const LEGACY_TENANT_AAD='defendit360';
+const aad=(d:VaultDoc,tenant=d.tenant_id)=>utf8.encode(JSON.stringify(['INDIA-DOCUMENT-v1',d.id,tenant,d.opportunity_id,d.release_id,d.kind,d.file_name,d.media_type,d.byte_length,d.sha256]));
 export async function sealDocument(doc:VaultDoc,bytes:Uint8Array){
  const iv=crypto.getRandomValues(new Uint8Array(12));
  const encrypted=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv,additionalData:aad(doc)},await documentKey(),new Uint8Array(bytes)));
@@ -38,7 +40,11 @@ export async function openDocument(db:D1DB,doc:VaultDoc,source:'release'|'librar
  const chunks=rows.map(r=>unb64(r.ciphertext)),size=chunks.reduce((n,c)=>n+c.length,0);
  if(size!==doc.byte_length+16)throw Error('VAULT_INTEGRITY');
  const data=new Uint8Array(size);let offset=0;for(const c of chunks){data.set(c,offset);offset+=c.length;}
- const bytes=new Uint8Array(await crypto.subtle.decrypt({name:'AES-GCM',iv:new Uint8Array(unb64(doc.iv)),additionalData:aad(doc)},await documentKey(),data));
+ const key=await documentKey(),iv=new Uint8Array(unb64(doc.iv));
+ let plain:ArrayBuffer;
+ try{plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad(doc)},key,data);}
+ catch(e){if(doc.tenant_id===LEGACY_TENANT_AAD)throw e;plain=await crypto.subtle.decrypt({name:'AES-GCM',iv,additionalData:aad(doc,LEGACY_TENANT_AAD)},key,data);}
+ const bytes=new Uint8Array(plain);
  if(bytes.length!==doc.byte_length||await documentHash(bytes)!==doc.sha256)throw Error('VAULT_INTEGRITY');
  return bytes;
 }

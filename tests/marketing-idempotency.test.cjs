@@ -14,13 +14,13 @@ test('P0: repeated Lead create with same request UUID cannot create duplicate ro
  const fields=['id','tenant_id','lead_number','account_name','source','service_family','assigned_sales_email','created_by','updated_by','request_key'];
  const req='8767fe1e-46fc-4d01-9a3f-55d533c66663';
  const insert=db.prepare('INSERT INTO india_marketing_leads('+fields.join(',')+') VALUES (?,?,?,?,?,?,?,?,?,?)');
- insert.run('lead-1','defendit360','LD-1','PT UAT Cyber','Referral','VAPT','sales@example.test','marketing@example.test','marketing@example.test',req);
- assert.throws(()=>insert.run('lead-2','defendit360','LD-2','PT UAT Cyber','Referral','VAPT','sales@example.test','marketing@example.test','marketing@example.test',req),/UNIQUE/);
+ insert.run('lead-1','rti','LD-1','PT UAT Cyber','Referral','VAPT','sales@example.test','marketing@example.test','marketing@example.test',req);
+ assert.throws(()=>insert.run('lead-2','rti','LD-2','PT UAT Cyber','Referral','VAPT','sales@example.test','marketing@example.test','marketing@example.test',req),/UNIQUE/);
  const existing=db.prepare('SELECT id FROM india_marketing_leads WHERE tenant_id=? AND created_by=? AND request_key=?')
- .get('defendit360','marketing@example.test',req);
+ .get('rti','marketing@example.test',req);
  assert.equal(existing.id,'lead-1');
  assert.equal(db.prepare('SELECT count(*) AS n FROM india_marketing_leads').get().n,1);
- insert.run('lead-3','defendit360','LD-3','PT UAT Cyber','Referral','VAPT','sales@example.test','other@example.test','other@example.test',req);
+ insert.run('lead-3','rti','LD-3','PT UAT Cyber','Referral','VAPT','sales@example.test','other@example.test','other@example.test',req);
  assert.equal(db.prepare('SELECT count(*) AS n FROM india_marketing_leads').get().n,2,'different actor allowed separate request');
  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
  db.close();
@@ -30,7 +30,7 @@ test('P0: migration supports legacy leads and refuses invalid request key duplic
  db.exec("CREATE TABLE india_members(email TEXT PRIMARY KEY COLLATE NOCASE,role TEXT CHECK(role IN ('admin','finance','presales','sales','approver','viewer')),active INTEGER DEFAULT 1,created_at TEXT DEFAULT CURRENT_TIMESTAMP,created_by TEXT)");
  db.exec(sql('0004_india_sales_isolation.sql'));
  db.exec(sql('0005_marketing_lead_flow.sql'));
- db.exec("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,service_family,assigned_sales_email,created_by,updated_by) VALUES ('legacy','defendit360','LD-OLD','Old Customer','Referral','VAPT','sales@example.test','admin@example.test','admin@example.test')");
+ db.exec("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,service_family,assigned_sales_email,created_by,updated_by) VALUES ('legacy','rti','LD-OLD','Old Customer','Referral','VAPT','sales@example.test','admin@example.test','admin@example.test')");
  db.exec(sql('0009_lead_request_idempotency.sql'));
  assert.equal(db.prepare("SELECT request_key FROM india_marketing_leads WHERE id='legacy'").get().request_key,null);
  db.close();

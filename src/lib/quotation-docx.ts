@@ -109,7 +109,7 @@ function table(rows: Array<Array<string | number>>, widths: number[], header = t
 function page(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function brand(): string {
   const left = p('RTI', { bold: true, size: 33, color: '172B4D', after: 15 }) +
-    p('INDIA Business Management Platform', { size: 14, color: '667085', after: 10 });
+    p('RTICORE Enterprise Platform', { size: 14, color: '667085', after: 10 });
   const right = p('RTI', { bold: true, size: 14, align: 'right', after: 4 }) +
     p('[Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]', { size: 12, align: 'right', after: 0 });
   const block = (content: string, width: number) => '<w:tc><w:tcPr><w:tcW w:w="' + width +
@@ -318,7 +318,7 @@ export function downloadQuotationDocx(proposal: Proposal, selected: QuotationFor
   }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'INDIA_RTI_Quotation_' + format + '_' + safeName + '.docx';
+  a.download = 'RTICORE_Quotation_' + format + '_' + safeName + '.docx';
   document.body.appendChild(a);
   a.click();
   a.remove();

@@ -1,6 +1,6 @@
 // Technical D1 tenant key, declared locally so this pure module loads under --experimental-strip-types (no value
 // imports). Tests assert it equals sales-workflow TENANT and Parameter Center company.tenant_key.
-export const TENANT_KEY='defendit360';
+export const TENANT_KEY='rti';
 import type {D1DB} from './boq-auth';
 /** Reused at stage, export/submission and forecast commit boundaries. d is the Opportunity SQL alias. */
 const required=`(EXISTS(SELECT 1 FROM india_sales_bids b WHERE b.tenant_id=d.tenant_id AND b.opportunity_id=d.id AND (b.channel!='direct' OR b.bid_decision='no_go'))

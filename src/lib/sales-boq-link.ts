@@ -5,7 +5,7 @@ type Account={id:string;legal_name:string};
 const name=(x:string)=>x.trim().replace(/\s+/g,' ').toLocaleLowerCase('id-ID');
 export function checkBoqLink(data:BoQPayload,deal:Deal|null,account:Account|null,role:string,email:string):string|null{
  if(!data.opportunity_id)return 'BoQ wajib terhubung ke Opportunity ID. Daftarkan atau pilih Opportunity dahulu.';
- if(!deal||!account)return 'Opportunity/Customer Master tidak ditemukan di tenant INDIA.';
+ if(!deal||!account)return 'Opportunity/Customer Master tidak ditemukan di tenant RTICORE.';
  if(['closed_won','closed_lost'].includes(deal.stage))return 'Opportunity sudah ditutup; BoQ harus diproses melalui revisi terkontrol.';
  if(role==='sales'&&deal.created_by.toLowerCase()!==email.toLowerCase())return 'Sales hanya dapat mengubah BoQ milik Opportunity sendiri.';
  if(name(data.customer_name)!==name(account.legal_name))return 'Nama perusahaan pada BoQ harus sama dengan Customer Account.';

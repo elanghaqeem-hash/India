@@ -88,7 +88,7 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
          'Sesi belum terverifikasi. Fitur transaksi memerlukan Cloudflare Access dan skema D1 yang sesuai.'}
       </div>
       {session.status==='denied'&&<div className="no-print border-b border-indigo-100 bg-indigo-50 px-4 py-2 text-center text-xs">
-        <Link href="/login" className="font-semibold text-indigo-800 underline">Buka halaman login INDIA</Link>
+        <Link href="/login" className="font-semibold text-indigo-800 underline">Buka halaman login RTICORE</Link>
       </div>}
       <div className="flex min-w-0 flex-1 overflow-hidden print:block print:overflow-visible">
         {role&&<Sidebar role={role} desktopOpen={desktopMenuOpen} mobileOpen={mobileMenuOpen} onClose={onCloseMenu}/>}

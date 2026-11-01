@@ -1,6 +1,6 @@
 // Technical D1 tenant key, declared locally so this pure module loads under --experimental-strip-types (no value
 // imports). Tests assert it equals sales-workflow TENANT and Parameter Center company.tenant_key.
-export const TENANT_KEY='defendit360';
+export const TENANT_KEY='rti';
 import type {D1DB,D1Prepared} from './boq-auth';
 export type FlowDeal={id:string;company_id:string;title:string;stage:string;estimated_value_idr:number;data_json:string;created_by:string;flow_version:number};
 export type SalesRelease={id:string;tenant_id:string;opportunity_id:string;version:number;status:'scoped'|'proposed'|'approved'|'superseded';scope_snapshot:string;account_snapshot:string;scope_notes:string;scoped_by:string;proposal_reference:string|null;proposal_sha256:string|null;proposal_notes:string|null;proposed_by:string|null;boq_id:string|null;boq_version:number|null;boq_edit_seq:number|null;approved_by:string|null;approved_at:string|null};

@@ -24,7 +24,7 @@ export async function authorizeBoQ(request:Request):Promise<Result>{
  try {env=(await getCloudflareContext({async:true})).env as CloudEnv;}catch{return deny(503,'D1 runtime tidak tersedia');}
  const db=env.INDIA_DB, domain=env.INDIA_ACCESS_TEAM_DOMAIN, aud=env.INDIA_ACCESS_AUD;
  if(!db||!domain||!aud||!domain.endsWith('.cloudflareaccess.com')||aud.length<30)
-  return deny(503,'Database atau autentikasi India belum dikonfigurasi.');
+  return deny(503,'Database atau autentikasi RTICORE belum dikonfigurasi.');
  const token=request.headers.get('cf-access-jwt-assertion');
  if(!token)return deny(401,'Login Cloudflare Access diperlukan.');
  try{

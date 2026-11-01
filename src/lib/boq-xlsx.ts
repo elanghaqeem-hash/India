@@ -214,7 +214,7 @@ function makeInternal(proposal: Proposal, pricing: PricingSession | undefined, o
   const assumptions: Cell[][] = [
     ['RTI | CATATAN & KONTROL'], [],
     [], [], [], [], ['Kontrol', 'Isi'],
-    ['Sumber utama', 'Data proposal terpilih di India: ' + safeText(proposal.quotation_number)],
+    ['Sumber utama', 'Data proposal terpilih di RTICORE: ' + safeText(proposal.quotation_number)],
     ['HPP', pricing ? 'Dari pricing session dengan opportunity_id yang sama.' : 'Belum ada pricing session terkait; kolom HPP sengaja kosong.'],
     ['Layanan / Katalog', 'Katalog referensi, bukan verifikasi kepemilikan lisensi/distribusi vendor.'],
     ['Vendor SKU', 'FortiSIEM, ACT Pro, EDR/XDR wajib verifikasi SKU, partner, hak jual, harga dan termin.'],
@@ -443,7 +443,7 @@ export function createProposalBoQ(proposal: Proposal, format: BoQExportFormat, p
 export function downloadProposalBoQ(proposal: Proposal, format: BoQExportFormat, pricing?: PricingSession): void {
   const bytes = createProposalBoQ(proposal, format, pricing);
   const safe = proposal.quotation_number.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 50) || 'draft';
-  const file = 'India_RTI_BoQ_' + format + '_' + safe + '.xlsx';
+  const file = 'RTICORE_BoQ_' + format + '_' + safe + '.xlsx';
   const out = new Uint8Array(bytes.length);
   out.set(bytes);
   const url = URL.createObjectURL(new Blob([out.buffer], {

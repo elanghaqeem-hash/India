@@ -15,7 +15,7 @@ type AccountRow={id:string;legal_name:string;data_json:string};
 type BoQRow={id:string;opportunity_id:string|null;customer_name:string;project_name:string;quotation_number:string;version:number;edit_seq:number;status:string;line_items_json:string;cost_items_json:string;vat_rate:number;payment_terms:string;approved_by:string|null;created_by:string;created_at:string;};
 const str=(v:unknown)=>typeof v==='string'?v.trim():'';
 const clean=(v:string)=>v.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60);
-/** Download approved D1 quotation using INDIA's already implemented 3-format DOCX generator. */
+/** Download approved D1 quotation using RTICORE's already implemented 3-format DOCX generator. */
 export async function GET(req:Request){
  const auth=await authorizeBoQ(req);
  if(!auth.ok)return auth.response;

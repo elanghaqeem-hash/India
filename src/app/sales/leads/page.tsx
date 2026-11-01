@@ -128,7 +128,7 @@ export default function MarketingLeads(){
  const campaignStatusText:Record<string,string>={planned:'Direncanakan',paused:'Dijeda',completed:'Selesai',cancelled:'Dibatalkan'};
  return <main className="min-w-0 space-y-5 pb-24">
   <header className="flex flex-wrap items-start justify-between gap-3">
-   <div><div className="flex items-center gap-2 text-xs font-bold text-blue-700"><Megaphone size={16}/> INDIA · Marketing</div>
+   <div><div className="flex items-center gap-2 text-xs font-bold text-blue-700"><Megaphone size={16}/> RTICORE · Marketing</div>
     <h1 className="mt-1 text-xl font-extrabold text-slate-900 sm:text-2xl">Lead-to-Opportunity Workspace</h1>
     <p className="mt-1 max-w-2xl text-xs text-slate-600">Lead → Qualification → Konversi Customer/Opportunity → Sales Pipeline. Semua menggunakan sumber data D1 yang sama.</p>
    </div>

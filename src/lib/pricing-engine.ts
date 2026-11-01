@@ -1,4 +1,4 @@
-// INDIA CyberBusiness 360 Dynamic Pricing & BoQ Calculation Engine
+// RTICORE Dynamic Pricing & BoQ Calculation Engine
 // Sourced from the pricing/proposal schema & pre-development decisions
 
 import {

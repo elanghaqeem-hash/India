@@ -34,7 +34,7 @@ export async function POST(req:Request){
   const text=await req.text();if(text.length>140000)return problem('Dokumen terlalu besar',413);
   const value=validateBoQ(JSON.parse(text));
   if(value.cost_items?.length&&!can(role,'edit_cost'))return problem('HPP hanya untuk Finance',403);
-   if(!value.opportunity_id)return problem('Opportunity ID wajib untuk semua BoQ komersial INDIA',422);
+   if(!value.opportunity_id)return problem('Opportunity ID wajib untuk semua BoQ komersial RTICORE',422);
    const deal=await db.prepare('SELECT id,company_id,title,stage,created_by,data_json FROM india_sales_opportunities WHERE tenant_id=? AND id=?').bind(TENANT_KEY,value.opportunity_id).first<{id:string;company_id:string;title:string;stage:string;created_by:string;data_json:string}>();
    const account=deal?await db.prepare('SELECT id,legal_name FROM india_sales_accounts WHERE tenant_id=? AND id=?').bind(TENANT_KEY,deal.company_id).first<{id:string;legal_name:string}>():null;
    const linkError=checkBoqLink(value,deal,account,role,email);

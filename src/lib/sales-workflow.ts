@@ -1,7 +1,7 @@
 // D1-backed Sales stage gates. Pure domain functions; no customer demo values.
 // Technical D1 tenant key (storage identifier, not a brand label). Kept dependency-free so this pure module loads
 // under node --experimental-strip-types; tests assert it equals Parameter Center company.tenant_key.
-export const TENANT='defendit360';
+export const TENANT='rti';
 export const SALES_STAGES=[
  ['prospecting','Prospecting',10],
  ['qualified','Qualified',25],

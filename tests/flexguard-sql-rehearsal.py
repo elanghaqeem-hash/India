@@ -15,18 +15,18 @@ CREATE TABLE india_delivery_projects(id TEXT PRIMARY KEY,tenant_id TEXT,customer
 CREATE TABLE india_service_contracts(id TEXT PRIMARY KEY,tenant_id TEXT,project_id TEXT,customer_id TEXT,model TEXT,status TEXT,end_date TEXT, UNIQUE(tenant_id,id));
 CREATE TABLE india_billing_invoices(id TEXT PRIMARY KEY,tenant_id TEXT,project_id TEXT,status TEXT,amount_cents INTEGER,vat_cents INTEGER);
 CREATE TABLE india_billing_payments(id TEXT PRIMARY KEY,tenant_id TEXT,invoice_id TEXT,status TEXT,amount_cents INTEGER);
-INSERT INTO india_sales_accounts VALUES('acct','defendit360');
-INSERT INTO india_sales_opportunities VALUES('opp','defendit360','acct','closed_won');
-INSERT INTO india_delivery_projects VALUES('proj','defendit360','acct','opp');
-INSERT INTO india_service_contracts VALUES('cont','defendit360','proj','acct','FlexGuard','active','2099-12-31');
-INSERT INTO india_billing_invoices VALUES('inv','defendit360','proj','approved',100000,11000);
-INSERT INTO india_billing_payments VALUES('pay','defendit360','inv','approved',111000);
+INSERT INTO india_sales_accounts VALUES('acct','rti');
+INSERT INTO india_sales_opportunities VALUES('opp','rti','acct','closed_won');
+INSERT INTO india_delivery_projects VALUES('proj','rti','acct','opp');
+INSERT INTO india_service_contracts VALUES('cont','rti','proj','acct','FlexGuard','active','2099-12-31');
+INSERT INTO india_billing_invoices VALUES('inv','rti','proj','approved',100000,11000);
+INSERT INTO india_billing_payments VALUES('pay','rti','inv','approved',111000);
 """)
 sql=Path('migrations/0030_flexguard_immutable_ledger.sql').read_text()
 db.executescript(sql)
 assert db.execute('SELECT max(version) FROM india_schema_migrations').fetchone()[0]==30
 db.execute("""INSERT INTO india_flexguard_wallets(id,tenant_id,customer_id,contract_id,entitlement_units,created_by)
-VALUES('wallet','defendit360','acct','cont',10,'finance@example.test')""")
+VALUES('wallet','rti','acct','cont',10,'finance@example.test')""")
 def reject(sql,params=()):
  try:
   db.execute(sql,params)
@@ -38,22 +38,22 @@ db.execute("""UPDATE india_flexguard_wallets SET status='active',approved_by='ap
 def event(k,units,request,invoice=None,opp=None,source=None,doc=None):
  return db.execute("""INSERT INTO india_flexguard_events
  (id,tenant_id,wallet_id,kind,units,invoice_id,opportunity_id,source_event_id,document_id,request_key,actor_email,explanation)
- VALUES(?, 'defendit360','wallet',?,?,?,?,?,?,?,'worker@example.test','Actual approved workflow')""",
+ VALUES(?, 'rti','wallet',?,?,?,?,?,?,?,'worker@example.test','Actual approved workflow')""",
  (request,k,units,invoice,opp,source,doc,request))
 event('ISSUE',10,'issue-00000000001',invoice='inv')
 reject("""INSERT INTO india_flexguard_events(id,tenant_id,wallet_id,kind,units,invoice_id,request_key,actor_email,explanation)
- VALUES('fake','defendit360','wallet','TOPUP',1,'inv','topup-00000000001','f','Duplicate paid source')""")
+ VALUES('fake','rti','wallet','TOPUP',1,'inv','topup-00000000001','f','Duplicate paid source')""")
 reject("""INSERT INTO india_flexguard_events(id,tenant_id,wallet_id,kind,units,invoice_id,request_key,actor_email,explanation)
- VALUES('fake2','defendit360','wallet','TOPUP',1,'unknown','topup-00000000002','f','Unknown invoice')""")
+ VALUES('fake2','rti','wallet','TOPUP',1,'unknown','topup-00000000002','f','Unknown invoice')""")
 event('RESERVE',4,'reserve-000000001',opp='opp')
 reject("""INSERT INTO india_flexguard_events(id,tenant_id,wallet_id,kind,units,opportunity_id,request_key,actor_email,explanation)
- VALUES('bad','defendit360','wallet','RESERVE',7,'opp','reserve-000000002','f','Exceeds available')""")
+ VALUES('bad','rti','wallet','RESERVE',7,'opp','reserve-000000002','f','Exceeds available')""")
 event('DEBIT',3,'debit-0000000001',opp='opp',source='reserve-000000001',doc='vault-document-123')
 reject("""INSERT INTO india_flexguard_events(id,tenant_id,wallet_id,kind,units,opportunity_id,source_event_id,document_id,request_key,actor_email,explanation)
- VALUES('bad2','defendit360','wallet','DEBIT',2,'opp','reserve-000000001','vault-document-123','debit-0000000002','f','Exceeds reserve')""")
+ VALUES('bad2','rti','wallet','DEBIT',2,'opp','reserve-000000001','vault-document-123','debit-0000000002','f','Exceeds reserve')""")
 event('REFUND',2,'refund-000000001',source='debit-0000000001')
 reject("""INSERT INTO india_flexguard_events(id,tenant_id,wallet_id,kind,units,source_event_id,request_key,actor_email,explanation)
- VALUES('bad3','defendit360','wallet','REFUND',2,'debit-0000000001','refund-000000002','f','Exceeds consumed')""")
+ VALUES('bad3','rti','wallet','REFUND',2,'debit-0000000001','refund-000000002','f','Exceeds consumed')""")
 event('RELEASE',1,'release-000000001',opp='opp',source='reserve-000000001')
 reject("UPDATE india_flexguard_events SET units=20 WHERE id='issue-00000000001'")
 reject("DELETE FROM india_flexguard_events WHERE id='issue-00000000001'")

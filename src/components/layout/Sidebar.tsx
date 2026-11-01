@@ -58,7 +58,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
             </span>
             <div className="min-w-0">
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-200">RTI</p>
-              <h2 className="text-base font-extrabold tracking-tight">INDIA Navigation</h2>
+              <h2 className="text-base font-extrabold tracking-tight">RTICORE Navigation</h2>
               <p className="text-[11px] text-slate-300">Menu lengkap sesuai hak akses</p>
             </div>
           </div>
@@ -84,7 +84,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
             className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-2 focus:ring-indigo-100"/>
         </div>
       </div>
-      <nav aria-label="Daftar modul INDIA" className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-4">
+      <nav aria-label="Daftar modul RTICORE" className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain px-3 py-4">
         {filtered.map(group=>{
           const Icon = GROUP_ICONS[group.id] || LayoutDashboard;
           const activeGroup = group.items.some(item=>pathname===item.href || pathname.startsWith(item.href+'/'));
@@ -123,7 +123,7 @@ function NavigationContent({role, onClose, onNavigate, mobile}:{
         )}
       </nav>
       <div className="shrink-0 border-t border-slate-100 bg-slate-50 px-5 py-3">
-        <p className="text-[11px] font-semibold text-slate-600">INDIA · Integrated Business Platform</p>
+        <p className="text-[11px] font-semibold text-slate-600">RTICORE · Centralized Operations & Resource Enterprise</p>
         <p className="mt-0.5 text-[10px] leading-relaxed text-slate-500">Akses menu mengikuti role yang diverifikasi melalui Cloudflare Access dan D1.</p>
         <a href="/cdn-cgi/access/logout" className="mt-3 flex min-h-11 items-center justify-center gap-2 rounded-xl border border-rose-200 bg-white px-3 py-2 text-xs font-bold text-rose-700 transition hover:bg-rose-50 focus-visible:outline-2 focus-visible:outline-rose-500">
           <LogOut className="h-4 w-4" aria-hidden="true"/> Keluar akun / Logout
@@ -149,7 +149,7 @@ export const Sidebar:React.FC<SidebarProps> = ({role,desktopOpen,mobileOpen,onCl
       <div className={['no-print hidden shrink-0 overflow-hidden border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:block',
         desktopOpen?'w-80 border-r':'w-0'].join(' ')}>
         {desktopOpen&&(
-          <aside id="india-left-sidebar-desktop" aria-label="Navigasi modul INDIA"
+          <aside id="india-left-sidebar-desktop" aria-label="Navigasi modul RTICORE"
             className="sticky top-0 h-[calc(100dvh-4rem)] w-80 overflow-hidden">
             <NavigationContent role={role} onClose={onClose} onNavigate={()=>{}} mobile={false}/>
           </aside>
@@ -157,9 +157,9 @@ export const Sidebar:React.FC<SidebarProps> = ({role,desktopOpen,mobileOpen,onCl
       </div>
       {mobileOpen&&(
         <div className="no-print fixed inset-0 z-[70] lg:hidden">
-          <button type="button" aria-label="Tutup navigasi INDIA" onClick={onClose}
+          <button type="button" aria-label="Tutup navigasi RTICORE" onClick={onClose}
             className="absolute inset-0 h-full w-full bg-slate-950/55 backdrop-blur-[2px]"/>
-          <aside id="india-left-sidebar-mobile" role="dialog" aria-modal="true" aria-label="Navigasi modul INDIA"
+          <aside id="india-left-sidebar-mobile" role="dialog" aria-modal="true" aria-label="Navigasi modul RTICORE"
             className="absolute inset-y-0 left-0 h-[100dvh] w-[min(22rem,90vw)] overflow-hidden border-r border-white/20 bg-white shadow-2xl">
             <NavigationContent role={role} onClose={onClose} onNavigate={onClose} mobile={true}/>
           </aside>
