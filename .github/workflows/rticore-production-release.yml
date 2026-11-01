@@ -1,156 +1,28 @@
-name: RTICORE production release (v3.0-RTI) - backup, migrate, deploy, verify, rollback
+name: RTICORE production release — P0 HARD HOLD
 
-# Runs automatically when the v3.0-RTI release lands on main, or manually. Order:
-#   gates -> independent D1 export + Time Travel bookmark -> pending migrations (0040..0044) -> deploy Worker
-#   -> data/schema/HTTP verification -> automatic rollback of Worker version and D1 bookmark on any failure.
-# The GitHub "production" environment keeps any reviewer protection configured for this repository.
+# P0 2026-11-01: deliberately non-deploying until independently certified.
+# Manual invocation provides visibility but NEVER writes D1, changes Cloudflare
+# Access, uploads production backups, deploys the Worker, or rolls data back.
+# Re-enable only via separate reviewed release PR after genuine 420-case UAT,
+# independent original restore/recovery, signed evidence, migration collision
+# reconciliation with PR #103 and #96, and eight function-owner approvals.
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'migrations/004*.sql'
-      - '.github/workflows/rticore-production-release.yml'
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: rticore-production-release
+  group: rticore-production-release-hold
   cancel-in-progress: false
 
-env:
-  CLOUDFLARE_ACCOUNT_ID: 208155f241d4da84e1a6a9b44b7a8d28
-  D1_NAME: india-staging-db
-  D1_ID: 8395dd84-1b7d-4eaf-9990-1d8e75a42cb5
-  WORKER: india
-  NEXT_TELEMETRY_DISABLED: '1'
-  CI: 'true'
-
 jobs:
-  release:
-    environment: production
+  release-hold:
+    name: P0 fail-closed release containment
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
-      INDIA_JOB_TOKEN: ${{ secrets.INDIA_JOB_TOKEN }}
-      BASE_URL: ${{ secrets.INDIA_BASE_URL }}
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24'
-          cache: npm
-
-      - name: Require Cloudflare deploy token (value never printed)
+      - name: Deny all production mutation until independent certification
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then echo "BLOCKED: CLOUDFLARE_API_TOKEN secret is not configured."; exit 2; fi
-
-      - name: Install
-        run: npm ci --no-audit --no-fund
-
-      - name: Release gates (generated migrations, RTI suites, ERP regression, types)
-        run: |
-          node scripts/rti/build-migrations.cjs --check
-          npm run test:rti
-          npm run test:erp
-          npm run test:modules-13-15
-          npm run typecheck
-
-      - name: Build Worker bundle before touching production
-        run: npx opennextjs-cloudflare build
-
-      - name: Independent backup - full D1 export and Time Travel bookmark
-        id: backup
-        run: |
-          set -euo pipefail
-          mkdir -p backup
-          npx wrangler d1 export "$D1_NAME" --remote --output backup/d1-before-release.sql
-          sha256sum backup/d1-before-release.sql | tee backup/d1-before-release.sql.sha256
-          npx wrangler d1 time-travel info "$D1_NAME" --json > backup/time-travel.json
-          BOOKMARK=$(node -e "const j=require('./backup/time-travel.json');process.stdout.write(String(j.bookmark||''))")
-          test -n "$BOOKMARK" || { echo "BLOCKED: no Time Travel bookmark"; exit 2; }
-          echo "bookmark=$BOOKMARK" >> "$GITHUB_OUTPUT"
-          echo "Pre-release bookmark: $BOOKMARK"
-
-      - name: Keep backup as a protected artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: rticore-d1-backup-${{ github.run_id }}
-          path: backup/
-          retention-days: 90
-
-      - name: Record current Worker version for rollback
-        id: checkpoint
-        run: |
-          set -euo pipefail
-          node --input-type=module > prev.txt <<'NODE'
-          const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${process.env.WORKER}/deployments`, { headers: { Authorization: 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN } });
-          const j = await r.json();
-          const v = j?.result?.deployments?.[0]?.versions?.[0]?.version_id || '';
-          process.stdout.write(v);
-          NODE
-          echo "previous_version=$(cat prev.txt)" >> "$GITHUB_OUTPUT"
-          echo "Previous Worker version: $(cat prev.txt)"
-
-      - name: Apply pending migrations in order (stop at first failure)
-        id: migrate
-        run: |
-          set -euo pipefail
-          q() { npx wrangler d1 execute "$D1_NAME" --remote --json --command "$1"; }
-          CURRENT=$(q "SELECT coalesce(max(version),0) v FROM india_schema_migrations" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);process.stdout.write(String(j[0].results[0].v))})")
-          echo "Production schema version: $CURRENT"
-          for f in $(ls migrations/*.sql | sort); do
-            n=$((10#$(basename "$f" | cut -c1-4)))
-            if [ "$n" -gt "$CURRENT" ]; then
-              echo "Applying $f"
-              npx wrangler d1 execute "$D1_NAME" --remote --file "$f" --yes
-            fi
-          done
-          echo "applied=true" >> "$GITHUB_OUTPUT"
-
-      - name: Set posting-worker job token on the Worker (when provided)
-        if: env.INDIA_JOB_TOKEN != ''
-        run: printf '%s' "$INDIA_JOB_TOKEN" | npx wrangler secret put INDIA_JOB_TOKEN --name "$WORKER"
-
-      - name: Deploy Worker
-        id: deploy
-        run: npx opennextjs-cloudflare deploy
-
-      - name: Verify data, schema and controls in production D1
-        run: |
-          set -euo pipefail
-          q() { npx wrangler d1 execute "$D1_NAME" --remote --json --command "$1" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);process.stdout.write(JSON.stringify(j[0].results))})"; }
-          V=$(q "SELECT max(version) v FROM india_schema_migrations"); echo "schema: $V"; echo "$V" | grep -q '"v":44'
-          L=$(q "SELECT (SELECT count(*) FROM india_sales_opportunities WHERE tenant_id='defendit360')+(SELECT count(*) FROM india_boq WHERE tenant_id='defendit360')+(SELECT count(*) FROM india_document_vault WHERE tenant_id='defendit360') n")
-          echo "legacy-key rows (opportunities): $L"; echo "$L" | grep -q '"n":0'
-          T=$(q "SELECT count(*) n FROM sqlite_master WHERE type='trigger'"); echo "triggers: $T"
-          P=$(q "SELECT value_json FROM india_sys_parameters WHERE tenant_id='rti' AND key='company.tenant_key'"); echo "tenant param: $P"; echo "$P" | grep -q 'rti'
-          F=$(q "PRAGMA foreign_key_check"); echo "fk violations: $F"; test "$F" = "[]"
-
-      - name: HTTP smoke test (no 5xx)
-        if: env.BASE_URL != ''
-        run: |
-          for p in /login /api/erp/posting; do
-            c=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL$p"); echo "$p -> $c"
-            case "$c" in 5*) echo "SMOKE FAILED"; exit 1;; esac
-          done
-
-      - name: Roll back Worker version on failure
-        if: failure() && steps.deploy.outcome == 'success' && steps.checkpoint.outputs.previous_version != ''
-        env:
-          PREV: ${{ steps.checkpoint.outputs.previous_version }}
-        run: |
-          node --input-type=module <<'NODE'
-          const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${process.env.WORKER}/deployments`, {
-            method: 'POST', headers: { Authorization: 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ strategy: 'percentage', versions: [{ version_id: process.env.PREV, percentage: 100 }], annotations: { 'workers/message': 'Rollback after RTICORE v3.0-RTI release verification failure' } }) });
-          const j = await r.json().catch(() => ({}));
-          if (!r.ok || j.success !== true) { console.error('WORKER ROLLBACK FAILED - restore manually to ' + process.env.PREV); process.exit(2); }
-          console.log('Worker rolled back to ' + process.env.PREV);
-          NODE
-
-      - name: Restore D1 to the pre-release bookmark on failure
-        if: failure() && steps.backup.outputs.bookmark != '' && (steps.migrate.outcome == 'failure' || steps.migrate.outputs.applied == 'true')
-        run: npx wrangler d1 time-travel restore "$D1_NAME" --bookmark "${{ steps.backup.outputs.bookmark }}" --json
+          echo "::error title=PRODUCTION HOLD::Release blocked: reconcile competing 0040+ migrations from PR #103/#104; complete real signed Cloudflare Access UAT (420 cases), original backup/restore, independent RBAC/SoD signoffs and approved production release receipt. Source CI success is not production approval."
+          exit 1
