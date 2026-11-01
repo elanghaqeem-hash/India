@@ -68,5 +68,5 @@ BEGIN
   json_object('gross_salary',NEW.gross_cents,'bpjs_employer',NEW.bpjs_employer_cents,'net_pay',NEW.net_cents,'pph21',NEW.pph21_cents,'bpjs_total',NEW.bpjs_employer_cents+NEW.bpjs_employee_cents),
   json_object('cost_center','PAYROLL-'||NEW.period,'payroll_run',NEW.id),'payroll_run',NEW.id,'payroll_run:'||NEW.id);
 END;
-INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0043_rti_policy_runtime_outbox.sql','rti-v3-wiring');
-INSERT INTO india_schema_migrations(version) VALUES(43);
+INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0049_rti_policy_runtime_outbox.sql','rti-v3-wiring');
+INSERT INTO india_schema_migrations(version) VALUES(49);

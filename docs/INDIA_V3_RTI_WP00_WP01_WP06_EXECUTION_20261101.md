@@ -151,3 +151,11 @@ PP 58/2023 dan lampiran TER; PMK 168/2023; PMK 101/2016; UU 7/2021 (HPP); PMK 13
 | Rilis produksi | Workflow `rticore-production-release.yml`: gate test → build → export D1 + bookmark Time Travel → migrasi tertunda → deploy → verifikasi D1/HTTP → rollback otomatis Worker dan D1 | Berjalan otomatis saat merge ke `main` |
 
 Regresi: 598/598 test PASS, typecheck bersih.
+
+## 9. Iterasi 3 — rekonsiliasi migrasi dengan main (1 November 2026, 18:xx WIB)
+
+- PR #103 sudah di-merge ke main dengan migrasi kanonis 0040–0045 (role matrix, financial close/treasury, P2P budget, HR workforce, SIEM/EDR connector, role policy change). Bentrokan nomor dengan PR #104 yang dicatat di `INDIA_P0_EXECUTION_20261101.md` **diselesaikan**: migrasi RTI di-renumber menjadi **0046–0050** (0046 parameter/org/policy, 0047 posting/close, 0048 tax/payroll, 0049 policy runtime + outbox, 0050 rekey tenant) dan seluruhnya di-generate ulang dari `src/lib/rti`.
+- 0050 rekey tenant kini dibangun dari skema penuh 0001–0049 (132 tabel ber-`tenant_id`, 269 trigger), termasuk tabel PR #103. Rehearsal pada data hasil alur aplikasi nyata: jumlah baris tetap, trigger identik, foreign key bersih, dokumen Vault lama tetap terbaca.
+- Grant legacy kini juga melewati matriks role × capability dari #103, lalu policy engine v3. Test enforce memverifikasi tiga lapis penolakan: matriks legacy, unit legacy yang belum dipetakan (`LEGACY_UNIT_UNMAPPED`), dan IDOR lintas legal entity.
+- Bukti: chain kanonis 0001–0050 tanpa versi ganda; `scripts/india-p0-source-gate.mjs` PASS; rantai test `build:cf` + ERP/extension/modules 524/524 PASS; `tsc` bersih; `next build` sukses.
+- Produksi **tidak** disentuh. Workflow `rticore-production-release.yml` tetap pada status P0 HARD HOLD yang dipasang pemilik repo.

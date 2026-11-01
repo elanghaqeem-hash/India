@@ -117,7 +117,7 @@ body {
 }
 
 
-/* Technotama 2026 A4 letterhead quotation, based on the three reference documents. */
+/* RTI 2026 A4 letterhead quotation, based on the three reference documents. */
 .quotation-reference-document {
   display: flex;
   align-items: center;
@@ -264,4 +264,77 @@ body.india-ai-chat-open nav[aria-label="Navigasi utama mobile"] {
 }
 body.india-ai-chat-open {
   overflow: hidden;
+}
+
+
+/* Compact mobile-friendly picker typography. Native OS pickers are not
+   consistently styleable: use CompactSelect for longer choice lists. */
+select, select option, select optgroup {
+  font-size: 13px;
+  line-height: 1.45;
+}
+.ui-compact-select { position: relative; width: 100%; }
+.ui-compact-select--open { z-index: 70; }
+.ui-compact-select .ui-compact-select-trigger {
+  display: flex; width: 100%; min-height: 44px; align-items: center;
+  justify-content: space-between; gap: 10px; border: 1px solid #cbd5e1;
+  border-radius: 10px; background: #fff; padding: 9px 12px;
+  color: #0f172a; text-align: left; font-size: 13px; line-height: 1.45;
+  font-weight: 500; cursor: pointer; transition: border-color .15s, box-shadow .15s;
+}
+.ui-compact-select .ui-compact-select-trigger:focus-visible {
+  outline: 2px solid #2563eb; outline-offset: 2px;
+}
+.ui-compact-select .ui-compact-select-trigger:disabled {
+  background: #f1f5f9; color: #64748b; cursor: not-allowed;
+}
+.ui-compact-select-value { min-width: 0; overflow-wrap: anywhere; }
+.ui-compact-select-placeholder { color: #64748b; }
+.ui-compact-select-chevron { flex: 0 0 auto; color: #64748b; }
+.ui-compact-select-menu {
+  position: absolute; z-index: 72; top: calc(100% + 5px);
+  left: 0; width: 100%; min-width: 230px; max-height: min(330px, 60dvh);
+  overflow: auto; background: #fff; color: #0f172a;
+  border: 1px solid #cbd5e1; border-radius: 12px;
+  box-shadow: 0 14px 35px rgba(15,23,42,.16);
+}
+.ui-compact-select-search {
+  position: sticky; top: 0; z-index: 1; display: flex; align-items: center;
+  gap: 8px; padding: 8px 10px; background: #fff;
+  border-bottom: 1px solid #e2e8f0; color: #64748b;
+}
+.ui-compact-select-search input {
+  width: 100%; min-width: 0; min-height: 36px; border: none;
+  outline: none; background: transparent; color: #0f172a;
+  font-size: 16px; line-height: 1.4;
+}
+.ui-compact-select-group {
+  padding: 9px 12px 5px; color: #64748b; background: #f8fafc;
+  font-size: 11px; font-weight: 700; letter-spacing: .025em;
+}
+.ui-compact-select-option {
+  display: flex; width: 100%; min-height: 40px; align-items: center;
+  justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border: 0; border-bottom: 1px solid #f1f5f9;
+  background: #fff; color: #334155; text-align: left;
+  font-size: 13px; line-height: 1.4; font-weight: 400;
+  overflow-wrap: anywhere; cursor: pointer;
+}
+.ui-compact-select-option svg { flex: 0 0 auto; color: #2563eb; }
+.ui-compact-select-option[aria-selected="true"] { background: #eff6ff; color: #1d4ed8; font-weight: 600; }
+.ui-compact-select-option:focus-visible, .ui-compact-select-option:hover { outline: none; background: #f1f5f9; }
+.ui-compact-select-option:disabled { opacity: .5; cursor: not-allowed; }
+.ui-compact-select-empty { padding: 12px; color: #64748b; font-size: 12px; }
+.ui-compact-select-scrim { display: none; }
+@media (max-width: 639px) {
+  select { min-height: 44px; }
+  .ui-compact-select-scrim {
+    display: block; position: fixed; inset: 0; z-index: 71;
+    background: rgba(15,23,42,.34);
+  }
+  .ui-compact-select-menu {
+    position: fixed; top: 50%; left: 12px; right: 12px;
+    width: auto; min-width: 0; max-height: min(70dvh, 480px);
+    transform: translateY(-50%); z-index: 72; border-radius: 16px;
+  }
 }

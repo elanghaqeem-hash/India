@@ -257,5 +257,5 @@ INSERT INTO india_payroll_jkk_classes(class,label,rate,effective_from,legal_basi
  (3,'Sedang','0.0089','2015-07-01','PP 44/2015 jo. PP 82/2019: 0,24% / 0,54% / 0,89% / 1,27% / 1,74% sesuai kelompok risiko'),
  (4,'Tinggi','0.0127','2015-07-01','PP 44/2015 jo. PP 82/2019: 0,24% / 0,54% / 0,89% / 1,27% / 1,74% sesuai kelompok risiko'),
  (5,'Sangat tinggi','0.0174','2015-07-01','PP 44/2015 jo. PP 82/2019: 0,24% / 0,54% / 0,89% / 1,27% / 1,74% sesuai kelompok risiko');
-INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0042_rti_tax_payroll_tables.sql','rti-v3-tax');
-INSERT INTO india_schema_migrations(version) VALUES(42);
+INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0048_rti_tax_payroll_tables.sql','rti-v3-tax');
+INSERT INTO india_schema_migrations(version) VALUES(48);

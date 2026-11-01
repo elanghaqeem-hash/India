@@ -1,9 +1,9 @@
-// Rehearsal of migration 0044 (tenant key defendit360 -> rti) on a database populated by real application flows.
+// Rehearsal of migration 0050 (tenant key defendit360 -> rti) on a database populated by real application flows.
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), path = require('node:path');
 const { fixture, won, invoice, operation, today, expect } = require('./helpers/service-operations-fixture.cjs');
 const root = path.resolve(__dirname, '..');
-const M44 = fs.readFileSync(path.join(root, 'migrations/0044_rti_tenant_key.sql'), 'utf8');
+const M50 = fs.readFileSync(path.join(root, 'migrations/0050_rti_tenant_key.sql'), 'utf8');
 
 function snapshot(sql) {
   const tables = sql.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all().map(t => t.name);
@@ -29,8 +29,8 @@ async function toLegacy(h, sql, tenantTables, triggers) {
   sql.exec('COMMIT');
 }
 
-test('0044 moves every tenant row to rti, preserves rows, triggers, FKs and keeps the app working', async () => {
-  const h = await won(fixture(43)); try {
+test('0050 moves every tenant row to rti, preserves rows, triggers, FKs and keeps the app working', async () => {
+  const h = await won(fixture(49)); try {
     const inv = await invoice(h, 400_000);
     const pay = await expect(operation(h, 'finance', 'payment', { invoice_id: inv.id, document_id: inv.document, payment_date: today(), reference: 'MIG-REF-01', amount_idr: 510_000 }), 201);
     await expect(operation(h, 'approver', 'review_payment', { id: pay.body.id, approve: true, notes: 'Bank statement independently matched' }), 201);
@@ -42,15 +42,15 @@ test('0044 moves every tenant row to rti, preserves rows, triggers, FKs and keep
     assert.equal(legacyDoc.tenant_id, 'defendit360');
     const legacyRows = before.tenantTables.reduce((n, t) => n + h.sql.prepare(`SELECT count(*) n FROM "${t}" WHERE tenant_id='defendit360'`).get().n, 0);
     assert.ok(legacyRows > 30, 'legacy dataset populated: ' + legacyRows);
-    // Apply 0044 exactly as shipped, inside one transaction (D1 executes a migration file atomically)
-    h.sql.exec('BEGIN'); h.sql.exec(M44.replace(/PRAGMA defer_foreign_keys = (on|off);/g, m => m.endsWith('on;') ? 'PRAGMA defer_foreign_keys=ON;' : '')); h.sql.exec('COMMIT');
+    // Apply 0050 exactly as shipped, inside one transaction (D1 executes a migration file atomically)
+    h.sql.exec('BEGIN'); h.sql.exec(M50.replace(/PRAGMA defer_foreign_keys = (on|off);/g, m => m.endsWith('on;') ? 'PRAGMA defer_foreign_keys=ON;' : '')); h.sql.exec('COMMIT');
     const after = snapshot(h.sql);
     assert.deepEqual(after.counts, before.counts, 'row counts unchanged');
     assert.deepEqual(after.triggers, before.triggers, 'triggers recreated verbatim');
     for (const t of after.tenantTables) assert.equal(h.sql.prepare(`SELECT count(*) n FROM "${t}" WHERE tenant_id!='rti'`).get().n, 0, t);
     assert.deepEqual(h.sql.prepare('PRAGMA foreign_key_check').all(), []);
     assert.equal(h.sql.prepare('PRAGMA quick_check').get().quick_check, 'ok');
-    assert.equal(h.sql.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=44').get().n, 1);
+    assert.equal(h.sql.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=50').get().n, 1);
     // Immutability triggers are active again after the migration
     assert.throws(() => h.sql.prepare("UPDATE india_billing_payments SET amount_cents=1 WHERE id=?").run(pay.body.id), /constraint|IMMUTABLE|CHECK|ABORT/i);
     // Application reads the migrated data with the new key

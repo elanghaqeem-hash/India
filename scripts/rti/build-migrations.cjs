@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// Generates migrations/0040 and 0041 from src/lib/rti seed data so SQL seed and code never drift.
+// Generates the RTI migrations 0046-0050 (after canonical 0001-0045 on main) from src/lib/rti seed data so SQL seed and code never drift.
 // Usage: node scripts/rti/build-migrations.cjs [--check]   (--check fails if committed files differ)
 const fs = require('node:fs'), path = require('node:path');
 const { load, root } = require('../../tests/helpers/ts-load.cjs');
@@ -154,7 +154,7 @@ CREATE TRIGGER india_iam_break_glass_no_delete BEFORE DELETE ON india_iam_break_
 const ins = (t, cols, rows) => rows.length ? `INSERT INTO ${t}(${cols.join(',')}) VALUES\n` + rows.map(r => ' (' + r.map(q).join(',') + ')').join(',\n') + ';' : '';
 m40.push('-- Seed: parameters (approved defaults; VERIFY rows must be re-approved against official sources before PROD use).');
 m40.push(ins('india_sys_parameters', ['id', 'tenant_id', 'key', 'value_json', 'verify_status', 'effective_from', 'status', 'maker', 'checker', 'reason', 'approved_at'],
-  params.flattenParameters().map((p, i) => ['PRM-' + String(i + 1).padStart(4, '0'), TENANT, p.key, JSON.stringify(p.value), p.verify, SEED_DATE, 'approved', 'system:seed-v3.0-RTI', 'system:migration-0040', p.source ? ('Dasar: ' + p.source) : 'Default dari master prompt v3.0-RTI', SEED_DATE])));
+  params.flattenParameters().map((p, i) => ['PRM-' + String(i + 1).padStart(4, '0'), TENANT, p.key, JSON.stringify(p.value), p.verify, SEED_DATE, 'approved', 'system:seed-v3.0-RTI', 'system:migration-0046', p.source ? ('Dasar: ' + p.source) : 'Default dari master prompt v3.0-RTI', SEED_DATE])));
 m40.push(ins('india_org_unit_types', ['code', 'allowed_parent_types_json', 'can_own_budget', 'can_be_profit_center', 'can_hold_employees'],
   seed.ORG_UNIT_TYPES.map(t => [t.code, JSON.stringify(t.allowed_parent_types), t.can_own_budget, t.can_be_profit_center, t.can_hold_employees])));
 const units = org.seedUnits(seed.ORG_SEED, SEED_DATE);
@@ -172,12 +172,12 @@ const perms = new Set();
 for (const t of seed.ROLE_TEMPLATES) for (const p of t.permissions) { const x = policy.parsePermission(p); perms.add(`${x.module}.${x.resource}.${x.action}`); }
 m40.push(ins('india_iam_permissions', ['code', 'module', 'resource', 'action', 'source'], [...perms].sort().map(c => { const [m, r, a] = c.split('.'); return [c, m, r, a, 'role_template_seed']; })));
 m40.push(ins('india_iam_role_templates', ['code', 'version', 'group_name', 'scope', 'mfa', 'pam', 'permissions_json', 'status', 'maker', 'checker'],
-  seed.ROLE_TEMPLATES.map(t => [t.code, 1, t.group, t.scope, t.mfa, !!t.pam, JSON.stringify(t.permissions), 'approved', 'system:seed-v3.0-RTI', 'system:migration-0040'])));
+  seed.ROLE_TEMPLATES.map(t => [t.code, 1, t.group, t.scope, t.mfa, !!t.pam, JSON.stringify(t.permissions), 'approved', 'system:seed-v3.0-RTI', 'system:migration-0046'])));
 m40.push(ins('india_iam_sod_rules', ['id', 'conflict_a', 'conflict_b', 'severity', 'same_object', 'description'], seed.SOD_RULES.map(r => [r.id, r.a, r.b, r.severity, r.same_object, r.description])));
 m40.push(ins('india_iam_abac_policies', ['id', 'policy_json'], policy.DEFAULT_ABAC.map(r => [r.id, JSON.stringify(r)])));
 m40.push(ins('india_iam_legacy_role_map', ['legacy_role', 'template_code'], Object.entries(seed.LEGACY_ROLE_MAP).flatMap(([k, v]) => v.map(t => [k, t]))));
-m40.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0040_rti_parameter_org_policy.sql','rti-v3-wp01');
-INSERT INTO india_schema_migrations(version) VALUES(40);`);
+m40.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0046_rti_parameter_org_policy.sql','rti-v3-wp01');
+INSERT INTO india_schema_migrations(version) VALUES(46);`);
 
 // ---------------- 0041 ----------------
 const m41 = [];
@@ -266,7 +266,7 @@ m41.push(ins('india_formula_registry', ['id', 'version', 'name', 'effective_from
   formulas.FORMULAS.map(f => [f.id, f.version, f.name, f.effective_from, f.owner_role, f.reference, f.verify, JSON.stringify(f.tests)])));
 m41.push(ins('india_account_roles', ['role', 'default_code', 'name', 'category', 'required_dims_json'], seed.ACCOUNT_ROLES.map(a => [a.role, a.code, a.name, a.category, JSON.stringify(a.required_dims)])));
 m41.push(ins('india_posting_rules', ['id', 'version', 'event_type', 'rule_json', 'effective_from', 'status', 'maker', 'checker'],
-  posting.POSTING_RULES.map(r => [r.id, r.version, r.event_type, JSON.stringify(r), r.effective_from, 'approved', 'system:seed-v3.0-RTI', 'system:migration-0041'])));
+  posting.POSTING_RULES.map(r => [r.id, r.version, r.event_type, JSON.stringify(r), r.effective_from, 'approved', 'system:seed-v3.0-RTI', 'system:migration-0047'])));
 const REPORTS = [
   ['RPT-DAILY-FLASH', 'Daily Flash', 'CFO', 'DAILY', '["PDF"]', '["CEO","CFO","COO","UNIT_HEAD"]', 'CONFIDENTIAL', '0 6 * * 1-5', '[]'],
   ['RPT-WBR', 'Weekly Business Review', 'COO', 'WEEKLY', '["PDF","XLSX"]', '["BOD","UNIT_HEAD"]', 'CONFIDENTIAL', '0 7 * * 1', '["UNIT_HEAD"]'],
@@ -276,8 +276,8 @@ const REPORTS = [
   ['RPT-AFS', 'Annual Financial Statements + CALK', 'CFO', 'ANNUAL', '["PDF","XLSX"]', '["BOD","BOC","RUPS","AUDITOR","DJP"]', 'CONFIDENTIAL', 'WD+30', '["CFO","CEO","BOC","AUDITOR"]'],
 ];
 m41.push(ins('india_report_cycle_definitions', ['id', 'name', 'owner_role', 'cycle', 'formats_json', 'recipients_json', 'classification', 'schedule', 'sign_off_json'], REPORTS));
-m41.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0041_rti_posting_engine_close.sql','rti-v3-wp06');
-INSERT INTO india_schema_migrations(version) VALUES(41);`);
+m41.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0047_rti_posting_engine_close.sql','rti-v3-wp06');
+INSERT INTO india_schema_migrations(version) VALUES(47);`);
 
 
 // ---------------- 0042 tax & payroll statutory tables ----------------
@@ -389,8 +389,8 @@ const TAX_RATES = [
 m42.push(ins('india_tax_rates', ['code', 'description', 'rate', 'dpp_factor', 'base', 'coretax_code', 'effective_from', 'legal_basis'], TAX_RATES));
 m42.push(ins('india_payroll_contribution_rates', ['program', 'party', 'rate', 'wage_cap_cents', 'effective_from', 'legal_basis'], tax.BPJS_RATES.map(r => [r.program, r.party, r.rate, r.wage_cap, r.program === 'JP' ? '2026-03-01' : '2020-01-01', r.basis])));
 m42.push(ins('india_payroll_jkk_classes', ['class', 'label', 'rate', 'effective_from', 'legal_basis'], tax.JKK_RISK_CLASSES.map(c => [c.class, c.label, c.rate, '2015-07-01', tax.LEGAL_BASIS.BPJS_JKK])));
-m42.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0042_rti_tax_payroll_tables.sql','rti-v3-tax');
-INSERT INTO india_schema_migrations(version) VALUES(42);`);
+m42.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0048_rti_tax_payroll_tables.sql','rti-v3-tax');
+INSERT INTO india_schema_migrations(version) VALUES(48);`);
 
 // ---------------- 0043 policy runtime + transactional outbox ----------------
 const m43 = [];
@@ -466,34 +466,34 @@ BEGIN
   json_object('gross_salary',NEW.gross_cents,'bpjs_employer',NEW.bpjs_employer_cents,'net_pay',NEW.net_cents,'pph21',NEW.pph21_cents,'bpjs_total',NEW.bpjs_employer_cents+NEW.bpjs_employee_cents),
   json_object('cost_center','PAYROLL-'||NEW.period,'payroll_run',NEW.id),'payroll_run',NEW.id,'payroll_run:'||NEW.id);
 END;`);
-m43.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0043_rti_policy_runtime_outbox.sql','rti-v3-wiring');
-INSERT INTO india_schema_migrations(version) VALUES(43);`);
+m43.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0049_rti_policy_runtime_outbox.sql','rti-v3-wiring');
+INSERT INTO india_schema_migrations(version) VALUES(49);`);
 
 
 // ---------------- 0044 tenant key migration defendit360 -> rti ----------------
-// Built from the real schema at 0043: every trigger is dropped and recreated verbatim around the key update, foreign
+// Built from the real schema (canonical 0001-0045 + RTI 0046-0049): every trigger is dropped and recreated verbatim around the key update, foreign
 // keys are deferred to commit, so composite (tenant_id,id) references stay consistent. No other column changes.
 const LEGACY_TENANT = 'defendit360';
 const { DatabaseSync } = require('node:sqlite');
 const schemaDb = new DatabaseSync(':memory:'); schemaDb.exec('PRAGMA foreign_keys=ON');
-for (const f of fs.readdirSync(path.join(root, 'migrations')).sort().filter(f => Number(f.slice(0, 4)) <= 39)) schemaDb.exec(fs.readFileSync(path.join(root, 'migrations', f), 'utf8'));
+for (const f of fs.readdirSync(path.join(root, 'migrations')).sort().filter(f => !f.includes('_rti_'))) schemaDb.exec(fs.readFileSync(path.join(root, 'migrations', f), 'utf8'));
 for (const sql of [m40, m41, m42, m43]) schemaDb.exec(sql.filter(Boolean).join('\n'));
 const triggers = schemaDb.prepare("SELECT name,tbl_name,sql FROM sqlite_master WHERE type='trigger' ORDER BY name").all();
 const tenantTables = schemaDb.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name").all()
   .map(t => t.name).filter(t => schemaDb.prepare(`PRAGMA table_info("${t}")`).all().some(c => c.name === 'tenant_id'));
 const m44 = [];
 m44.push(`-- v3.0-RTI: technical tenant key migration '${LEGACY_TENANT}' -> '${TENANT}' (approved by Business Owner 2026-11-01).
--- GENERATED by scripts/rti/build-migrations.cjs from the schema at 0043: ${tenantTables.length} tables, ${triggers.length} triggers.
+-- GENERATED by scripts/rti/build-migrations.cjs from the full canonical schema plus RTI 0046-0049: ${tenantTables.length} tables, ${triggers.length} triggers.
 -- Rollback: restore the pre-release D1 Time Travel bookmark captured by the release workflow.`);
 m44.push('PRAGMA defer_foreign_keys = on;');
 for (const t of triggers) m44.push(`DROP TRIGGER IF EXISTS "${t.name}";`);
 for (const t of tenantTables) m44.push(`UPDATE "${t}" SET tenant_id='${TENANT}' WHERE tenant_id='${LEGACY_TENANT}';`);
 for (const t of triggers) m44.push(t.sql.trim().replace(/;?\s*$/, ';'));
-m44.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0044_rti_tenant_key.sql','rti-v3-tenant');
-INSERT INTO india_schema_migrations(version) VALUES(44);
+m44.push(`INSERT INTO india_schema_file_manifest(path,source_branch) VALUES('migrations/0050_rti_tenant_key.sql','rti-v3-tenant');
+INSERT INTO india_schema_migrations(version) VALUES(50);
 PRAGMA defer_foreign_keys = off;`);
 
-const files = { '0040_rti_parameter_org_policy.sql': m40.filter(Boolean).join('\n') + '\n', '0041_rti_posting_engine_close.sql': m41.filter(Boolean).join('\n') + '\n', '0042_rti_tax_payroll_tables.sql': m42.filter(Boolean).join('\n') + '\n', '0043_rti_policy_runtime_outbox.sql': m43.filter(Boolean).join('\n') + '\n', '0044_rti_tenant_key.sql': m44.join('\n') + '\n' };
+const files = { '0046_rti_parameter_org_policy.sql': m40.filter(Boolean).join('\n') + '\n', '0047_rti_posting_engine_close.sql': m41.filter(Boolean).join('\n') + '\n', '0048_rti_tax_payroll_tables.sql': m42.filter(Boolean).join('\n') + '\n', '0049_rti_policy_runtime_outbox.sql': m43.filter(Boolean).join('\n') + '\n', '0050_rti_tenant_key.sql': m44.join('\n') + '\n' };
 const check = process.argv.includes('--check'); let bad = 0;
 for (const [f, c] of Object.entries(files)) {
   const p = path.join(root, 'migrations', f);

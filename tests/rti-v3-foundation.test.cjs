@@ -8,7 +8,7 @@ const pol = load('src/lib/rti/policy-engine'), fx = load('src/lib/rti/formulas')
 const close = load('src/lib/rti/close-calendar'), money = load('src/lib/rti/money');
 const TENANT = params.DEFAULT_PARAMETERS.company.tenant_key;
 
-function db(max = 41) {
+function db(max = 50) {
   const d = new DatabaseSync(':memory:'); d.exec('PRAGMA foreign_keys=ON');
   for (const f of fs.readdirSync(path.join(root, 'migrations')).sort().filter(f => Number(f.slice(0, 4)) <= max)) d.exec(fs.readFileSync(path.join(root, 'migrations', f), 'utf8'));
   return d;
@@ -43,7 +43,7 @@ test('PARAM: effective-dated lookup picks latest approved row, ignores pending',
   assert.equal(params.effectiveParameter([], 'company.brand', '2027-01-01'), 'Risetin');
 });
 test('PARAM D1: maker-checker, approved value immutable, no delete', () => {
-  const d = db(40);
+  const d = db(46);
   const ins = d.prepare("INSERT INTO india_sys_parameters(id,tenant_id,key,value_json,verify_status,effective_from,maker,reason) VALUES(?,?,?,?,?,?,?,?)");
   ins.run('P1', TENANT, 'close_calendar.monthly_hard_close_wd', '6', 'VERIFIED', '2027-02-01', 'fin@x.invalid', 'Perpanjang hard close bulanan');
   assert.throws(() => d.prepare("UPDATE india_sys_parameters SET status='approved',checker='fin@x.invalid' WHERE id='P1'").run(), /CHECK|constraint/);
@@ -54,12 +54,12 @@ test('PARAM D1: maker-checker, approved value immutable, no delete', () => {
 });
 
 // ---------------- Migrations integrity ----------------
-test('0040/0041 are generated from TS seed and apply cleanly on the full chain', () => {
+test('0046-0050 are generated from TS seed and apply cleanly on the full chain', () => {
   execFileSync(process.execPath, [path.join(root, 'scripts/rti/build-migrations.cjs'), '--check'], { stdio: 'pipe' });
   const d = db();
   assert.equal(d.prepare('PRAGMA quick_check').get().quick_check, 'ok');
   assert.deepEqual(d.prepare('PRAGMA foreign_key_check').all(), []);
-  for (const v of [40, 41]) assert.equal(d.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=?').get(v).n, 1);
+  for (const v of [46, 47, 48, 49, 50]) assert.equal(d.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=?').get(v).n, 1);
   assert.equal(d.prepare('SELECT count(*) n FROM india_org_units_v').get().n, seed.ORG_SEED.length);
   assert.equal(d.prepare('SELECT count(*) n FROM india_iam_role_templates').get().n, seed.ROLE_TEMPLATES.length);
   assert.equal(d.prepare('SELECT count(*) n FROM india_iam_sod_rules').get().n, 9);
@@ -97,7 +97,7 @@ test('ORG-01: new division under DIR-OPS gets cost center, scope and approval li
   const asg = [{ position_id: 'P-CEO', email: 'ceo@x.invalid', valid_from: '2026-01-01', valid_to: null, kind: 'DEFINITIVE' }, { position_id: 'P-COO', email: 'coo@x.invalid', valid_from: '2026-01-01', valid_to: null, kind: 'DEFINITIVE' }, { position_id: 'P-CLD', email: 'plt@x.invalid', valid_from: '2027-01-01', valid_to: null, kind: 'PLT' }, { position_id: 'P-ENG', email: 'eng@x.invalid', valid_from: '2027-01-01', valid_to: null, kind: 'DEFINITIVE' }];
   assert.deepEqual(org.resolveApprovalLine(positions, asg, 'P-ENG', '2027-01-15', 2), [{ position_id: 'P-CLD', email: 'plt@x.invalid', acting: true }, { position_id: 'P-COO', email: 'coo@x.invalid', acting: false }]);
   // D1: same change persisted as a new unit version; invalid parent type rejected by trigger
-  const d = db(40);
+  const d = db(46);
   const ins = d.prepare("INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,valid_from,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)");
   ins.run(TENANT, 'DIV-CLD', 1, 'DIV-CLD', 'Cloud Security Services', 'DIVISION', 'DIR-OPS', 'RTI-LE01', 'DIV-CLD', 1, '2027-01-01', 'CR-1');
   assert.throws(() => ins.run(TENANT, 'TEAM-X', 1, 'TEAM-X', 'Bad team', 'TEAM', 'RTI-LE01', 'RTI-LE01', null, 0, '2027-01-01', 'CR-2'), /ORG_PARENT_TYPE_INVALID/);
@@ -120,7 +120,7 @@ test('ORG-02: move department with effective date; bindings follow; history pres
   const merged = org.applyChange(after, { op: 'merge', id: 'DIV-ITS', into_id: 'DIV-SWE' }, '2027-05-01', types);
   assert.equal(org.unitAsOf(merged, 'DIV-ITS', '2027-05-01'), undefined);
   // D1: history rows cannot be rewritten
-  const d = db(40);
+  const d = db(46);
   assert.throws(() => d.prepare("UPDATE india_org_units_v SET parent_id='DIV-GRC',valid_to='2027-03-01' WHERE id='DEP-DFIR'").run(), /ORG_HISTORY_IMMUTABLE/);
   d.prepare("UPDATE india_org_units_v SET valid_to='2027-03-01' WHERE id='DEP-DFIR'").run();
   d.prepare("INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,valid_from,source) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)").run(TENANT, 'DEP-DFIR', 2, 'DEP-DFIR', 'DFIR & CTI', 'DEPARTMENT', 'DIV-GRC', 'RTI-LE01', 'DEP-DFIR', 0, '2027-03-01', 'CR-MOVE');
@@ -156,7 +156,7 @@ test('RBAC-01: binding that triggers SOD-01 is reported Critical; self-grant and
   assert.equal(pol.grantAllowed({ email: 'sec@x.invalid', heldTemplates: ['SEC_ADMIN'] }, 'sec@x.invalid', 'FIN_MGR').reason, 'SOD-06_SELF_GRANT');
   assert.equal(pol.grantAllowed({ email: 'sec@x.invalid', heldTemplates: ['SEC_ADMIN', 'FIN_MGR'] }, 'b@x.invalid', 'FIN_MGR').reason, 'SOD-06_GRANTOR_HOLDS_ROLE');
   // D1: binding approver must differ from granter and subject
-  const d = db(40);
+  const d = db(46);
   const ins = d.prepare("INSERT INTO india_iam_role_bindings(tenant_id,id,template_code,template_version,subject_kind,subject_ref,org_unit_id,legal_entity_id,valid_from,status,granted_by,approved_by,reason) VALUES(?,?,?,1,'user',?,?,?,?,?,?,?,?)");
   assert.throws(() => ins.run(TENANT, 'B1', 'TREASURY', 'a@x.invalid', 'DEP-TRS', 'RTI-LE01', '2027-01-01', 'approved', 'sec@x.invalid', 'sec@x.invalid', 'Treasury officer onboarding'), /CHECK|constraint/);
   assert.throws(() => ins.run(TENANT, 'B2', 'TREASURY', 'a@x.invalid', 'DEP-TRS', 'RTI-LE01', '2027-01-01', 'approved', 'a@x.invalid', 'c@x.invalid', 'Treasury officer onboarding'), /CHECK|constraint/);

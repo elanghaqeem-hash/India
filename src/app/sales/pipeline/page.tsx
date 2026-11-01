@@ -8,6 +8,7 @@ import type { StageFilterValue } from '@/lib/sales-stage-filter';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {ManagedOptionSelect} from '@/components/sales/ManagedOptionSelect';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 import type {JourneyGate} from '@/lib/sales-journey';
 import { SALES_STAGES, ACCOUNT_FIELDS, DEAL_FIELDS, SERVICE_FAMILIES, stageProbability,
  type SalesAccount,type SalesDeal,type SalesFields,type SalesStage,synchronizeBillingAddress,updateCustomerAddressFields } from '@/lib/sales-workflow';
@@ -42,8 +43,10 @@ function FormFields({fields,values,onUpdate,onPatch,readOnly,compactLabels=false
       industry={values.industry||''} disabled={readOnly?.(key)} onChange={v=>onUpdate(key,v)}/>
    : <React.Fragment key={key}><label className={'block min-w-0 text-xs font-semibold text-slate-700 '+(areaKeys.has(key)||compactLabels&&key.endsWith('_name')?'sm:col-span-2':'')}>
   {compactLabels?(key.endsWith('_name')?'Nama lengkap':key.endsWith('_phone')?'Nomor telepon':key.endsWith('_email')?'Email':key.endsWith('_title')?'Jabatan':'Nama lengkap'):label}
-  {(key==='lead_source'||key==='procurement_process')?<ManagedOptionSelect group={key} label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={value=>onUpdate(key,value)}/>:listSelect[key]?<select aria-label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}>
-    <option value="">— Pilih —</option>{listSelect[key].map(v=><option key={v} value={v}>{v}</option>)}</select>:
+  {(key==='lead_source'||key==='procurement_process')?<ManagedOptionSelect group={key} label={label} className={inputClass} disabled={readOnly?.(key)} value={values[key]||''} onChange={value=>onUpdate(key,value)}/>:listSelect[key]?<CompactSelect label={label} className={inputClass} disabled={readOnly?.(key)}
+   value={values[key]||''} onChange={value=>onUpdate(key,value)}
+   options={[{value:'',label:'— Pilih —'},...listSelect[key].map(v=>({value:v,label:v}))]}
+   searchable={listSelect[key].length>=10}/>:
   areaKeys.has(key)?<textarea rows={2} className={inputClass+' resize-y'} disabled={readOnly?.(key)} value={values[key]||''} onChange={e=>onUpdate(key,e.target.value)}/>:
   <input aria-label={label} className={inputClass} disabled={readOnly?.(key)} type={key.endsWith('_date')||['expected_closing_date','next_action_at','quotation_sent_at','quotation_valid_until'].includes(key)?'date':key.endsWith('_email')?'email':key.includes('phone')?'tel':key.includes('amount')||key==='quotation_valid_days'?'number':'text'} value={values[key]||''} placeholder={key.endsWith('_phone')?'Contoh: +62 812 3456 7890':key.endsWith('_email')?'nama@perusahaan.co.id':undefined} onChange={e=>onUpdate(key,e.target.value)}/>}
  </label>{key==='billing_same_as_hq'&&values.billing_same_as_hq==='ya'&&

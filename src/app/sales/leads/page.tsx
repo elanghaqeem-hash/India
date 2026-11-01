@@ -7,6 +7,7 @@ import {POSTAL_FIELDS} from '@/lib/indonesia-postal';
 import {PostalAddressFields} from '@/components/sales/PostalAddressFields';
 import {StandardCustomerChoice} from '@/components/sales/StandardCustomerChoice';
 import {ManagedOptionSelect} from '@/components/sales/ManagedOptionSelect';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 type Lead={id:string;version:number;lead_number:string;account_name:string;source:string;campaign:string;campaign_id?:string|null;service_family:string;
  contact_name:string;contact_email:string;assigned_sales_email:string;estimated_value_idr:number;
  expected_closing_date:string;status:'new'|'assigned'|'qualified'|'disqualified'|'converted';
@@ -200,8 +201,10 @@ export default function MarketingLeads(){
        type={key==='contact_email'||key==='assigned_sales_email'?'email':key==='expected_closing_date'?'date':key==='estimated_value_idr'?'number':'text'}
        value={form[key]} onChange={e=>setForm(s=>({...s,[key]:e.target.value}))}/>}</label>)}
     <label className="text-xs font-semibold text-slate-700">Jenis produk / layanan *
-     <select className={'mt-1 '+cls} value={form.service_family} onChange={e=>setForm(s=>({...s,service_family:e.target.value}))}>
-      {SERVICE_GROUPS.map(group=><optgroup key={group} label={group}>{SERVICE_CATALOG.filter(x=>x.group===group).map(x=><option key={x.name} value={x.name}>{x.name}</option>)}</optgroup>)}</select></label>
+     <CompactSelect label="Jenis produk / layanan" required className={'mt-1 '+cls}
+      value={form.service_family} onChange={value=>setForm(s=>({...s,service_family:value}))}
+      options={SERVICE_GROUPS.flatMap(group=>SERVICE_CATALOG.filter(item=>item.group===group)
+       .map(item=>({value:item.name,label:item.name,group})))} searchable/></label>
     </div>
     <button disabled={busy||!form.account_name.trim()||!form.source.trim()||!form.assigned_sales_email.trim()} onClick={create}
      className="mt-4 rounded-lg bg-blue-700 px-4 py-2.5 text-xs font-bold text-white disabled:opacity-50">Simpan Lead</button>

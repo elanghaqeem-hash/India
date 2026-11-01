@@ -14,9 +14,9 @@ async function scope(h,entity,id){
  await expect(h.call('erp/organization','POST','admin',{action:'request_'+entity+'_scope',[entity+'_id']:id,legal_entity_id:legal}),200);
  await expect(h.call('erp/organization','POST','approver',{action:'review_'+entity+'_scope',[entity+'_id']:id,version:1,approve:true}),200);
 }
-test('0034–0037 apply without dummy ERP postings, maintain foreign keys and immutable audit',()=>{
- const h=fixture(37);try{
-  for(const n of [33,34,35,36,37])assert.equal(h.sql.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=?').get(n).n,1);
+test('0034–0045 apply without dummy ERP postings, maintain foreign keys and immutable audit',()=>{
+ const h=fixture(45);try{
+  for(const n of [33,34,35,36,37,38,39,40,41,42,43,44,45])assert.equal(h.sql.prepare('SELECT count(*) n FROM india_schema_migrations WHERE version=?').get(n).n,1);
   for(const t of ['india_erp_org_units','india_erp_capability_grants','india_gl_journals','india_ap_supplier_invoices','india_cyber_cases'])
    assert.equal(h.sql.prepare('SELECT count(*) n FROM '+t).get().n,0);
   assert.equal(h.sql.prepare('PRAGMA quick_check').get().quick_check,'ok');
@@ -24,7 +24,7 @@ test('0034–0037 apply without dummy ERP postings, maintain foreign keys and im
  }finally{h.close();}
 });
 test('WP2 API requires independent grant review and legal entity scope',async()=>{
- const h=fixture(37);try{
+ const h=fixture(45);try{
   await org(h);
   await expect(h.call('erp/organization','POST','admin',{action:'assign_staff',email:users.finance,unit_id:legal,position_title:'Finance Analyst'}),200);
   await expect(h.call('erp/organization','POST','finance',{action:'review_staff',email:users.finance,version:1,approve:true,notes:'Self approval is forbidden'}),403);
@@ -41,7 +41,7 @@ test('WP2 API requires independent grant review and legal entity scope',async()=
  }finally{h.close();}
 });
 test('WP6 GL double entry: denied draft, balanced approval, one immutable posting, duplicate source key rejected',async()=>{
- const h=fixture(37);try{
+ const h=fixture(45);try{
   await org(h);grant(h,users.finance,'finance_gl');grant(h,users.approver,'finance_gl');
   await expect(h.call('erp/ledger','POST','viewer',{action:'period',legal_entity_id:legal,period:'2026-10'}),403);
   const a=(await expect(h.call('erp/ledger','POST','finance',{action:'account',legal_entity_id:legal,code:'1100',name:'Bank Account',category:'asset'}),201)).body.id;
@@ -62,7 +62,7 @@ test('WP6 GL double entry: denied draft, balanced approval, one immutable postin
  }finally{h.close();}
 });
 test('WP7 P2P canonical offer -> approved PO -> independent receipt -> matched supplier invoice',async()=>{
- const h=await won(fixture(37));try{
+ const h=await won(fixture(45));try{
   await org(h);await scope(h,'opportunity','opp-qa');
   for(const [email,cap] of [[users.admin,'procurement'],[users.presales,'procurement'],[users.approver,'procurement'],[users.finance,'finance_ap'],[users.approver,'finance_ap']])grant(h,email,cap);
   h.sql.prepare("INSERT INTO india_vendors(id,tenant_id,legal_name,registration_number,contact_email,capabilities,capacity_units,capacity_unit,evidence_reference,evidence_sha256,valid_until,status,created_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,?,?,?,?,? ,?,'validated',?,?,?)")
@@ -83,7 +83,7 @@ test('WP7 P2P canonical offer -> approved PO -> independent receipt -> matched s
  }finally{h.close();}
 });
 test('WP5 VAPT case project isolation and original Vault evidence for independent QA and close',async()=>{
- const h=await won(fixture(37));try{
+ const h=await won(fixture(45));try{
   await org(h);const p=project(h);
   h.sql.prepare("UPDATE india_delivery_projects SET status='active',start_date='2026-10-01',end_date='2026-12-31',version=version+1 WHERE id=?").run(p.id);
   await scope(h,'project',p.id);
@@ -100,7 +100,7 @@ test('WP5 VAPT case project isolation and original Vault evidence for independen
 });
 
 test('ERP grant is inactive until the same staff member has independently approved org affiliation',async()=>{
- const h=fixture(37);try{
+ const h=fixture(45);try{
   await org(h);
   h.sql.prepare("INSERT INTO india_erp_capability_grants(id,tenant_id,email,capability,unit_id,status,requested_by,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?,?)")
    .run('grant-without-staff',tenant,users.finance,'finance_gl',legal,'requester@synthetic.invalid','checker@synthetic.invalid','QA approval without staff assignment');

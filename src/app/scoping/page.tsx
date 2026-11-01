@@ -23,6 +23,7 @@ import VaptMultiAssetScope from '@/components/VaptMultiAssetScope';
 import { createVaptAsset, calculateVaptPortfolio, validateVaptAssets, vaptAssetBoqLines, type VaptAsset } from '@/lib/vapt-multi-asset';
 import {SCOPING_SERVICE_TYPES, SCOPING_DEFINITIONS,validateServiceScope,summarizeServiceScope,type ScopingService} from '@/lib/scoping-service-options';
 import { formatIDR } from '@/lib/formatters';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 import { isSupportedScopingFileName } from '@/lib/scoping-file-types';
 
 export default function SmartScopingPage() {
@@ -629,11 +630,10 @@ export default function SmartScopingPage() {
                 {SCOPING_DEFINITIONS[activeTab].fields.map(field=><label key={field.key} className="block min-w-0 text-xs font-semibold text-slate-700">
                   <span>{field.label}{field.required?' (wajib)':''}</span>
                   {field.kind==='select'
-                    ?<select className="mt-1.5 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-xs"
-                      value={serviceValues[field.key]||''} onChange={e=>changeScope(field.key,e.target.value)}>
-                      <option value="">Pilih {field.label}</option>
-                      {field.options?.map(option=><option key={option} value={option}>{option}</option>)}
-                    </select>
+                    ?<CompactSelect label={field.label} className="mt-1.5" required={field.required}
+                      value={serviceValues[field.key]||''} onChange={value=>changeScope(field.key,value)}
+                      options={[{value:'',label:'Pilih '+field.label},...(field.options||[]).map(option=>({value:option,label:option}))]}
+                      searchable={(field.options?.length||0)>=10}/>
                     :<input type={field.kind==='number'?'number':'text'} min={field.kind==='number'?1:undefined}
                       max={field.kind==='number'?100000:undefined} step={field.kind==='number'?1:undefined}
                       maxLength={field.kind==='text'?350:undefined}

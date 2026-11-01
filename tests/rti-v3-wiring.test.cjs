@@ -88,8 +88,13 @@ test('POLICY enforce: GL maker-checker flow passes with bindings; no binding or 
     await legacyOrg(h); await legacyOrg(h, 'legal-tar', 'RTI-LEGAL-TAR');
     h.sql.prepare("INSERT INTO india_org_units_v(tenant_id,id,version,code,name,type,parent_id,legal_entity_id,cost_center_code,profit_center,valid_from,source) VALUES(?,?,1,?,?,?,?,?,?,1,'2026-11-01','TEST')").run(tenant, 'TAR-LE01', 'TAR-LE01', 'Affiliate entity', 'LEGAL_ENTITY', 'RTI', 'TAR-LE01', 'TAR-LE01');
     mapLegacy(h); mapLegacy(h, 'legal-tar', 'TAR-LE01');
+    await legacyOrg(h, 'legal-unmapped', 'RTI-LEGAL-UNMAPPED');
     for (const u of [users.finance, users.approver, users.viewer]) legacyGrant(h, u, 'finance_gl');
-    legacyGrant(h, users.legal, 'finance_gl', 'legal-tar'); bindUser(h, users.legal, 'ACCOUNTANT');
+    // Separate synthetic Finance holders: legacy staff placement is one unit per person
+    users.fin_tar = 'finance.tar@flow.invalid'; users.fin_unmapped = 'finance.unmapped@flow.invalid';
+    for (const e of [users.fin_tar, users.fin_unmapped]) h.sql.prepare("INSERT INTO india_members(email,role,active) VALUES(?,'finance',1)").run(e);
+    legacyGrant(h, users.fin_tar, 'finance_gl', 'legal-tar'); bindUser(h, users.fin_tar, 'ACCOUNTANT');
+    legacyGrant(h, users.fin_unmapped, 'finance_gl', 'legal-unmapped'); bindUser(h, users.fin_unmapped, 'ACCOUNTANT');
     bindUser(h, users.finance, 'ACCOUNTANT'); bindUser(h, users.approver, 'INDEPENDENT_APPROVER', 'DIR-GOV');
     setParam(h, 'security.policy_enforcement', 'enforce');
     const acc = (await expect(h.call('erp/ledger', 'POST', 'finance', { action: 'account', legal_entity_id: LEGAL, code: '11110', name: 'Kas dan Bank', category: 'asset' }), 201)).body.id;
@@ -98,14 +103,16 @@ test('POLICY enforce: GL maker-checker flow passes with bindings; no binding or 
     const j = (await expect(h.call('erp/ledger', 'POST', 'finance', { action: 'journal', legal_entity_id: LEGAL, period_id: per, source_type: 'manual', source_key: 'enf-1', memo: 'Enforced policy manual entry', lines: [{ account_id: acc, debit_cents: 100, credit_cents: 0 }, { account_id: rev, debit_cents: 0, credit_cents: 100 }] }), 201)).body.id;
     await expect(h.call('erp/ledger', 'POST', 'approver', { action: 'review', id: j, version: 1, approve: true, notes: 'Independent review under enforce' }), 200);
     await expect(h.call('erp/ledger', 'POST', 'finance', { action: 'post', id: j, version: 2 }), 200);
-    // Viewer holds a legacy grant but no v3 binding → denied by policy
-    const denied = await expect(h.call('erp/ledger', 'GET', 'viewer', null, '?legal_entity_id=' + LEGAL), 403);
-    assert.match(denied.body.message, /RBAC\/SoD/);
-    // IDOR: user holds a valid legacy grant on the affiliate unit, but the v3 binding is scoped to RTI-LE01
-    const idor = await expect(h.call('erp/ledger', 'GET', 'legal', null, '?legal_entity_id=legal-tar'), 403);
+    // Viewer: the role/capability matrix (#103) already rejects at the legacy layer
+    await expect(h.call('erp/ledger', 'GET', 'viewer', null, '?legal_entity_id=' + LEGAL), 403);
+    // Legacy grant valid but the unit is not mapped into the v3 organization → fail closed
+    const unmapped = await expect(h.call('erp/ledger', 'GET', 'fin_unmapped', null, '?legal_entity_id=legal-unmapped'), 403);
+    assert.match(unmapped.body.message, /LEGACY_UNIT_UNMAPPED/);
+    // IDOR: valid legacy grant on the affiliate unit, but the v3 binding is scoped to RTI-LE01
+    const idor = await expect(h.call('erp/ledger', 'GET', 'fin_tar', null, '?legal_entity_id=legal-tar'), 403);
     assert.match(idor.body.message, /NO_PERMISSION_IN_SCOPE/);
     assert.equal(h.sql.prepare("SELECT count(*) n FROM india_policy_decisions WHERE mode='enforce' AND allow=0").get().n, 2);
-  } finally { h.close(); }
+  } finally { delete users.fin_tar; delete users.fin_unmapped; h.close(); }
 });
 
 // ---------------- Posting worker ----------------

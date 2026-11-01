@@ -1,0 +1,26 @@
+name: P0 production workflow mutation containment
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/india-production-workflow-guard.mjs'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/**'
+      - 'scripts/india-production-workflow-guard.mjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check-production-triggers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/india-production-workflow-guard.mjs
+# This action never writes Cloudflare or accesses sensitive tokens.
