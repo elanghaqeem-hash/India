@@ -9,11 +9,11 @@ import {MobileNav} from './MobileNav';
 import {AIWorkbench} from '@/components/ai/AIWorkbench';
 
 interface AppShellProps { children:React.ReactNode; }
-type Identity={email:string;role:string};
+type Identity={email:string;role:string;assignedRole:string;rolePreview:boolean};
 type Session={status:'checking'|'ready'|'denied';identity:Identity|null};
 
-/** Authenticated role comes only from Cloudflare Access + D1 membership.
- * No hardcoded user identities, selectable security roles, or fake approval counts.
+/** Cloudflare Access + D1 decide the assigned role. Optional Admin-only
+ * simulation is downscoped on the server for every API, never only in the UI.
  */
 export const AppShell:React.FC<AppShellProps> = ({children})=>{
   const pathname=usePathname();
@@ -81,10 +81,10 @@ export const AppShell:React.FC<AppShellProps> = ({children})=>{
   if(isLoginPage)return <>{children}</>;
   return (
     <div className="flex min-h-screen min-w-0 max-w-full flex-col bg-slate-50 text-slate-900">
-      <Navbar role={role} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount} onToggleMenu={onToggleMenu} desktopMenuOpen={desktopMenuOpen} mobileMenuOpen={mobileMenuOpen}/>
+      <Navbar role={role} assignedRole={session.identity?.assignedRole??null} rolePreview={session.identity?.rolePreview===true} email={session.identity?.email??null} pendingApprovalsCount={pendingApprovalsCount} onToggleMenu={onToggleMenu} desktopMenuOpen={desktopMenuOpen} mobileMenuOpen={mobileMenuOpen}/>
       <div role="status" className="no-print border-b border-slate-200 bg-slate-100 px-4 py-2 text-center text-xs font-medium text-slate-700">
         {session.status==='checking'?'Memverifikasi sesi Cloudflare Access…':
-         session.status==='ready'? `Sesi terverifikasi · Role: ${role}`:
+         session.status==='ready'?session.identity?.rolePreview? `Mode uji role aktif: ${role} · Akun asli: Admin · Semua API mengikuti hak akses role yang dipilih`:`Sesi terverifikasi · Role: ${role}`:
          'Sesi belum terverifikasi. Fitur transaksi memerlukan Cloudflare Access dan skema D1 yang sesuai.'}
       </div>
       {session.status==='denied'&&<div className="no-print border-b border-indigo-100 bg-indigo-50 px-4 py-2 text-center text-xs">
