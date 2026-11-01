@@ -2,6 +2,7 @@
 import React,{useEffect,useState} from 'react';
 import {defaultBoqService} from '@/lib/sales-workflow';
 import {SCOPING_SERVICE_TYPES} from '@/lib/scoping-service-options';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 type Item={description:string;quantity:number;unit:string;unit_price:number;service_type:string};
 type Catalog={sku:string;category:string;description:string;unit:string;license_status:string};
 type Doc={id:string;opportunity_id?:string|null;quotation_number:string;customer_name:string;project_name:string;status:string;version:number;grand_total:number;line_items:Item[];vat_rate:number;payment_terms:string;service_type:string;cost_items?:{code:string;amount:number}[]};
@@ -112,14 +113,19 @@ export default function BoQPage(){
     </select><span className="mt-1 block text-[11px] font-normal text-slate-500">BoQ harus terhubung ke opportunity dan approved untuk digunakan sebagai dasar Closed Won.</span></label>{([
      ['customer_name','Pelanggan'],['project_name','Proyek'],['quotation_number','Nomor Quotation']
     ] as const).map(([k,l])=><label key={k} className="text-xs">{l}<input disabled={!canEdit} value={form[k]} onChange={e=>change(k,e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>)}
-    <label className="text-xs">Jenis layanan<select disabled={!canEdit} value={form.service_type} onChange={e=>change('service_type',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{SCOPING_SERVICE_TYPES.map(x=><option key={x}>{x}</option>)}</select></label>
+    <label className="text-xs">Jenis layanan<CompactSelect label="Jenis layanan" disabled={!canEdit} value={form.service_type}
+     onChange={value=>change('service_type',value)} className="mt-1"
+     options={SCOPING_SERVICE_TYPES.map(x=>({value:x,label:x}))} searchable/></label>
     <label className="text-xs">PPN (%)<input disabled={!canEdit} type="number" min="0" max="100" value={form.vat_rate*100} onChange={e=>change('vat_rate',Number(e.target.value)/100)} className="mt-1 w-full rounded-lg border p-2 text-sm"/></label>
-    <label className="text-xs">Termin<select disabled={!canEdit} value={form.payment_terms} onChange={e=>change('payment_terms',e.target.value)} className="mt-1 w-full rounded-lg border p-2 text-sm">{['30-50-20','30-60-10','50-50','100'].map(x=><option key={x}>{x}</option>)}</select></label></div>
+    <label className="text-xs">Termin<CompactSelect label="Termin pembayaran" disabled={!canEdit} value={form.payment_terms}
+     onChange={value=>change('payment_terms',value)} className="mt-1"
+     options={['30-50-20','30-60-10','50-50','100'].map(x=>({value:x,label:x}))}/></label></div>
    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
      <label className="min-w-0 flex-1 text-xs">Pilih Katalog Technotama
-      <select disabled={!canEdit} aria-label="Pilih katalog layanan" value={sku} onChange={e=>setSku(e.target.value)} className="mt-1 w-full rounded border p-2 text-xs">
-       <option value="">-- Pilih SKU / Layanan --</option>{catalog.map(c=><option key={c.sku} value={c.sku}>{c.sku} | {c.description} ({c.license_status})</option>)}
-      </select></label>
+      <CompactSelect label="Pilih katalog layanan" disabled={!canEdit} value={sku}
+       onChange={setSku} className="mt-1"
+       options={[{value:'',label:'-- Pilih SKU / Layanan --'},...catalog.map(c=>({
+        value:c.sku,label:c.sku+' | '+c.description+' ('+c.license_status+')'}))]} searchable/></label>
      <button disabled={!canEdit||!sku} type="button" onClick={()=>{
       const c=catalog.find(x=>x.sku===sku);if(!c)return;
       const type=['VAPT','SOC','CTI','ISO','PDP','Hardening','IR','GRC','DFIR','TECHNOLOGY','TRAINING'].includes(c.category)?c.category:'Lainnya';
