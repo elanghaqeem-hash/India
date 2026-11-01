@@ -184,7 +184,7 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
     p(prop.company_name, { bold: true, after: 25 }) +
     p('Di tempat', { after: 200 }) +
     p('Perihal: Penawaran Harga ' + prop.opportunity_name, { bold: true, after: 200 }) +
-    p('Terima kasih atas kesempatan yang diberikan kepada RTI (RTI) untuk menyampaikan penawaran atas pekerjaan ' +
+    p('Terima kasih atas kesempatan yang diberikan kepada RTI untuk menyampaikan penawaran atas pekerjaan ' +
       prop.opportunity_name + ' dalam kelompok layanan ' + pillar + '.', { after: 160 }) +
     p('Berdasarkan rincian komersial dalam proposal terpilih, nilai penawaran adalah ' + money(prop.subtotal) +
       ' sebelum PPN dengan total termasuk PPN sebesar ' + money(prop.grand_total) + '.', { after: 140 }) +
@@ -318,7 +318,7 @@ export function downloadQuotationDocx(proposal: Proposal, selected: QuotationFor
   }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'INDIA_RTI_Quotation_' + format + '_' + safeName + '.docx';
+  a.download = 'RTICORE_RTI_Quotation_' + format + '_' + safeName + '.docx';
   document.body.appendChild(a);
   a.click();
   a.remove();
