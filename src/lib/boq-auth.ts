@@ -41,7 +41,10 @@ export async function authorizeBoQ(request:Request,options:{ignoreRolePreview?:b
    // Untrusted cookies from non-Admins are always ignored (no role elevation).
    const role=options.ignoreRolePreview?member.role:
      rolePreviewFromCookie(request.headers.get('cookie'),email,member.role)||member.role;
-   try{if(await accessRestricted(db,new URL(request.url).pathname,role))return deny(403,'Resource dibatasi oleh Access Policy institusi.');}catch{return deny(503,'Access Policy belum siap; verifikasi migrasi administrasi.');}
+   // Identity must remain readable to an authenticated member even when an
+   // institution policy denies the preview role access to other Sales APIs.
+   const path=new URL(request.url).pathname;
+   try{if(path!=='/api/sales/identity'&&await accessRestricted(db,path,role))return deny(403,'Resource dibatasi oleh Access Policy institusi.');}catch{return deny(503,'Access Policy belum siap; verifikasi migrasi administrasi.');}
    return {ok:true,identity:{email,role,assignedRole:member.role,rolePreview:role!==member.role,db}};
  }catch{return deny(401,'Token login Access tidak valid atau kedaluwarsa.');}
 }
