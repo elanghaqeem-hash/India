@@ -52,7 +52,7 @@ export const DEFAULT_AI_CONFIGS: AIProviderConfig[] = [
     provider: 'local',
     name: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
     apiKey: 'INTERNAL_BUILTIN',
-    model: 'RTI-expert-v2',
+    model: 'technotama-expert-v2',
     priority: 5, // Fallback
     isEnabled: true,
     status: 'active',
@@ -328,7 +328,7 @@ export async function executeAIPrompt(
   const fallbackContent = generateLocalExpertResponse(prompt);
   return {
     providerUsed: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
-    modelUsed: 'RTI-expert-v2',
+    modelUsed: 'technotama-expert-v2',
     content: fallbackContent,
     latencyMs: Date.now() - startTime,
     tokensEstimate: Math.round(fallbackContent.length / 4),

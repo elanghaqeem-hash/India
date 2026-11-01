@@ -1,5 +1,5 @@
 // D1-backed Sales stage gates. Pure domain functions; no customer demo values.
-export const TENANT='RTI';
+export const TENANT='defendit360';
 export const SALES_STAGES=[
  ['prospecting','Prospecting',10],
  ['qualified','Qualified',25],

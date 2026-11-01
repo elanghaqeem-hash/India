@@ -30,3 +30,9 @@ test('Technical Cloudflare bindings and existing routes remain backward compatib
   assert.equal(lock.name, pkg.name);
   assert.equal(lock.packages[''].name, pkg.name);
 });
+
+test('Legacy tenant, AI model, database and routes remain stable during a branding-only change', () => {
+  assert.match(read('src/lib/sales-workflow.ts'), /TENANT='defendit360'/);
+  assert.match(read('src/app/api/boq/route.ts'), /'defendit360'/);
+  assert.match(read('src/lib/ai-engine.ts'), /technotama-expert-v2/);
+});
