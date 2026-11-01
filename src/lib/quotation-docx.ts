@@ -108,9 +108,9 @@ function table(rows: Array<Array<string | number>>, widths: number[], header = t
 }
 function page(): string { return '<w:p><w:r><w:br w:type="page"/></w:r></w:p>'; }
 function brand(): string {
-  const left = p('TECHNOTAMA', { bold: true, size: 33, color: '172B4D', after: 15 }) +
-    p('INDIA Business Management Platform', { size: 14, color: '667085', after: 10 });
-  const right = p('TECHNOTAMA', { bold: true, size: 14, align: 'right', after: 4 }) +
+  const left = p('RTI', { bold: true, size: 33, color: '172B4D', after: 15 }) +
+    p('RTICORE Business Management Platform', { size: 14, color: '667085', after: 10 });
+  const right = p('RTI', { bold: true, size: 14, align: 'right', after: 4 }) +
     p('[Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]', { size: 12, align: 'right', after: 0 });
   const block = (content: string, width: number) => '<w:tc><w:tcPr><w:tcW w:w="' + width +
     '" w:type="dxa"/><w:vAlign w:val="top"/></w:tcPr>' + content + '</w:tc>';
@@ -184,7 +184,7 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
     p(prop.company_name, { bold: true, after: 25 }) +
     p('Di tempat', { after: 200 }) +
     p('Perihal: Penawaran Harga ' + prop.opportunity_name, { bold: true, after: 200 }) +
-    p('Terima kasih atas kesempatan yang diberikan kepada Technotama (Technotama) untuk menyampaikan penawaran atas pekerjaan ' +
+    p('Terima kasih atas kesempatan yang diberikan kepada RTI (RTI) untuk menyampaikan penawaran atas pekerjaan ' +
       prop.opportunity_name + ' dalam kelompok layanan ' + pillar + '.', { after: 160 }) +
     p('Berdasarkan rincian komersial dalam proposal terpilih, nilai penawaran adalah ' + money(prop.subtotal) +
       ' sebelum PPN dengan total termasuk PPN sebesar ' + money(prop.grand_total) + '.', { after: 140 }) +
@@ -193,7 +193,7 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
     p(notes, { bold: true, color: '9A5311', after: 270 }) +
     p('Salam Hormat,', { after: 240 }) +
     p(clean(details.signatoryName) || '[Nama penandatangan - belum dikonfirmasi]', { bold: true, after: 20 }) +
-    p((clean(details.signatoryTitle) || '[Jabatan penandatangan]') + ' | Technotama', { after: 0 });
+    p((clean(details.signatoryTitle) || '[Jabatan penandatangan]') + ' | RTI', { after: 0 });
 
   body += page() + brand() +
     p('RINCIAN HARGA PENAWARAN', { bold: true, size: 25, align: 'center', after: 80 }) +
@@ -234,7 +234,7 @@ function docXml(prop: Proposal, fmt: 'mobile'|'vapt'|'soc', details: QuotationDe
     bulletLines(details.exclusions, 'Pekerjaan dan lisensi di luar line item serta rincian Scope of Work belum termasuk sampai disetujui tertulis.') +
     heading('Dokumen yang Diperlukan') +
     bulletLines(undefined, 'Dokumen administrasi dan NDA disepakati dengan Procurement/Legal pelanggan sesuai kebutuhan.') +
-    p('Untuk klarifikasi dan konfirmasi, silakan hubungi [Kontak resmi Technotama].', { after: 200 }) +
+    p('Untuk klarifikasi dan konfirmasi, silakan hubungi [Kontak resmi RTI].', { after: 200 }) +
     p(notes, { bold: true, color: '9A5311' });
 
   const section = '<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="700" w:right="900" w:bottom="700" w:left="900" w:header="350" w:footer="350"/></w:sectPr>';
@@ -318,7 +318,7 @@ export function downloadQuotationDocx(proposal: Proposal, selected: QuotationFor
   }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'INDIA_Technotama_Quotation_' + format + '_' + safeName + '.docx';
+  a.download = 'INDIA_RTI_Quotation_' + format + '_' + safeName + '.docx';
   document.body.appendChild(a);
   a.click();
   a.remove();
