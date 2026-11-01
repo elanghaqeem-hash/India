@@ -286,7 +286,7 @@ export function downloadPostPoDocx(packet:PostPoPacket,kind:PostPoDocKind):void{
  const url=URL.createObjectURL(new Blob([view.buffer],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
  const link=document.createElement('a');link.href=url;
  const safe=packet.project.poNumber.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60);
- link.download='INDIA_RTI_'+(packet.isDemo?'DEMO_':'')+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
+ link.download='RTICORE_RTI_'+(packet.isDemo?'DEMO_':'')+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
  document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 
