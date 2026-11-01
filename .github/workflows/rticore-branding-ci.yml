@@ -1,0 +1,27 @@
+name: RTICORE Rebrand Guard
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/rticore-branding.test.cjs"
+      - "package.json"
+      - ".github/workflows/rticore-branding-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "tests/rticore-branding.test.cjs"
+      - "package.json"
+      - ".github/workflows/rticore-branding-ci.yml"
+jobs:
+  branding:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run test:branding
+      - run: npm run typecheck
