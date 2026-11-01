@@ -29,7 +29,11 @@ for (const label of ['Login RTICORE', 'Identitas belum diizinkan membuka RTICORE
 }
 const navbar = readFileSync(join(root, 'src/components/layout/Navbar.tsx'), 'utf8');
 const assistantTest = readFileSync(join(root, 'tests/ai-chat-composer-browser-uat.cjs'), 'utf8');
+const multiTurnTest = readFileSync(join(root, 'tests/ai-chat-browser-uat.cjs'), 'utf8');
 if (!navbar.includes('aria-label="RTICORE AI Business Assistant"') ||
-    !assistantTest.includes("name: 'RTICORE AI Business Assistant'")) fail('AI dialog/test branding mismatch');
+    !assistantTest.includes("name: 'RTICORE AI Business Assistant'") ||
+    !multiTurnTest.includes("name: 'RTICORE AI Business Assistant'") ||
+    assistantTest.includes("name: 'INDIA AI Business Assistant'") ||
+    multiTurnTest.includes("name: 'INDIA AI Business Assistant'")) fail('AI dialog/composer/multi-turn browser selector mismatch');
 if (process.exitCode) process.exit(process.exitCode);
 console.log('P0 SOURCE GATE PASS: migrations unique 0030-' + latest + ', production hard-held, browser selectors match RTICORE. NOT operational certification.');
