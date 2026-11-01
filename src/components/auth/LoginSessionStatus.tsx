@@ -70,7 +70,7 @@ export function LoginSessionStatus() {
       {session.status==='forbidden'&&
         <div role="alert" className="mt-2 flex items-start gap-2 text-sm text-amber-800">
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-          <span>Identitas belum diizinkan membuka INDIA. Administrator perlu memeriksa registrasi, status aktif dan role akun.</span>
+          <span>Identitas belum diizinkan membuka RTICORE. Administrator perlu memeriksa registrasi, status aktif dan role akun.</span>
         </div>}
       {session.status==='unavailable'&&
         <p role="status" className="mt-2 text-sm text-slate-600">
@@ -78,7 +78,7 @@ export function LoginSessionStatus() {
         </p>}
       {session.status==='no-workspace'&&
         <div role="alert" className="mt-2 text-sm text-amber-800">
-          Akun <span className="break-all font-semibold">{session.email}</span> terverifikasi, tetapi belum memiliki menu untuk role {session.role}. Hubungi Administrator INDIA.
+          Akun <span className="break-all font-semibold">{session.email}</span> terverifikasi, tetapi belum memiliki menu untuk role {session.role}. Hubungi Administrator RTICORE.
         </div>}
       {session.status==='ready'&&
         <div className="mt-2 space-y-3">
