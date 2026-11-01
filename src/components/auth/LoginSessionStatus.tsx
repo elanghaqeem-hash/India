@@ -64,7 +64,7 @@ export function LoginSessionStatus() {
         </button>
       </div>
       {session.status==='checking'&&
-        <p role="status" className="mt-2 text-sm text-slate-600">Memeriksa sesi Cloudflare Access dan keanggotaan INDIA…</p>}
+        <p role="status" className="mt-2 text-sm text-slate-600">Memeriksa sesi Cloudflare Access dan keanggotaan RTICORE…</p>}
       {session.status==='signed-out'&&
         <p role="status" className="mt-2 text-sm text-slate-600">Belum login. Gunakan tombol masuk di bawah untuk melanjutkan verifikasi akun.</p>}
       {session.status==='forbidden'&&
