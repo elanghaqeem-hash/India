@@ -88,7 +88,7 @@ function AccountFieldSections(props:Omit<React.ComponentProps<typeof FormFields>
       <legend className="px-1 text-xs font-bold text-blue-800">{title}</legend>
       <FormFields {...props} compactLabels fields={fields.filter(([key])=>key.startsWith(prefix+'_'))}/>
      </fieldset>)}</div>:
-    section.id==='signatories'?<div className="grid min-w-0 gap-3 xl:grid-cols-2">{([['customer','Pelanggan'],['defender','Technotama']] as const).map(([prefix,title])=>
+    section.id==='signatories'?<div className="grid min-w-0 gap-3 xl:grid-cols-2">{([['customer','Pelanggan'],['defender','RTI']] as const).map(([prefix,title])=>
      <fieldset key={prefix} className="min-w-0 rounded-xl border border-slate-200 bg-slate-50/60 p-3 sm:p-4">
       <legend className="px-1 text-xs font-bold text-blue-800">{title}</legend>
       <FormFields {...props} compactLabels fields={fields.filter(([key])=>key.startsWith(prefix+'_'))}/>
@@ -217,7 +217,7 @@ export default function SalesPipelinePage(){
  const mayEditAccount=role==='admin'||(role==='sales'&&detail?.account.created_by?.toLowerCase()===detail?.identityEmail.toLowerCase());
  return <div className="min-w-0 space-y-5 pb-24">
  <header className="flex flex-wrap items-center justify-between gap-3">
-  <div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">INDIA • Technotama</p>
+  <div><p className="text-xs font-bold uppercase tracking-[.2em] text-blue-700">RTICORE • RTI</p>
    <h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">Sales Pipeline & Opportunity 360</h1>
    <p className="mt-1 max-w-3xl text-xs text-slate-500">Registrasi → Qualification → Scoping → BoQ → Approval → Quotation → Negotiation → Won / Lost. Setiap perubahan tersimpan di Cloudflare D1 dan dicatat audit trail.</p></div>
   <div className="flex flex-wrap gap-2">
