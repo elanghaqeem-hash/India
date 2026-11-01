@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useId,useState} from 'react';
 import {ALL_BUSINESS_TYPES,businessTypeOptions,CUSTOMER_INDUSTRIES,CUSTOMER_SEGMENTS} from '@/lib/customer-classification';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 
 type Field='client_tier'|'industry'|'business_type';
 type Props={
@@ -43,12 +44,11 @@ export function StandardCustomerChoice({field,label,value,industry='',disabled=f
     placeholder="Contoh: Bank, Asuransi, Teknologi, Konstruksi..."
     value={search} onChange={e=>setSearch(e.target.value)}/>
   </div>}
-  <select id={selectId} aria-label={label} disabled={disabled} className={control}
-   value={custom?OTHER:value} onChange={e=>choose(e.target.value)}>
-   <option value="">— Pilih {field==='client_tier'?'segmentasi pelanggan':field==='industry'?'sektor industri':'bidang usaha'} —</option>
-   {options.map(choice=><option key={choice} value={choice}>{choice}</option>)}
-   <option value={OTHER}>Lainnya — isi manual</option>
-  </select>
+  <CompactSelect id={selectId} label={label} disabled={disabled} className={control}
+   value={custom?OTHER:value} onChange={choose}
+   options={[{value:'',label:'— Pilih '+(field==='client_tier'?'segmentasi pelanggan':field==='industry'?'sektor industri':'bidang usaha')+' —'},
+    ...options.map(choice=>({value:choice,label:choice})),
+    {value:OTHER,label:'Lainnya — isi manual'}]} searchable={options.length>=10}/>
   {isBusiness&&<div className="mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] font-normal text-slate-500">
    <span>{keyword?filtered.length+' hasil pencarian':showAll?'Semua bidang usaha':'Rekomendasi sesuai sektor'} · {options.length} pilihan</span>
    <button type="button" disabled={disabled} className="min-h-9 font-semibold text-blue-700 underline underline-offset-2 disabled:opacity-50"
