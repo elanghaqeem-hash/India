@@ -15,7 +15,7 @@ test('login on mobile: secure Access CTA, logout and unauthenticated notice with
   }));
   const response=await page.goto(base+'/login',{waitUntil:'networkidle'});
   assert.equal(response?.status(),200);
-  await page.getByRole('heading',{name:'Login INDIA'}).waitFor();
+  await page.getByRole('heading',{name:'Login RTICORE'}).waitFor();
   await page.getByText('Belum login. Gunakan tombol masuk',{exact:false}).waitFor();
   assert.equal(await page.locator('input[type="password"]').count(),0);
   assert.equal(await page.getByRole('link',{name:'Masuk dengan Cloudflare Access'}).getAttribute('href'),'/');
@@ -54,7 +54,7 @@ test('unauthorized identity produces clear admin-registration guidance and never
    status:403,contentType:'application/json',body:JSON.stringify({success:false})
   }));
   await page.goto(base+'/login',{waitUntil:'networkidle'});
-  await page.getByText('Identitas belum diizinkan membuka INDIA.',{exact:false}).waitFor();
+  await page.getByText('Identitas belum diizinkan membuka RTICORE.',{exact:false}).waitFor();
   assert.equal(await page.getByRole('link',{name:'Buka workspace sesuai role'}).count(),0);
   await page.close();
  }finally{await browser.close();}
