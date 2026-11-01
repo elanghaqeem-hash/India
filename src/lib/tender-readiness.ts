@@ -21,5 +21,5 @@ export const tenderReadySQL=`(NOT ${required} OR (
  OR length(c.document_name)=0 OR length(c.evidence_reference)<8 OR length(c.evidence_sha256)!=64
  OR (c.due_at IS NOT NULL AND datetime(c.due_at)<datetime('now'))))
 ))`;
-export async function tenderReady(db:D1DB,id:string){return !!await db.prepare('SELECT id FROM india_sales_opportunities d WHERE d.tenant_id=? AND d.id=? AND '+tenderReadySQL).bind('defendit360',id).first();}
-export function guardTender(g:{condition:string;args:(string|number|null)[]},id:string){g.condition+=' AND EXISTS(SELECT 1 FROM india_sales_opportunities d WHERE d.id=? AND d.tenant_id=? AND '+tenderReadySQL+')';g.args.push(id,'defendit360');}
+export async function tenderReady(db:D1DB,id:string){return !!await db.prepare('SELECT id FROM india_sales_opportunities d WHERE d.tenant_id=? AND d.id=? AND '+tenderReadySQL).bind('RTI',id).first();}
+export function guardTender(g:{condition:string;args:(string|number|null)[]},id:string){g.condition+=' AND EXISTS(SELECT 1 FROM india_sales_opportunities d WHERE d.id=? AND d.tenant_id=? AND '+tenderReadySQL+')';g.args.push(id,'RTI');}
