@@ -102,7 +102,8 @@ test('Role switch is enforced at server authorizer, not merely client navigation
   const route=fs.readFileSync('src/app/api/sales/identity/route.ts','utf8');
   const nav=fs.readFileSync('src/components/layout/Navbar.tsx','utf8');
   assert.match(auth,/rolePreviewFromCookie\(request.headers.get\('cookie'\),email,member.role\)/);
-  assert.match(auth,/accessRestricted\(db,new URL\(request.url\).pathname,role\)/);
+  assert.match(auth,/accessRestricted\(db,path,role\)/);
+  assert.match(auth,/path!=='\/api\/sales\/identity'/);
   assert.match(route,/assignedRole:auth.identity.assignedRole/);
   assert.match(nav,/assignedRole==='admin'/);
   assert.match(nav,/Ganti Role \/ Mode Uji/);
