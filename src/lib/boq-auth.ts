@@ -3,6 +3,7 @@ import { getCloudflareContext } from '@opennextjs/cloudflare';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 import {accessRestricted} from './system-settings';
 import type { BoQRole } from './boq-domain';
+import {rolePreviewFromCookie} from './role-preview';
 
 export interface D1Prepared {
  bind(...args:(string|number|null)[]):D1Prepared;
@@ -15,11 +16,11 @@ export interface D1DB {
  batch(statements:D1Prepared[]):Promise<unknown[]>;
 }
 type CloudEnv={INDIA_DB?:D1DB;INDIA_ACCESS_AUD?:string;INDIA_ACCESS_TEAM_DOMAIN?:string};
-export type BoQIdentity={email:string;role:BoQRole;db:D1DB};
+export type BoQIdentity={email:string;role:BoQRole;assignedRole:BoQRole;rolePreview:boolean;db:D1DB};
 type Result={ok:true;identity:BoQIdentity}|{ok:false;response:NextResponse};
 const deny=(status:number,message:string):Result=>({ok:false,response:NextResponse.json({success:false,message},{status,headers:{'Cache-Control':'no-store'}})});
 const cache = new Map<string, ReturnType<typeof createRemoteJWKSet>>();
-export async function authorizeBoQ(request:Request):Promise<Result>{
+export async function authorizeBoQ(request:Request,options:{ignoreRolePreview?:boolean}={}):Promise<Result>{
  let env:CloudEnv;
  try {env=(await getCloudflareContext({async:true})).env as CloudEnv;}catch{return deny(503,'D1 runtime tidak tersedia');}
  const db=env.INDIA_DB, domain=env.INDIA_ACCESS_TEAM_DOMAIN, aud=env.INDIA_ACCESS_AUD;
@@ -36,8 +37,15 @@ export async function authorizeBoQ(request:Request):Promise<Result>{
    const member=await db.prepare('SELECT role,active FROM india_members WHERE email=?').bind(email).first<{role:BoQRole;active:number}>();
    if(!member||member.active!==1||!['admin','marketing','finance','presales','sales','approver','legal','viewer'].includes(member.role))
     return deny(403,'Akun belum diberi akses sesuai peran.');
-   try{if(await accessRestricted(db,new URL(request.url).pathname,member.role))return deny(403,'Resource dibatasi oleh Access Policy institusi.');}catch{return deny(503,'Access Policy belum siap; verifikasi migrasi administrasi.');}
-   return {ok:true,identity:{email,role:member.role,db}};
+   // Only a verified active Admin may voluntarily downscope to a different role.
+   // Untrusted cookies from non-Admins are always ignored (no role elevation).
+   const role=options.ignoreRolePreview?member.role:
+     rolePreviewFromCookie(request.headers.get('cookie'),email,member.role)||member.role;
+   // Identity must remain readable to an authenticated member even when an
+   // institution policy denies the preview role access to other Sales APIs.
+   const path=new URL(request.url).pathname;
+   try{if(path!=='/api/sales/identity'&&await accessRestricted(db,path,role))return deny(403,'Resource dibatasi oleh Access Policy institusi.');}catch{return deny(503,'Access Policy belum siap; verifikasi migrasi administrasi.');}
+   return {ok:true,identity:{email,role,assignedRole:member.role,rolePreview:role!==member.role,db}};
  }catch{return deny(401,'Token login Access tidak valid atau kedaluwarsa.');}
 }
 export const privateHeaders={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'} as const;
