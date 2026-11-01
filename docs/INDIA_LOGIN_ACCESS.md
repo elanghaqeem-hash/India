@@ -1,8 +1,8 @@
-# INDIA login flow — production (31 October 2026)
+# RTICORE login flow — production (31 October 2026)
 
 ## Purpose
 
-The INDIA production Worker is protected **at Worker level** by Cloudflare Access. As a result,
+The RTICORE production Worker is protected **at Worker level** by Cloudflare Access. As a result,
 `https://india.elang-haqeem.workers.dev/login` will always display Cloudflare Access first
 for an anonymous visitor. The Next.js login route cannot render before authentication.
 
@@ -20,16 +20,16 @@ the production identity boundary.
 
 1. Visitor opens public branded login Worker.
 2. The landing page has no passwords, cookies, OTP, user data, API routes, D1 bindings, or proxy.
-3. Visitor clicks **Masuk dengan Cloudflare Access** and navigates to the protected INDIA Worker.
+3. Visitor clicks **Masuk dengan Cloudflare Access** and navigates to the protected RTICORE Worker.
 4. Cloudflare Access checks Identity Provider session and approved application policy **before**
    passing a request to the production Worker.
-5. INDIA continues verifying server-side JWT, D1 membership and RBAC per API route.
+5. RTICORE continues verifying server-side JWT, D1 membership and RBAC per API route.
 6. Unauthenticated and unauthorized requests stay blocked by Cloudflare Access or the application.
 
 ## Security invariants
 
 - Do **not** delete or weaken the production Worker-level Access application:
-  `INDIA Technotama Production - Secure Business Platform`.
+  `RTICORE RTI Production - Secure Business Platform`.
 - Never expose a public API, production Worker alias, cached user data, or private D1 binding
   on the public login Worker.
 - Access policies remain administered in Cloudflare Zero Trust.

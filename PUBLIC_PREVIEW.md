@@ -1,4 +1,4 @@
-# India public UI preview
+# RTICORE public UI preview
 
 This change enables a **UI-only public preview**, not a full production system.
 

@@ -17,9 +17,9 @@ export const MobileNav:React.FC<MobileNavProps> = ({role}) => {
   return (
     <>
       {open && (
-        <div className="no-print fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 max-h-[min(70dvh,650px)] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl lg:hidden" role="dialog" aria-modal="false" aria-label="Seluruh menu INDIA">
+        <div className="no-print fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] z-40 max-h-[min(70dvh,650px)] overflow-y-auto rounded-t-2xl border border-slate-200 bg-white p-4 shadow-2xl lg:hidden" role="dialog" aria-modal="false" aria-label="Seluruh menu RTICORE">
           <div className="mb-3 flex items-center justify-between gap-2">
-            <h2 className="text-sm font-bold text-slate-900">Menu INDIA sesuai role</h2>
+            <h2 className="text-sm font-bold text-slate-900">Menu RTICORE sesuai role</h2>
             <button type="button" onClick={()=>setOpen(false)} aria-label="Tutup menu" className="flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200"><X className="h-5 w-5"/></button>
           </div>
           {groups.map(group=>(
@@ -48,7 +48,7 @@ export const MobileNav:React.FC<MobileNavProps> = ({role}) => {
             <span className="max-w-full truncate">{group.label.replace(/^\d+ · /,'')}</span>
           </Link>;
         })}
-        <button type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Buka seluruh menu INDIA"
+        <button type="button" onClick={()=>setOpen(v=>!v)} aria-expanded={open} aria-label="Buka seluruh menu RTICORE"
           className="flex min-h-14 min-w-16 flex-col items-center justify-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-indigo-700 focus-visible:outline-2 focus-visible:outline-indigo-500">
           {open?<X className="h-5 w-5"/>:<Menu className="h-5 w-5"/>}
           Semua menu

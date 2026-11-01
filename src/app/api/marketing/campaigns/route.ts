@@ -41,7 +41,7 @@ export async function GET(req:Request){
    }
    return {...c,...progress};
   });
-  // Owners are limited to currently active INDIA members. Do not expose the
+  // Owners are limited to currently active RTICORE members. Do not expose the
   // member directory to Sales: only Marketing/Admin can assign Campaign owners.
   const owners=canEditCampaign(role)
    ?(await db.prepare("SELECT email,role FROM india_members WHERE active=1 AND role IN ('admin','marketing','sales') ORDER BY CASE role WHEN 'marketing' THEN 0 WHEN 'sales' THEN 1 ELSE 2 END,email LIMIT 200")

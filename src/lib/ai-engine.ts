@@ -1,4 +1,4 @@
-// INDIA CyberBusiness 360 Multi-Source AI Engine
+// RTICORE CyberBusiness 360 Multi-Source AI Engine
 // Supports Google Gemini, OpenAI, Anthropic Claude, Groq/DeepSeek, and Local Fallback Engine.
 // Enforces Admin Priority Ordering with automatic cascade failover.
 
@@ -50,7 +50,7 @@ export const DEFAULT_AI_CONFIGS: AIProviderConfig[] = [
   {
     id: 'prov-local',
     provider: 'local',
-    name: 'Built-in INDIA Cybersecurity Expert System (Local Fallback)',
+    name: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
     apiKey: 'INTERNAL_BUILTIN',
     model: 'technotama-expert-v2',
     priority: 5, // Fallback
@@ -232,7 +232,7 @@ function generateLocalExpertResponse(prompt: string): string {
   const lower = prompt.toLowerCase();
 
   if (lower.includes('scoping') || lower.includes('rks') || lower.includes('vapt') || lower.includes('tor')) {
-    return `### Analisis Scoping Teknis Berbasis INDIA Expert Rules:
+    return `### Analisis Scoping Teknis Berbasis RTICORE Expert Rules:
 1. **Identifikasi Ruang Lingkup**:
    - Berdasarkan parameter kebutuhan yang dianalisis, disarankan pengujian **Grey-Box** untuk memaksimalkan efisiensi penemuan celah keamanan autentikasi & logika bisnis.
    - Sektor Finansial / Kepatuhan: Direkomendasikan menerapkan standar pengujian **OWASP ASVS Level 2 & SEOJK Keamanan Siber**.
@@ -259,7 +259,7 @@ function generateLocalExpertResponse(prompt: string): string {
   if (lower.includes('tender') || lower.includes('bid') || lower.includes('hps') || lower.includes('lpse')) {
     return `### Rekomendasi Evaluasi Tender & Kepatuhan:
 1. **Bid / No-Bid Decision Scorecard**:
-   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment Technotama).
+   - Kesesuaian Portofolio: Sangat Tinggi (Sesuai pilar Security Check-Up & Treatment RTI).
    - Kepatuhan Legalitas: Terdaftar LK SMPI BSSN, sertifikasi ISO 27001 aktif.
    - Rekomendasi: **GO (Lanjutkan Pengajuan Penawaran)**.
 2. **Persyaratan Wajib (Mandatory Checklist)**:
@@ -268,7 +268,7 @@ function generateLocalExpertResponse(prompt: string): string {
    - BoQ terpisah dari dokumen teknis jika pengadaan 2 sampul.`;
   }
 
-  return `### Ringkasan Asisten Bisnis INDIA CyberBusiness 360:
+  return `### Ringkasan Asisten Bisnis RTICORE CyberBusiness 360:
 - **Analisis Permintaan**: Sistem memproses konteks transaksi komersial secara terpadu.
 - **Rekomendasi**: Seluruh transaksi komersial harus memenuhi rantai persetujuan DoA (Manager, VP, Direktur) dan tercatat dalam buku besar audit trail.
 - **Kepatuhan Data**: Sesuai UU PDP dan standar ISO 27001, data sensitif, margin internal, dan rincian BoQ Komponen A-E tidak boleh dibagikan kepada pihak eksternal.`;
@@ -288,7 +288,7 @@ export async function executeAIPrompt(
     .sort((a, b) => a.priority - b.priority);
 
   const sysPrompt = AI_WORKSPACE_IDENTITY+'\n'+(context?.systemPrompt ||
-    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for INDIA (Technotama). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.');
+    'You are the enterprise AI Solution Architect & Cybersecurity Commercial Advisor for RTICORE (RTI). Provide rigorous, executive-grade responses in Indonesian with professional accuracy, structured tables, and actionable next steps.');
 
   // Attempt each provider in priority order
   for (const provider of activeChain) {
@@ -327,7 +327,7 @@ export async function executeAIPrompt(
   // Final fallback to local expert engine
   const fallbackContent = generateLocalExpertResponse(prompt);
   return {
-    providerUsed: 'Built-in INDIA Cybersecurity Expert System (Local Fallback)',
+    providerUsed: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
     modelUsed: 'technotama-expert-v2',
     content: fallbackContent,
     latencyMs: Date.now() - startTime,

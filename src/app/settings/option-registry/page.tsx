@@ -43,7 +43,7 @@ export default function AdminOptionsPage(){
  return <main className="mx-auto max-w-6xl space-y-5 pb-24">
   <header className="rounded-2xl border border-indigo-100 bg-gradient-to-r from-white to-indigo-50 p-5 sm:p-6">
    <Link href="/settings/options" className="text-xs font-semibold text-indigo-700">Opsi / Registrasi Opsi</Link>
-   <div className="mt-2 flex items-center gap-3"><span className="rounded-xl bg-indigo-900 p-3 text-white"><ListChecks className="h-5 w-5"/></span><div><h1 className="text-xl font-extrabold sm:text-2xl">Registrasi Opsi INDIA</h1><p className="text-xs text-slate-600">Master dropdown terpusat, berkode, dapat diaktifkan/nonaktifkan, dan terekam dalam audit.</p></div></div>
+   <div className="mt-2 flex items-center gap-3"><span className="rounded-xl bg-indigo-900 p-3 text-white"><ListChecks className="h-5 w-5"/></span><div><h1 className="text-xl font-extrabold sm:text-2xl">Registrasi Opsi RTICORE</h1><p className="text-xs text-slate-600">Master dropdown terpusat, berkode, dapat diaktifkan/nonaktifkan, dan terekam dalam audit.</p></div></div>
    <p className="mt-4 flex items-center gap-2 text-xs text-indigo-900"><ShieldCheck className="h-4 w-4"/> Pembuatan dan perubahan hanya oleh Admin. Pengguna terotorisasi lain hanya dapat membaca pilihan aktif.</p>
   </header>
   {loading&&<p role="status" className="rounded-xl border bg-white p-4">Memverifikasi akses Admin...</p>}

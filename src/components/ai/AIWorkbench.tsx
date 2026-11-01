@@ -5,7 +5,7 @@ import { Sparkles,X,Copy,LoaderCircle } from 'lucide-react';
 type Provider={id:string;name:string;model:string;priority:number};
 const purposes:Record<string,{name:string;purpose:string;starter:string}>={
  '/sales/pipeline':{name:'Sales Pipeline',purpose:'sales',starter:'Analisis risiko sales pipeline dan susun next action berdasarkan ringkasan anonim berikut: '},
- '/scoping':{name:'Technical Scoping',purpose:'scoping',starter:'Tinjau scope dan identifikasi parameter teknis yang belum lengkap untuk layanan Technotama berikut: '},
+ '/scoping':{name:'Technical Scoping',purpose:'scoping',starter:'Tinjau scope dan identifikasi parameter teknis yang belum lengkap untuk layanan RTI berikut: '},
  '/pricing':{name:'Pricing',purpose:'pricing',starter:'Tinjau asumsi komersial dan kelengkapan pricing tanpa mengarang harga, HPP, atau margin berikut: '},
  '/boq':{name:'BoQ',purpose:'boq',starter:'Tinjau konsistensi deskripsi, quantity, unit, SLA dan deliverables untuk BoQ berikut: '},
  '/proposals':{name:'Quotation & Proposal',purpose:'quotation',starter:'Susun draft narasi quotation profesional dari scope anonim berikut; tandai bagian yang belum didukung data: '},
@@ -14,7 +14,7 @@ const purposes:Record<string,{name:string;purpose:string;starter:string}>={
 };
 export function AIWorkbench(){
  const pathname=usePathname();
- const mode=purposes[pathname]||{name:'INDIA Workspace',purpose:'analysis',starter:'Analisis permintaan kerja Technotama berikut: '};
+ const mode=purposes[pathname]||{name:'RTICORE Workspace',purpose:'analysis',starter:'Analisis permintaan kerja RTI berikut: '};
  const [open,setOpen]=useState(false),[providers,setProviders]=useState<Provider[]>([]);
  const [provider,setProvider]=useState('auto'),[prompt,setPrompt]=useState('');
  const [approved,setApproved]=useState(false),[busy,setBusy]=useState(false);
@@ -49,7 +49,7 @@ export function AIWorkbench(){
   {open&&<div className="fixed inset-0 z-[90] flex items-end justify-end bg-slate-950/40 p-2 sm:p-4" role="dialog" aria-modal="true" aria-label="AI drafting assistant">
    <div className="flex max-h-[94dvh] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
     <header className="flex items-center justify-between border-b p-4">
-     <div><p className="text-xs font-bold text-indigo-700">INDIA • Connected AI</p><h2 className="text-base font-bold">AI untuk {mode.name}</h2></div>
+     <div><p className="text-xs font-bold text-indigo-700">RTICORE • Connected AI</p><h2 className="text-base font-bold">AI untuk {mode.name}</h2></div>
      <button onClick={()=>setOpen(false)} aria-label="Tutup AI" className="rounded-lg p-2 hover:bg-slate-100"><X className="h-5 w-5"/></button>
     </header>
     <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
