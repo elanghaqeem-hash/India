@@ -1,6 +1,7 @@
 'use client';
 import React,{useEffect,useMemo,useState} from 'react';
 import {LEAD_SOURCES,PROCUREMENT_PROCESSES} from '@/lib/sales-workflow';
+import {CompactSelect} from '@/components/ui/CompactSelect';
 
 export type ManagedOptionGroup='lead_source'|'procurement_process';
 type Item={value:string;label:string};
@@ -47,13 +48,9 @@ export function ManagedOptionSelect({group,value,onChange,label,disabled=false,r
  },[group]);
  const choices=useMemo(()=>mergeManagedOptions(group,remote,value),[group,remote,value]);
  return <>
-  <select aria-label={label} value={value} disabled={disabled} required={required}
-   title={warning||undefined}
-   onChange={event=>onChange(event.target.value)}
-   className={className||'mt-1 block min-h-11 w-full min-w-0 rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-900 outline-none focus:border-blue-500 disabled:bg-slate-100'}>
-   <option value="">— Pilih —</option>
-   {choices.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}
-  </select>
+  <CompactSelect label={label} value={value} disabled={disabled} required={required}
+   onChange={onChange} className={className||'mt-1 block min-h-11 w-full rounded-lg'}
+   options={[{value:'',label:'— Pilih —'},...choices]} searchable={choices.length>=10}/>
   {warning&&<span role="status" className="mt-1 block text-[11px] font-normal text-amber-700">{warning}</span>}
  </>;
 }
