@@ -41,12 +41,15 @@ test('legacy segment and custom business activity remain valid D1 account string
 });
 test('pipeline and Lead conversion share dropdowns; no simulated choices sent to D1',()=>{
  const component=file('src/components/sales/StandardCustomerChoice.tsx');
+ const picker=file('src/components/ui/CompactSelect.tsx');
  const pipeline=file('src/app/sales/pipeline/page.tsx');
  const leads=file('src/app/sales/leads/page.tsx');
  assert.match(component,/Lainnya — isi manual/);
  assert.match(component,/value={value}/);
  assert.match(component,/disabled={disabled}/);
- assert.match(component,/aria-label={label}/);
+ assert.match(component,/<CompactSelect id={selectId} label={label}/);
+ assert.match(picker,/role="combobox" aria-label={label}/);
+ assert.match(picker,/role="listbox" aria-label={label}/);
  assert.match(pipeline,/key==='client_tier'\|\|key==='industry'\|\|key==='business_type'/);
  assert.match(leads,/field==='client_tier'\|\|field==='industry'\|\|field==='business_type'/);
  assert.match(component,/field==='industry'\?CUSTOMER_INDUSTRIES/);
