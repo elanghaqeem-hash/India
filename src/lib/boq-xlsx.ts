@@ -283,7 +283,7 @@ function makeCustomer(proposal: Proposal): Sheet[] {
   const s: Cell[][] = [
     ['RTI | QUOTATION & BILL OF QUANTITIES'],
     ['Draft quotation - validasi harga, pajak, scope dan approval sebelum diterbitkan.'],
-    ['Provider: RTI (RTI)'],
+    ['Provider: RTI'],
     ['Client: ' + safeText(proposal.company_name) + ' | Proyek: ' + safeText(proposal.opportunity_name)],
     ['No: ' + safeText(proposal.quotation_number) + ' | Versi ' + proposal.version],
     [],
