@@ -12,7 +12,7 @@ export async function GET(req:Request){
  if(!formats.includes(format)||!id)return Response.json({success:false,message:'Parameter ekspor tidak valid'},{status:400,headers:privateHeaders});
  if(format!=='customer'&&!can(role,'read_cost'))return Response.json({success:false,message:'BoQ internal khusus Finance/Admin'},{status:403,headers:privateHeaders});
  try{
-  const row=await db.prepare('SELECT * FROM india_boq WHERE id=? AND tenant_id=?').bind(id,'defendit360').first<any>();
+  const row=await db.prepare('SELECT * FROM india_boq WHERE id=? AND tenant_id=?').bind(id,'RTI').first<any>();
   if(!row)return Response.json({success:false,message:'BoQ tidak ditemukan'},{status:404,headers:privateHeaders});
   const lines:BoQLine[]=JSON.parse(row.line_items_json),costs:CostLine[]=JSON.parse(row.cost_items_json);
   const totals=boqTotals(lines,costs,row.vat_rate);
@@ -33,10 +33,10 @@ export async function GET(req:Request){
     total_internal_cost:totals.hpp??0}} as unknown as PricingSession):undefined;
   const bytes=createProposalBoQ(proposal,format as BoQExportFormat,format==='customer'?undefined:pricing);
   await db.prepare('INSERT INTO india_audit_log(id,tenant_id,boq_id,action,actor_email,summary) VALUES (?,?,?,?,?,?)')
-    .bind(crypto.randomUUID(),'defendit360',id,'EXPORT',email,format).run();
+    .bind(crypto.randomUUID(),'RTI',id,'EXPORT',email,format).run();
   const safeName=row.quotation_number.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,50);
   return new Response(Buffer.from(bytes),{status:200,headers:{...privateHeaders,
     'Content-Type':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'Content-Disposition':'attachment; filename="Technotama_BoQ_'+format+'_'+safeName+'.xlsx"'}});
+    'Content-Disposition':'attachment; filename="RTI_BoQ_'+format+'_'+safeName+'.xlsx"'}});
  }catch{return Response.json({success:false,message:'Ekspor XLSX gagal'},{status:500,headers:privateHeaders});}
 }

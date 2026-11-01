@@ -90,7 +90,7 @@ function api(db){
  };
 }
 const newLead=(owner,tag)=>({
- entity:'lead',request_key:crypto.randomUUID(),account_name:'PT INDIA TEST '+tag,
+ entity:'lead',request_key:crypto.randomUUID(),account_name:'PT RTICORE TEST '+tag,
  source:'Referral',campaign:'QA',service_family:'VAPT',
  contact_name:'PIC QA',contact_email:'qa-'+tag.toLowerCase()+'@invalid.example',
  assigned_sales_email:owner,estimated_value_idr:150000000,expected_closing_date:'2026-12-20',
@@ -148,7 +148,7 @@ test('cross-owner existing Customer collision cannot produce orphan Opportunity 
   assert.equal(cr.status,201);
   await call('PATCH',users.b,{id:cr.payload.id,version:1,status:'qualified',qualification:q});
   d.sql.prepare("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES(?,?,?,?,?,?)")
-   .run('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',tenant,'PT INDIA TEST SHARED','IND-OLD','{}',users.a);
+   .run('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',tenant,'PT RTICORE TEST SHARED','IND-OLD','{}',users.a);
   const blocked=await call('POST',users.b,{entity:'convert',id:cr.payload.id,version:2,opportunity_title:'Must Not Cross',customer_fields:customer});
   assert.equal(blocked.status,409,JSON.stringify(blocked.payload));
   assert.equal(d.sql.prepare('SELECT COUNT(*) n FROM india_sales_opportunities').get().n,0);

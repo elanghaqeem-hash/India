@@ -350,7 +350,7 @@ export default function SmartScopingPage() {
             <div>
               <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Smart Scoping Assessment Engine</h1>
               <p className="text-xs text-slate-500">
-                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS Technotama.
+                Formulir kalkulasi scoping teknis adaptif sesuai standar BRD Bab 3 & FRS RTI.
               </p>
             </div>
           </div>
@@ -438,7 +438,7 @@ export default function SmartScopingPage() {
             )}
             <label className="flex items-start gap-2 text-[11px] leading-relaxed text-slate-600">
               <input type="checkbox" className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300" checked={aiConsent} onChange={e => setAiConsent(e.target.checked)} />
-              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi India dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
+              <span>Saya berwenang mengirimkan teks ini ke provider AI sesuai urutan konfigurasi RTICORE dan telah memastikan izin penggunaan data klien. Analisis AI saat ini memerlukan hak akses Admin.</span>
             </label>
             <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button
@@ -494,7 +494,7 @@ export default function SmartScopingPage() {
       <section aria-label="Pilih jenis layanan" className="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm">
         <div className="mb-3 px-1">
           <h2 className="text-sm font-bold text-slate-900">Pilih Jenis Layanan untuk Scoping</h2>
-          <p className="text-xs text-slate-500">Parameter, satuan dan output otomatis menyesuaikan kategori layanan Technotama.</p>
+          <p className="text-xs text-slate-500">Parameter, satuan dan output otomatis menyesuaikan kategori layanan RTI.</p>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-4">
           {SCOPING_SERVICE_TYPES.map(service=><button key={service} type="button" onClick={()=>setActiveTab(service)}

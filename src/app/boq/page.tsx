@@ -90,12 +90,12 @@ export default function BoQPage(){
   if(!selected)return;setBusy(true);
   try{const r=await fetch('/api/boq/export?id='+encodeURIComponent(selected.id)+'&format='+format);if(!r.ok){const j=await r.json();throw Error(j.message);}
   const blob=await r.blob(),url=URL.createObjectURL(blob),a=document.createElement('a');
-  a.href=url;a.download='Technotama_'+format+'_'+selected.quotation_number.replace(/[^a-zA-Z0-9]/g,'-')+'.xlsx';
+  a.href=url;a.download='RTI_'+format+'_'+selected.quotation_number.replace(/[^a-zA-Z0-9]/g,'-')+'.xlsx';
   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),2000);
   }catch(e){setMsg(String(e));}finally{setBusy(false);}
  };
  return <main className="min-w-0 space-y-5 pb-24"><header className="flex flex-wrap justify-between gap-3">
-   <div><h1 className="text-xl font-bold text-slate-900">BoQ Management · Technotama</h1><p className="text-xs text-slate-500">D1 · Peran {role||'belum terautentikasi'} · Excel</p></div>
+   <div><h1 className="text-xl font-bold text-slate-900">BoQ Management · RTI</h1><p className="text-xs text-slate-500">D1 · Peran {role||'belum terautentikasi'} · Excel</p></div>
    <div className="flex gap-2">{role==='admin'&&<a href="/boq/users" className="rounded-lg border px-3 py-2 text-xs font-semibold">Atur Role</a>}
    <button className="rounded-lg bg-blue-700 px-3 py-2 text-xs text-white" onClick={()=>{setSelected(null);setForm(blank());setCosts({});}}>+ BoQ Baru</button></div>
   </header>{msg&&<p role="status" className="rounded-lg border border-blue-200 p-3 text-xs">{msg}</p>}
@@ -121,7 +121,7 @@ export default function BoQPage(){
      onChange={value=>change('payment_terms',value)} className="mt-1"
      options={['30-50-20','30-60-10','50-50','100'].map(x=>({value:x,label:x}))}/></label></div>
    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-blue-100 bg-blue-50/50 p-3">
-     <label className="min-w-0 flex-1 text-xs">Pilih Katalog Technotama
+     <label className="min-w-0 flex-1 text-xs">Pilih Katalog RTI
       <CompactSelect label="Pilih katalog layanan" disabled={!canEdit} value={sku}
        onChange={setSku} className="mt-1"
        options={[{value:'',label:'-- Pilih SKU / Layanan --'},...catalog.map(c=>({

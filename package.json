@@ -8,7 +8,7 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && npm run test:psa-timesheets && opennextjs-cloudflare build",
+    "build:cf": "npm run test:branding && npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && npm run test:psa-timesheets && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "test:executive": "node --test tests/india-executive-dashboard.test.cjs",
@@ -48,7 +48,8 @@
     "test:admin": "node --test tests/admin-access.test.cjs tests/organization-parent-picker.test.cjs tests/admin-settings-update-delete.test.cjs tests/admin-user-delete.test.cjs && node --test tests/audit-remediation.test.cjs",
     "test:erp": "node --test tests/india-erp-foundation.test.cjs",
     "gate:erp": "npm run typecheck && npm run test:psa-timesheets && npm run test:erp && npm run test:erp:extensions",
-    "test:erp:extensions": "node --test tests/india-erp-enterprise-extensions.test.cjs"
+    "test:erp:extensions": "node --test tests/india-erp-enterprise-extensions.test.cjs",
+    "test:branding": "node --test tests/rticore-branding.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",

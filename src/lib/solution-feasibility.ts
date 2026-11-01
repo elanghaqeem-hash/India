@@ -1,4 +1,4 @@
-// INDIA 0022 resource and solution feasibility: deterministic person-days, money and gap analysis.
+// RTICORE 0022 resource and solution feasibility: deterministic person-days, money and gap analysis.
 export const serviceLines=['VAPT','SOC/MDR','FortiSIEM','GRC','Managed Security'] as const;
 export type ServiceLine=typeof serviceLines[number];
 export const costTypes=['license','subscription','supplier_service','tooling','cloud','travel','other'] as const;

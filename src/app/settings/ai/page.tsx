@@ -32,7 +32,7 @@ export default function AISettingsPage(){
    setConfigs(data.configs||[]);
    setEncryptionReady(data.encryptionReady??null);
    setBlocked('');
-  }catch{setBlocked('Koneksi ke backend INDIA gagal.');}
+  }catch{setBlocked('Koneksi ke backend RTICORE gagal.');}
   finally{setLoading(false);}
  },[]);
  useEffect(()=>{void refresh();},[refresh]);
@@ -114,7 +114,7 @@ export default function AISettingsPage(){
   {!loading&&blocked&&<div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
     <div className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4"/> Pengaturan AI belum dapat diakses</div>
     <p className="mt-2 text-xs leading-relaxed">{blocked}</p>
-    <p className="mt-2 text-xs">Pastikan login Cloudflare Access, peran Admin pada INDIA, D1 migration dan konfigurasi Worker tersedia.</p>
+    <p className="mt-2 text-xs">Pastikan login Cloudflare Access, peran Admin pada RTICORE, D1 migration dan konfigurasi Worker tersedia.</p>
     <button type="button" onClick={()=>{setLoading(true);void refresh();}} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold"><RefreshCcw className="h-3.5 w-3.5"/>Coba lagi</button>
   </div>}
   {!loading&&!blocked&&<>

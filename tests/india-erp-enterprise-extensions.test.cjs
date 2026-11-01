@@ -2,7 +2,7 @@ const test=require('node:test'),assert=require('node:assert/strict');
 const {fixture,won,upload,project,expect,tenant,users}=require('./helpers/service-operations-fixture.cjs');
 const legal='entity-extensions';
 async function setup(h){
- await expect(h.call('erp/organization','POST','admin',{action:'create_unit',id:legal,code:'TCH-EXT',label:'Technotama Enterprise QA',kind:'legal_entity',parent_id:null}),201);
+ await expect(h.call('erp/organization','POST','admin',{action:'create_unit',id:legal,code:'TCH-EXT',label:'RTI Enterprise QA',kind:'legal_entity',parent_id:null}),201);
 }
 function grant(h,email,cap){
  h.sql.prepare("INSERT OR IGNORE INTO india_erp_staff_org(tenant_id,email,unit_id,position_title,created_by,status,reviewed_by,review_notes) VALUES(?,?,?,?,?,'approved',?,?)")
