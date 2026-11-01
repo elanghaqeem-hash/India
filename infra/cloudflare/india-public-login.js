@@ -1,5 +1,5 @@
 /**
- * INDIA Technotama — public pre-authentication landing page.
+ * RTICORE RTI — public pre-authentication landing page.
  *
  * This Worker intentionally has NO user-data access, cookies, API proxy, or
  * private resource bindings. Clicking "Masuk" navigates to the SEPARATE,
@@ -14,8 +14,8 @@ const HTML = `<!doctype html>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex, nofollow">
   <meta name="theme-color" content="#0A1025">
-  <title>Login INDIA | Technotama</title>
-  <meta name="description" content="Portal akses resmi INDIA Enterprise ERP & PSA oleh Technotama.">
+  <title>Login RTICORE | RTI</title>
+  <meta name="description" content="Portal akses resmi RTICORE Enterprise ERP & PSA oleh RTI.">
   <style>
     :root { color-scheme: dark; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
     * { box-sizing: border-box; }
@@ -44,23 +44,23 @@ const HTML = `<!doctype html>
 </head>
 <body>
   <main>
-    <section class="story" aria-label="Tentang INDIA Technotama">
-      <div class="brand"><span class="mark" aria-hidden="true">◆</span><div>INDIA<span class="sub-brand">TECHNOTAMA · ENTERPRISE PLATFORM</span></div></div>
+    <section class="story" aria-label="Tentang RTICORE RTI">
+      <div class="brand"><span class="mark" aria-hidden="true">◆</span><div>RTICORE<span class="sub-brand">RTI · ENTERPRISE PLATFORM</span></div></div>
       <p class="eyebrow">Cybersecurity Enterprise ERP + PSA</p>
       <h1>Satu platform untuk operasional bisnis dan layanan keamanan siber.</h1>
       <p class="intro">Kelola Marketing, Sales, Presales, Project Delivery, Finance, Procurement, serta Cybersecurity Operations dalam satu workspace terintegrasi.</p>
       <div class="features"><span>ERP &amp; CRM terintegrasi</span><span>Workspace berbasis role</span><span>Protected by Cloudflare Access</span></div>
-      <p class="copyright">© 2026 Technotama · Internal Business Platform</p>
+      <p class="copyright">© 2026 RTI · Internal Business Platform</p>
     </section>
-    <div class="mobile-brand brand"><span class="mark" aria-hidden="true">◆</span><div>INDIA<span class="sub-brand">TECHNOTAMA · ENTERPRISE PLATFORM</span></div></div>
+    <div class="mobile-brand brand"><span class="mark" aria-hidden="true">◆</span><div>RTICORE<span class="sub-brand">RTI · ENTERPRISE PLATFORM</span></div></div>
     <section class="card" aria-labelledby="login-title">
       <span class="chip">🔒 Akses perusahaan aman</span>
-      <h2 id="login-title">Login INDIA</h2>
-      <p class="help">Selamat datang di INDIA Technotama. Klik tombol masuk untuk memverifikasi identitas melalui Cloudflare Access. Hanya pengguna yang terdaftar dan memiliki izin yang dapat membuka sistem.</p>
+      <h2 id="login-title">Login RTICORE</h2>
+      <p class="help">Selamat datang di RTICORE RTI. Klik tombol masuk untuk memverifikasi identitas melalui Cloudflare Access. Hanya pengguna yang terdaftar dan memiliki izin yang dapat membuka sistem.</p>
       <a class="button" href="https://india.elang-haqeem.workers.dev/" rel="noreferrer">Masuk dengan Cloudflare Access →</a>
       <p class="security"><strong>Autentikasi tetap melalui Cloudflare.</strong> Halaman ini tidak menerima atau menyimpan password, OTP, maupun data pengguna. Sesudah diverifikasi, izin modul dan data tetap diperiksa oleh INDIA.</p>
     </section>
-    <p class="copyright" style="grid-column:1/-1;display:none">© Technotama</p>
+    <p class="copyright" style="grid-column:1/-1;display:none">© RTI</p>
   </main>
 </body>
 </html>`;

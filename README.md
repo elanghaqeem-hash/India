@@ -1,4 +1,4 @@
-# INDIA Business Management Platform
+# RTICORE — RTI Enterprise ERP & PSA
 
 Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk platform INDIA.
 

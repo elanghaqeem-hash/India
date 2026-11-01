@@ -1,5 +1,5 @@
 {
-  "name": "india-cyberbusiness-360",
+  "name": "rticore-erp-psa",
   "version": "1.0.1",
   "private": true,
   "packageManager": "npm@11.9.0",
@@ -8,9 +8,10 @@
     "build": "next build --webpack",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "build:cf": "npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && npm run test:psa-timesheets && opennextjs-cloudflare build",
+    "build:cf": "npm run test:branding && npm run test:pricing && npm run test:quotation-docx && npm run test:post-po && npm run test:boq && npm run test:boq-domain && npm run test:ai && npm run test:boq-workflow && npm run test:sales && npm run test:sales-transactions && npm run test:document-vault && npm run test:activities && npm run test:scoping-upload && npm run test:marketing && npm run test:india-negative && npm run test:runtime-compat && npm run test:activities && npm run test:p1-p2 && npm run test:bid-readiness && npm run test:feasibility && npm run test:executive && npm run test:feasibility && npm run test:admin && npm run test:modules-13-15 && npm run test:postal && npm run test:flexguard && npm run test:service-operations && npm run test:psa-timesheets && opennextjs-cloudflare build",
     "deploy:cf": "opennextjs-cloudflare deploy",
     "preview:cf": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "test:branding": "node --test tests/rticore-branding.test.cjs",
     "test:executive": "node --test tests/india-executive-dashboard.test.cjs",
     "test:consolidation": "node --test tests/marketing-sales-consolidation.test.cjs tests/marketing-sales-atomic-bridge.test.cjs tests/marketing-sales-runtime-integration.test.cjs tests/india-cloudflare-access-real-uat-guard.test.cjs tests/marketing-sales-remote-preflight-guard.test.cjs",
     "test:layout": "node --experimental-strip-types --test tests/quotation-layout.test.cjs tests/ai-chat-format.test.cjs tests/ai-conversation.test.cjs",
