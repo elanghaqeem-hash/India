@@ -19,6 +19,7 @@ def main():
     p.add_argument('backup', type=Path)
     p.add_argument('--sha256', required=True)
     p.add_argument('--baseline', type=int, required=True)
+    p.add_argument('--target', type=int, default=30, help='Last migration to rehearse (legacy default: 30)')
     p.add_argument('--output', type=Path, required=True)
     args = p.parse_args()
     restore.require(not args.output.exists(), 'Refusing to overwrite prior evidence')
@@ -37,7 +38,9 @@ def main():
     schema = lambda db: list(db.execute("SELECT type,name,sql FROM sqlite_master WHERE name NOT LIKE 'sqlite_%' ORDER BY type,name"))
     old_schema = schema(target)
     root = Path(__file__).resolve().parent.parent
-    migrations = sorted(f for f in (root/'migrations').glob('*.sql') if args.baseline < int(f.name[:4]) <= 30)
+    migrations = sorted(f for f in (root/'migrations').glob('*.sql') if args.baseline < int(f.name[:4]) <= args.target)
+    restore.require(args.target > args.baseline, 'Target must exceed baseline')
+    restore.require([int(f.name[:4]) for f in migrations] == list(range(args.baseline+1,args.target+1)), 'Migration chain must be complete and unique')
     def migrate():
         for f in migrations:
             for statement in restore.statements(f.read_text()):
@@ -86,6 +89,8 @@ def main():
     print(json.dumps(report))
     source.close()
     target.close()
+    if report.get('migration_execution') != 'PASS' or report.get('data_preservation') != 'PASS' or not reached_end:
+        raise SystemExit(1)
 
 if __name__ == '__main__':
     main()

@@ -2,7 +2,7 @@ import {authorizeBoQ} from '@/lib/boq-auth';
 import {readBoundedJSON} from '@/lib/bounded-json';
 import {supportingOriginal} from '@/lib/service-operations';
 import {TENANT} from '@/lib/sales-workflow';
-import {erpReply,erpError,ERPError,erpAssert,erpId,erpText,erpOrigin,erpGrant,erpAtom,erpOpportunityUnit,erpPositiveCents,erpDate} from '@/lib/erp-core';
+import {erpReply,erpError,ERPError,erpAssert,erpId,erpText,erpOrigin,erpGrant,erpAtom,erpOpportunityUnit,erpPositiveCents,erpDate,erpPeriod} from '@/lib/erp-core';
 export const dynamic='force-dynamic';
 type PO={id:string;opportunity_id:string;vendor_id:string;offer_id:string;status:string;version:number;created_by:string;qty:number;unit_price_cents:number};
 type AP={id:string;po_id:string;vendor_id:string;status:string;version:number;created_by:string;opportunity_id:string};
@@ -24,6 +24,30 @@ export async function POST(req:Request){
  const a=await authorizeBoQ(req);if(!a.ok)return a.response;const {db,role,email}=a.identity;
  try{
   erpOrigin(req);const v=await readBoundedJSON(req,9000) as Record<string,unknown>;
+
+  if(v.action==='budget'){
+   erpAssert(role==='finance'&&erpId(v.legal_entity_id)&&erpPeriod(v.period)&&erpText(v.code,3,80)&&erpPositiveCents(v.limit_cents),'Budget Finance membutuhkan legal entity, periode dan batas',403);
+   await erpGrant(a.identity,'finance_ap',v.legal_entity_id as string);const id=crypto.randomUUID();
+   await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_procurement_budgets(id,tenant_id,legal_entity_id,period,code,limit_cents,created_by) VALUES(?,?,?,?,?,?,?)').bind(id,TENANT,v.legal_entity_id as string,v.period as string,v.code as string,v.limit_cents as number,email)],'procurement',id,'BUDGET_CREATE',{code:v.code,limit_cents:v.limit_cents});return erpReply({success:true,id},201);
+  }
+  if(v.action==='approve_budget'){
+   erpAssert(role==='approver'&&erpId(v.id),'Budget hanya diputuskan Approver',403);
+   const budget=await db.prepare('SELECT legal_entity_id,status,created_by FROM india_procurement_budgets WHERE tenant_id=? AND id=?').bind(TENANT,v.id as string).first<{legal_entity_id:string;status:string;created_by:string}>();
+   erpAssert(budget&&budget.status==='draft'&&budget.created_by.toLowerCase()!==email,'Budget self-approval ditolak',409);await erpGrant(a.identity,'finance_ap',budget.legal_entity_id);
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_procurement_budgets WHERE tenant_id=? AND id=? AND status='draft' AND lower(created_by)!=?)",[TENANT,v.id as string,email],[db.prepare("UPDATE india_procurement_budgets SET status='approved',approved_by=?,approved_at=CURRENT_TIMESTAMP WHERE tenant_id=? AND id=?").bind(email,TENANT,v.id as string)],'procurement',v.id as string,'BUDGET_APPROVED',{});return erpReply({success:true});
+  }
+  if(v.action==='requisition'){
+   erpAssert(['presales','admin'].includes(role)&&erpId(v.opportunity_id)&&erpId(v.budget_id)&&erpText(v.request_number,3,100)&&erpText(v.title,8,180)&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0&&erpPositiveCents(v.ceiling_cents),'Requisition harus memiliki budget dan batas biaya',403);
+   const unit=await erpOpportunityUnit(db,v.opportunity_id as string);await erpGrant(a.identity,'procurement',unit);const id=crypto.randomUUID();
+   await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_procurement_requisitions(id,tenant_id,opportunity_id,budget_id,request_number,title,qty,ceiling_cents,created_by) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,TENANT,v.opportunity_id as string,v.budget_id as string,v.request_number as string,v.title as string,v.qty as number,v.ceiling_cents as number,email)],'procurement',id,'REQUISITION_CREATE',{opportunity_id:v.opportunity_id,budget_id:v.budget_id});return erpReply({success:true,id},201);
+  }
+  if(v.action==='approve_requisition'){
+   erpAssert(role==='approver'&&erpId(v.id)&&Number.isSafeInteger(v.version)&&typeof v.approve==='boolean'&&erpText(v.notes,12,800),'Requisition butuh Approver dan alasan',403);
+   const req=await db.prepare('SELECT opportunity_id,status,version,created_by FROM india_procurement_requisitions WHERE tenant_id=? AND id=?').bind(TENANT,v.id as string).first<{opportunity_id:string;status:string;version:number;created_by:string}>();
+   erpAssert(req&&req.status==='draft'&&req.version===v.version&&req.created_by.toLowerCase()!==email,'Requisition berubah atau self-approval',409);
+   await erpGrant(a.identity,'procurement',await erpOpportunityUnit(db,req.opportunity_id));
+   await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_procurement_requisitions WHERE tenant_id=? AND id=? AND status='draft' AND version=? AND lower(created_by)!=?)",[TENANT,v.id as string,v.version as number,email],[db.prepare('UPDATE india_procurement_requisitions SET status=?,version=version+1,reviewed_by=?,review_notes=? WHERE tenant_id=? AND id=?').bind(v.approve?'approved':'rejected',email,v.notes as string,TENANT,v.id as string)],'procurement',v.id as string,'REQUISITION_REVIEW',{approved:v.approve});return erpReply({success:true});
+  }
   if(v.action==='create_po'){
    erpAssert(['presales','admin'].includes(role),'Purchase Order hanya untuk Procurement/Presales bergrant',403);
    erpAssert(erpId(v.offer_id)&&erpText(v.po_number,3,100)&&Number.isSafeInteger(v.qty)&&Number(v.qty)>0,'Vendor offer, PO dan kuantitas wajib');
@@ -32,7 +56,9 @@ export async function POST(req:Request){
    const unit=await erpOpportunityUnit(db,offer.opportunity_id);await erpGrant(a.identity,'procurement',unit);
    const cents=Math.round(offer.unit_price_idr*100);erpAssert(erpPositiveCents(cents)&&offer.quantity>=Number(v.qty),'Nilai atau kuantitas offer tidak valid');
    const id=crypto.randomUUID();
-   await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_purchase_orders(id,tenant_id,vendor_id,offer_id,opportunity_id,po_number,qty,unit_price_cents,created_by) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,TENANT,offer.vendor_id,offer.id,offer.opportunity_id,(v.po_number as string).trim(),v.qty as number,cents,email)],'procurement',id,'CREATE_PO',{offer_id:offer.id,qty:v.qty});return erpReply({success:true,id},201);
+   const writes=[db.prepare('INSERT INTO india_purchase_orders(id,tenant_id,vendor_id,offer_id,opportunity_id,po_number,qty,unit_price_cents,created_by) VALUES(?,?,?,?,?,?,?,?,?)').bind(id,TENANT,offer.vendor_id,offer.id,offer.opportunity_id,(v.po_number as string).trim(),v.qty as number,cents,email)];
+   if(v.requisition_id!==undefined){erpAssert(erpId(v.requisition_id),'Requisition wajib valid');writes.push(db.prepare('INSERT INTO india_procurement_commitments(tenant_id,requisition_id,po_id,created_by) VALUES(?,?,?,?)').bind(TENANT,v.requisition_id as string,id,email));}
+   await erpAtom(a.identity,'1=1',[],writes,'procurement',id,'CREATE_PO',{offer_id:offer.id,qty:v.qty,requisition_id:v.requisition_id||null});return erpReply({success:true,id},201);
   }
   if(v.action==='review_po'||v.action==='receipt'||v.action==='supplier_invoice'){
    erpAssert(erpId(v.po_id),'Purchase Order wajib');

@@ -1,0 +1,49 @@
+{
+  "scope": "LOCAL_SQLITE_REHEARSAL_OF_ORIGINAL_NATIVE_EXPORT",
+  "source_sha256": "3cf0bf3854b4f7125bdbc8c180dba7971f39bdc8795f7517b0ee34e439c67dab",
+  "size_bytes": 24983156,
+  "baseline": 39,
+  "independent_local_restore": "PASS",
+  "remote_restore": "NOT RUN",
+  "remote_rollback": "NOT RUN",
+  "production_release": "BLOCKED",
+  "migrations": [
+    {
+      "path": "migrations/0040_erp_role_matrix_revocation.sql",
+      "sha256": "5f6be0fd642ff026d29774c2cc1de722762392fcdd5b5e1ec579ad2f0ff030ec"
+    },
+    {
+      "path": "migrations/0041_erp_financial_close_treasury.sql",
+      "sha256": "8dc566fc84afcd2f2a205c9b3f17a16f5e99216c20cfe537695f246ec7076a7a"
+    },
+    {
+      "path": "migrations/0042_erp_p2p_budget_requisitions.sql",
+      "sha256": "6567172551bd91557a12cc7ae922287bf827b524fb4e8b6cd8ff4a2a798bd7e9"
+    },
+    {
+      "path": "migrations/0043_erp_hr_workforce.sql",
+      "sha256": "ffff2615f761398e10d9e2d9dd898e7473d049e032e24bbb5f01f4fd54318a59"
+    },
+    {
+      "path": "migrations/0044_erp_siem_edr_connectors.sql",
+      "sha256": "cfd73e1af4d890077b0edfbee20936bb5cbfe5e0527346a6506eca3babc3b907"
+    },
+    {
+      "path": "migrations/0045_erp_role_policy_change.sql",
+      "sha256": "cb063508857ca28c5e28402960952db52ce312292f9aaa1c2132ebbdb1e6f33b"
+    }
+  ],
+  "injected_failure_rollback": "PASS",
+  "rollback_after_failure": "PASS",
+  "rehearsal_error": "no such table: india_injected_failure_missing_table",
+  "planned_additions": [],
+  "target": 45,
+  "migration_execution": "PASS",
+  "quick_check": "ok",
+  "foreign_key_violations": 0,
+  "business_tables_changed": [],
+  "data_preservation": "PASS",
+  "baseline_export_date": "2026-10-31",
+  "validated_candidate_base": "ecee9e3120ab974a90c4e6094b5c0aae31ddd17d",
+  "validation_date": "2026-11-01"
+}
