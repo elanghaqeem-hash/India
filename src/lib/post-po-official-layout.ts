@@ -256,7 +256,7 @@ export async function downloadOfficialPostPoDocx(
   const safe=(kind==='registration'?packet.registration.customerId:packet.project.poNumber)
     .replace(/[^a-z0-9_-]/gi,'-').slice(0,45);
   a.href=url;
-  a.download='INDIA_RTI_'+(packet.isDemo?'DEMO_':'')+
+  a.download='RTICORE_RTI_'+(packet.isDemo?'DEMO_':'')+
     (kind==='registration'?'Registrasi_Resmi_Layout_':'Project_Resmi_Layout_')+safe+'.docx';
   document.body.appendChild(a);a.click();a.remove();
   window.setTimeout(()=>URL.revokeObjectURL(url),2000);

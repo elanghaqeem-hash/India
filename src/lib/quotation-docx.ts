@@ -318,7 +318,7 @@ export function downloadQuotationDocx(proposal: Proposal, selected: QuotationFor
   }));
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'INDIA_RTI_Quotation_' + format + '_' + safeName + '.docx';
+  a.download = 'RTICORE_RTI_Quotation_' + format + '_' + safeName + '.docx';
   document.body.appendChild(a);
   a.click();
   a.remove();

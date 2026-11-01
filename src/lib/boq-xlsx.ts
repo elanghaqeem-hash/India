@@ -443,7 +443,7 @@ export function createProposalBoQ(proposal: Proposal, format: BoQExportFormat, p
 export function downloadProposalBoQ(proposal: Proposal, format: BoQExportFormat, pricing?: PricingSession): void {
   const bytes = createProposalBoQ(proposal, format, pricing);
   const safe = proposal.quotation_number.replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 50) || 'draft';
-  const file = 'India_RTI_BoQ_' + format + '_' + safe + '.xlsx';
+  const file = 'RTICORE_RTI_BoQ_' + format + '_' + safe + '.xlsx';
   const out = new Uint8Array(bytes.length);
   out.set(bytes);
   const url = URL.createObjectURL(new Blob([out.buffer], {
