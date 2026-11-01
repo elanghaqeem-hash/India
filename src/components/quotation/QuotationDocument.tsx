@@ -84,8 +84,7 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
       </div>
       <div className="quote-subject"><b>Perihal</b><span>:</span><b>Penawaran Harga Pengadaan {p.opportunity_name}</b></div>
       <div className="quote-letter-body">
-        <p>Terima kasih atas kesempatan yang diberikan kepada RTI
-          (RTI) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
+        <p>Terima kasih atas kesempatan yang diberikan kepada RTI untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
           {' '}{d.endUser || p.company_name}. Sehubungan dengan rencana pekerjaan tersebut, kami
           menyampaikan penawaran sebesar <b>{totalPrice}</b> belum termasuk PPN sesuai rincian harga terlampir.</p>
         <p>Penawaran ini berlaku selama <b>{p.valid_days} hari kalender</b> sejak tanggal surat
