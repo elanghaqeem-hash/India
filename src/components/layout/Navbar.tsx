@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { formatAIChatMessage } from '@/lib/ai-chat-format';
 import { selectConversationHistory, activeChatTopic, type AIConversationTurn } from '@/lib/ai-conversation';
+import {roles} from '@/lib/boq-domain';
 
 const WELCOME_MESSAGE = {
   sender: 'ai' as const,
@@ -33,6 +34,8 @@ const WELCOME_MESSAGE = {
 
 interface NavbarProps {
   role: string | null;
+  assignedRole?: string | null;
+  rolePreview?: boolean;
   email: string | null;
   pendingApprovalsCount?: number|null;
   desktopMenuOpen: boolean;
@@ -42,6 +45,8 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   role,
+  assignedRole = null,
+  rolePreview = false,
   email,
   pendingApprovalsCount = null,
   desktopMenuOpen,
@@ -49,6 +54,8 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleMenu,
 }) => {
   const [aiAssistantOpen, setAiAssistantOpen] = useState(false);
+  const [roleSwitchBusy,setRoleSwitchBusy]=useState(false);
+  const [roleSwitchError,setRoleSwitchError]=useState('');
 
   // Chat content is ephemeral: only completed responses are passed as context.
   const [chatMessages, setChatMessages] = useState<Array<{ sender: 'user' | 'ai'; text: string; provider?: string }>>([WELCOME_MESSAGE]);
@@ -100,6 +107,29 @@ export const Navbar: React.FC<NavbarProps> = ({
   }, [aiAssistantOpen]);
 
   const currentRoleInfo = {label: email||'Sesi belum terverifikasi',badge: role||'Cloudflare Access diperlukan'};
+  const roleLabels:Record<string,string>={
+    admin:'Administrator',marketing:'Marketing',sales:'Sales',presales:'Presales / Solution',
+    finance:'Finance',approver:'Approver',legal:'Legal',viewer:'Viewer',
+  };
+  const handleRoleSwitch=async(nextRole:string)=>{
+    if(assignedRole!=='admin'||!email||roleSwitchBusy||nextRole===role)return;
+    setRoleSwitchBusy(true);
+    setRoleSwitchError('');
+    try{
+      const response=await fetch('/api/sales/role-switch',{
+        method:'POST',credentials:'same-origin',cache:'no-store',
+        headers:{'Content-Type':'application/json',Accept:'application/json'},
+        body:JSON.stringify({role:nextRole}),
+      });
+      const body=await response.json();
+      if(!response.ok||body.success!==true||typeof body.href!=='string'||!body.href.startsWith('/'))
+        throw new Error(body.message||'Role tidak dapat diganti.');
+      window.location.assign(body.href);
+    }catch(error){
+      setRoleSwitchError(error instanceof Error?error.message:'Gagal mengganti role.');
+      setRoleSwitchBusy(false);
+    }
+  };
   const activeTopic = activeChatTopic(conversationTurns);
   const activeTopicLabels:Record<string,string>={
     vapt:'VAPT / penetration testing',boq:'BoQ / quotation',tender:'Tender / pengadaan',
@@ -223,7 +253,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               )}
             </Link>
 
-            {/* The identity is read-only; the dropdown only offers navigation and a real Access logout. */}
+            {/* Verified identity stays the same; only Admin may use the server-enforced role preview. */}
             <details className="group relative min-w-0">
               <summary aria-label="Menu akun dan logout" title="Menu akun: profil dan keluar"
                 className="flex min-h-11 min-w-0 max-w-[118px] cursor-pointer list-none items-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 hover:border-indigo-300 hover:bg-indigo-50 focus-visible:outline-2 focus-visible:outline-indigo-500 sm:max-w-[260px] [&::-webkit-details-marker]:hidden">
@@ -234,10 +264,30 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 shrink-0 text-slate-500 transition-transform group-open:rotate-180" aria-hidden="true"/>
               </summary>
-              <div className="absolute right-0 top-[calc(100%+8px)] z-[90] w-[min(19rem,calc(100vw-2rem))] rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl">
+              <div className="absolute right-0 top-[calc(100%+8px)] z-[90] max-h-[min(78dvh,34rem)] w-[min(19rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-slate-200 bg-white p-3 text-sm shadow-xl">
                 <p className="break-all text-xs font-semibold text-slate-900">{currentRoleInfo.label}</p>
-                <p className="mb-3 text-xs text-indigo-700">Role: {currentRoleInfo.badge}</p>
-                <Link href="/login" className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Halaman login INDIA</Link>
+                <p className="mb-3 text-xs text-indigo-700">Role: {currentRoleInfo.badge}{rolePreview?' · Mode uji':''}</p>
+                {assignedRole==='admin'&&(
+                  <div className="mb-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">
+                    <label htmlFor="rticore-role-select" className="mb-1.5 block text-xs font-bold text-indigo-900">Ganti Role / Mode Uji</label>
+                    <select id="rticore-role-select" aria-label="Pilih role pengguna untuk simulasi"
+                      value={role||'admin'} disabled={roleSwitchBusy}
+                      onChange={event=>void handleRoleSwitch(event.target.value)}
+                      className="min-h-11 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-sm font-semibold text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 disabled:opacity-60">
+                      {roles.map(value=><option key={value} value={value}>{roleLabels[value]}</option>)}
+                    </select>
+                    <p className="mt-2 text-[11px] leading-4 text-slate-600">
+                      {roleSwitchBusy?'Mengaktifkan role…':rolePreview?'Role asli: Admin. Menu dan izin API dibatasi sesuai role uji.':'Pilih role untuk menguji menu, alur dan hak akses. Identitas akun tetap Admin.'}
+                    </p>
+                    {roleSwitchError&&<p role="alert" className="mt-2 text-xs font-semibold text-rose-700">{roleSwitchError}</p>}
+                    {rolePreview&&<button type="button" disabled={roleSwitchBusy}
+                      onClick={()=>void handleRoleSwitch('admin')}
+                      className="mt-2 min-h-10 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 text-xs font-bold text-indigo-800 hover:bg-indigo-100 disabled:opacity-60">
+                      Kembali ke Role Admin
+                    </button>}
+                  </div>
+                )}
+                <Link href="/login"  className="block rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Halaman login INDIA</Link>
                 <a href="/cdn-cgi/access/logout" className="mt-1 flex min-h-11 items-center gap-2 rounded-lg bg-rose-50 px-3 py-2 font-semibold text-rose-800 hover:bg-rose-100 focus-visible:outline-2 focus-visible:outline-rose-500">
                   <LogOut className="h-4 w-4" aria-hidden="true"/> Keluar / Logout
                 </a>
