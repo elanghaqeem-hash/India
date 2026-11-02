@@ -34,7 +34,7 @@ export default function SubmissionPage(){
  },[]);
  useEffect(()=>{const id=new URLSearchParams(window.location.search).get('opportunity_id')||'';setOpp(id);
   const local=new Date();local.setMinutes(local.getMinutes()-local.getTimezoneOffset());setDate(local.toISOString().slice(0,19));
-  if(id)void refresh(id);else setMessage('Halaman ini harus dibuka dari Opportunity INDIA.');},[refresh]);
+  if(id)void refresh(id);else setMessage('Halaman ini harus dibuka dari Opportunity RTICORE.');},[refresh]);
  const run=async(job:()=>Promise<unknown>,done:string)=>{
   setBusy(true);setMessage('');
   try{await job();await refresh(opp);setMessage(done);}

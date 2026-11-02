@@ -1,4 +1,4 @@
-// INDIA CyberBusiness 360 Delegation of Authority (DoA) Engine
+// RTICORE CyberBusiness 360 Delegation of Authority (DoA) Engine
 // Sourced from Master Prompt Section L & pre-development decisions
 
 export type DoALevel = 'manager' | 'vp' | 'director';

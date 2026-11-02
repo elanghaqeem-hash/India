@@ -75,7 +75,7 @@ test('shell and header never supply demo users or selectable role; mobile has al
  assert.match(header,/Sesi belum terverifikasi/);
  assert.match(side,/navigationForRole\(role\)/);
  assert.match(mobile,/navigationForRole\(role\)/);
- assert.match(mobile,/aria-label="Buka seluruh menu INDIA"/);
+ assert.match(mobile,/aria-label="Buka seluruh menu RTICORE"/);
  assert.match(header,/href="\/approvals"/);
  assert.match(header,/role==='admin'&&<Link/);
 });

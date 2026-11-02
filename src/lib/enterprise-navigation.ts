@@ -1,5 +1,5 @@
 /**
- * Canonical INDIA navigation: reuse existing, authenticated D1-backed routes.
+ * Canonical RTICORE navigation: reuse existing, authenticated D1-backed routes.
  * This only shapes the UI. Every API must independently authorize role + object.
  * Do not add legacy demo pages or inferred approvals/KPI counts here.
  */

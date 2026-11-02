@@ -141,7 +141,7 @@ test('autofill respects pre-existing Sales and PO values and uses missing budget
  assert.equal(packet.project.milestones[1].amount,0);
  assert.deepEqual(api.validatePostPoDemoPacket(filled),[]);
 });
-test('all DefendIT360 demo service scenarios generate unambiguous demo-labeled Word forms',async()=>{
+test('all RTI demo service scenarios generate unambiguous demo-labeled Word forms',async()=>{
  const api=await load(),dummy=await dummyFixtures();
  for(const service of ['VAPT','SOC/MDR','CTI','Cybersecurity Governance','Incident Response/DFIR','Cybersecurity Technology','Other']){
   const data=dummy.createDemoPostPoPacket(api.newPostPoPacket(),service);

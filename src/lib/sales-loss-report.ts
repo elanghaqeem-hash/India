@@ -18,7 +18,7 @@ export async function createLossReportDocx(deal:SalesDeal,account:SalesAccount,c
   throw Error('Laporan Lost hanya dapat dibuat dari kesempatan Closed Lost dengan alasan dan uraian.');
  const f=deal.fields;
  const body=[
-  paragraph('TECHNOTAMA | INDIA — SALES & CRM',true),
+  paragraph('RTI | RTICORE — SALES & CRM',true),
   paragraph('CLOSED LOST — EVALUASI PELUANG PENJUALAN',true),
   paragraph('INTERNAL DRAFT — BELUM DISETUJUI / TIDAK UNTUK PELANGGAN'),
   paragraph('ID Opportunity: '+deal.id),
@@ -38,7 +38,7 @@ export async function createLossReportDocx(deal:SalesDeal,account:SalesAccount,c
   paragraph('Langkah perbaikan: '+(f.next_action||'[harus dilengkapi Sales Manager]')),
   paragraph('Catatan hasil negosiasi: '+(f.negotiation_notes||'[belum ada]')),
   paragraph('D. REVIEW INTERNAL',true),
-  paragraph('Dibuat dari histori Sales INDIA. Dokumen ini adalah draft yang memerlukan review Head Sales/Management.'),
+  paragraph('Dibuat dari histori Sales RTICORE. Dokumen ini adalah draft yang memerlukan review Head Sales/Management.'),
   paragraph('Persetujuan: [BELUM DIBERIKAN]'),
  ].join('');
  const xml='<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'+
