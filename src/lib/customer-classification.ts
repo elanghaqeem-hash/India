@@ -1,5 +1,5 @@
 /**
- * INDIA customer registration taxonomy.
+ * RTICORE customer registration taxonomy.
  * Presentation catalogs only: persisted values remain plain CRM strings.
  * Never rewrite historical customer fields or apply implicit industry changes.
  */

@@ -1,4 +1,4 @@
-/** Hierarki organisasi INDIA. Induk wajib berada pada tingkat yang lebih tinggi. */
+/** Hierarki organisasi RTICORE. Induk wajib berada pada tingkat yang lebih tinggi. */
 export const organizationLevels=['institution','directorate','division','unit','branch'] as const;
 export type OrganizationLevel=typeof organizationLevels[number];
 const labels:Record<OrganizationLevel,string>={
