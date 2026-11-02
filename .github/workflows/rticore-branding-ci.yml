@@ -17,5 +17,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies from lockfile
+        run: npm ci --no-audit --no-fund
+      - name: Verify TypeScript
+        run: npm run typecheck
       - name: Check RTICORE/RTI branding
-        run: node --test tests/rticore-branding.test.cjs
+        run: npm run test:branding
+      - name: Regression tests for login, sidebar, quotation and assistant
+        run: node --test tests/india-login-experience.test.cjs tests/india-access-entrypoints.test.cjs tests/enterprise-navigation.test.cjs tests/quotation-docx.test.cjs tests/quotation-layout.test.cjs
