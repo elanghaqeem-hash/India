@@ -32,7 +32,7 @@ export default function AISettingsPage(){
    setConfigs(data.configs||[]);
    setEncryptionReady(data.encryptionReady??null);
    setBlocked('');
-  }catch{setBlocked('Koneksi ke backend INDIA gagal.');}
+  }catch{setBlocked('Koneksi ke backend RTICORE gagal.');}
   finally{setLoading(false);}
  },[]);
  useEffect(()=>{void refresh();},[refresh]);
@@ -91,7 +91,7 @@ export default function AISettingsPage(){
   <header className="rounded-2xl border border-violet-100 bg-gradient-to-r from-white to-violet-50 p-5 sm:p-6">
    <div className="flex items-center gap-3"><span className="rounded-xl bg-violet-800 p-3 text-white"><PlugZap className="h-5 w-5"/></span>
     <div className="min-w-0"><h1 className="text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">AI Connections & API Keys</h1>
-     <p className="mt-1 text-xs leading-relaxed text-slate-600">Kelola provider, model, API key terenkripsi, tes koneksi dan urutan AI pada sistem INDIA.</p>
+     <p className="mt-1 text-xs leading-relaxed text-slate-600">Kelola provider, model, API key terenkripsi, tes koneksi dan urutan AI pada sistem RTICORE.</p>
     </div></div>
    <div className="mt-4 flex flex-wrap gap-2 text-xs">
     <span className="rounded-lg border border-violet-200 bg-white px-3 py-2 font-semibold text-violet-800">Providers: {configs.length}</span>
@@ -114,7 +114,7 @@ export default function AISettingsPage(){
   {!loading&&blocked&&<div role="alert" className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
     <div className="flex items-center gap-2 font-bold"><AlertTriangle className="h-4 w-4"/> Pengaturan AI belum dapat diakses</div>
     <p className="mt-2 text-xs leading-relaxed">{blocked}</p>
-    <p className="mt-2 text-xs">Pastikan login Cloudflare Access, peran Admin pada INDIA, D1 migration dan konfigurasi Worker tersedia.</p>
+    <p className="mt-2 text-xs">Pastikan login Cloudflare Access, peran Admin pada RTICORE, D1 migration dan konfigurasi Worker tersedia.</p>
     <button type="button" onClick={()=>{setLoading(true);void refresh();}} className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-2 text-xs font-bold"><RefreshCcw className="h-3.5 w-3.5"/>Coba lagi</button>
   </div>}
   {!loading&&!blocked&&<>

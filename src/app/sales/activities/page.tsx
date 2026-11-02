@@ -76,7 +76,7 @@ export default function SalesActivities(){
  </article>;
  return <main className="min-w-0 space-y-5 pb-24">
   <header className="flex flex-wrap items-center justify-between gap-3"><div>
-   <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">INDIA / Sales Execution</p>
+   <p className="text-xs font-extrabold uppercase tracking-wide text-blue-700">RTICORE / Sales Execution</p>
    <h1 className="mt-1 text-2xl font-extrabold text-slate-900">Activity & Follow-up Center</h1>
    <p className="mt-1 max-w-3xl text-xs text-slate-600">Jadwal Sales tersambung ke Lead dan Opportunity D1. SLA respons menggunakan waktu kalender (120 menit), notifikasi otomatis memerlukan Cloudflare Cron aktif.</p>
   </div><Link href="/sales/pipeline" className="rounded-lg border bg-white px-3 py-2 text-xs font-bold text-slate-700">Sales Pipeline →</Link></header>
