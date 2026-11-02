@@ -1,0 +1,21 @@
+name: RTICORE Brand Consistency
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/rticore-branding.test.cjs'
+      - 'package.json'
+      - '.github/workflows/rticore-branding-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/rticore-branding.test.cjs'
+      - 'package.json'
+jobs:
+  brand-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check RTICORE/RTI branding
+        run: node --test tests/rticore-branding.test.cjs
