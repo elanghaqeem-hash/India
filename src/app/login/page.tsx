@@ -3,8 +3,8 @@ import {ArrowRight, BadgeCheck, Building2, KeyRound, LockKeyhole, LogOut, Shield
 import {LoginSessionStatus} from '@/components/auth/LoginSessionStatus';
 
 export const metadata: Metadata = {
-  title: 'Login INDIA | Technotama',
-  description: 'Masuk ke INDIA Enterprise ERP & PSA melalui Cloudflare Access dan hak akses sesuai role.',
+  title: 'Login RTICORE | RTI',
+  description: 'Masuk ke RTICORE Enterprise ERP & PSA melalui Cloudflare Access dan hak akses sesuai role.',
 };
 
 /**
@@ -17,14 +17,14 @@ export default function IndiaLoginPage() {
     <main className="relative isolate min-h-[100dvh] overflow-x-hidden bg-[#080f23] text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_10%_15%,rgba(78,45,142,0.38),transparent_52%),radial-gradient(ellipse_at_90%_90%,rgba(6,182,212,0.09),transparent_46%)]" />
       <div className="relative mx-auto grid min-h-[100dvh] w-full max-w-6xl items-center gap-10 px-4 py-8 sm:px-8 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:py-12">
-        <section className="mx-auto hidden w-full max-w-xl flex-col gap-12 py-8 lg:flex" aria-label="Tentang platform INDIA">
+        <section className="mx-auto hidden w-full max-w-xl flex-col gap-12 py-8 lg:flex" aria-label="Tentang platform RTICORE">
           <header className="flex items-center gap-3">
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-300/10">
               <ShieldCheck className="h-7 w-7 text-cyan-300" aria-hidden="true" />
             </span>
             <div>
-              <p className="text-2xl font-extrabold tracking-tight">INDIA</p>
-              <p className="text-xs font-semibold tracking-wide text-slate-300">TECHNOTAMA · ENTERPRISE PLATFORM</p>
+              <p className="text-2xl font-extrabold tracking-tight">RTICORE</p>
+              <p className="text-xs font-semibold tracking-wide text-slate-300">RTI · ENTERPRISE PLATFORM</p>
             </div>
           </header>
 
@@ -55,7 +55,7 @@ export default function IndiaLoginPage() {
               <p className="mt-1 text-xs leading-5 text-slate-300">Audit & identitas</p>
             </div>
           </div>
-          <p className="text-xs text-slate-400">© 2026 Technotama · Internal Business Platform</p>
+          <p className="text-xs text-slate-400">© 2026 RTI · Internal Business Platform</p>
         </section>
 
         <section aria-labelledby="login-heading" className="mx-auto w-full max-w-md">
@@ -65,14 +65,14 @@ export default function IndiaLoginPage() {
                 <ShieldCheck className="h-6 w-6 text-cyan-300" />
               </span>
               <div>
-                <p className="text-xl font-extrabold tracking-tight">INDIA</p>
-                <p className="text-xs text-slate-500">Technotama Enterprise Platform</p>
+                <p className="text-xl font-extrabold tracking-tight">RTICORE</p>
+                <p className="text-xs text-slate-500">RTI Enterprise Platform</p>
               </div>
             </div>
             <span className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-xs font-bold text-[#522b86]">
               <LockKeyhole className="h-3.5 w-3.5" aria-hidden="true" /> Akses perusahaan
             </span>
-            <h1 id="login-heading" className="mt-5 text-3xl font-bold tracking-tight text-slate-950">Login INDIA</h1>
+            <h1 id="login-heading" className="mt-5 text-3xl font-bold tracking-tight text-slate-950">Login RTICORE</h1>
             <p className="mt-3 text-sm leading-6 text-slate-600">
               Masuk dengan email perusahaan yang terdaftar. Jika diminta, selesaikan verifikasi identitas di halaman resmi Cloudflare Access.
             </p>
@@ -91,14 +91,14 @@ export default function IndiaLoginPage() {
             <div className="mt-7 space-y-3 border-t border-slate-200 pt-5">
               <p className="flex items-start gap-2 text-xs leading-5 text-slate-600">
                 <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden="true" />
-                Akses dilindungi Cloudflare Access. INDIA tidak menyimpan password atau kode OTP pengguna.
+                Akses dilindungi Cloudflare Access. RTICORE tidak menyimpan password atau kode OTP pengguna.
               </p>
               <p className="text-xs leading-5 text-slate-500">
-                Belum terdaftar atau role tidak sesuai? Hubungi Administrator INDIA untuk aktivasi akun, unit kerja dan izin akses.
+                Belum terdaftar atau role tidak sesuai? Hubungi Administrator RTICORE untuk aktivasi akun, unit kerja dan izin akses.
               </p>
             </div>
           </div>
-          <p className="mt-5 text-center text-xs leading-5 text-slate-400 lg:hidden">© 2026 Technotama · Secure Enterprise Access</p>
+          <p className="mt-5 text-center text-xs leading-5 text-slate-400 lg:hidden">© 2026 RTI · Secure Enterprise Access</p>
         </section>
       </div>
     </main>
