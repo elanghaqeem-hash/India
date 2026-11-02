@@ -4,7 +4,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const read=file=>fs.readFileSync(path.join(__dirname,'..',file),'utf8');
 
-test('INDIA menu renders on the left and reuses role-filtered canonical navigation',()=>{
+test('RTICORE menu renders on the left and reuses role-filtered canonical navigation',()=>{
   const shell=read('src/components/layout/AppShell.tsx');
   const side=read('src/components/layout/Sidebar.tsx');
   assert.match(shell,/<Sidebar role=\{role\}[\s\S]+<main className=/);
