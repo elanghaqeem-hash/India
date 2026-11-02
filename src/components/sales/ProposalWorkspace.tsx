@@ -29,7 +29,7 @@ export default function ProposalWorkspace(){
  const closed=!!flow&&['closed_won','closed_lost'].includes(flow.deal.stage);
  const disabled=busy||closed||notes.trim().length<15;
  return <main className="mx-auto max-w-6xl space-y-5 pb-20">
-  <header className="no-print rounded-2xl border bg-white p-5"><p className="text-xs font-bold uppercase tracking-widest text-blue-700">INDIA · Commercial Workspace</p><h1 className="mt-2 text-2xl font-extrabold text-slate-900">Presales, Proposal & Negotiation</h1><p className="mt-2 text-sm text-slate-600">Satu paket penawaran menghubungkan scope, proposal, quotation, bukti pengiriman dan PO.</p>
+  <header className="no-print rounded-2xl border bg-white p-5"><p className="text-xs font-bold uppercase tracking-widest text-blue-700">RTICORE · Commercial Workspace</p><h1 className="mt-2 text-2xl font-extrabold text-slate-900">Presales, Proposal & Negotiation</h1><p className="mt-2 text-sm text-slate-600">Satu paket penawaran menghubungkan scope, proposal, quotation, bukti pengiriman dan PO.</p>
    <label className="mt-4 block text-xs font-bold">Opportunity<select className={cls} disabled={busy} value={id} onChange={e=>setId(e.target.value)}><option value="">Pilih Opportunity</option>{deals.map(d=><option key={d.id} value={d.id}>{d.company_name} · {d.title}</option>)}</select></label>
   </header>
   {message&&<p role="status" className="no-print break-words rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm">{message}</p>}
