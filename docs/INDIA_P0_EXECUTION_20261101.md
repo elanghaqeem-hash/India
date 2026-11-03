@@ -58,3 +58,14 @@ The source gate was converted from "must fail closed" to "must keep these contro
 
 ### Still outside this change
 No Cloudflare Access policy change, no branch protection change, and no claim of operational UAT certification. The 420-case operational UAT and function-owner signoffs in the sections above remain open items.
+
+### Release attempt 2026-11-03 — stopped at the token guard, production untouched
+- `rticore-production-release.yml` is armed on main (`fc6c2f1`) and was dispatched against the release branch so the D1 migrations would land before the new code, avoiding a window where new code reads a not-yet-migrated database.
+- Run `41555834602` failed at step 3, **Require Cloudflare deploy token**, because no `CLOUDFLARE_API_TOKEN` (or `CLOUDFLARE_TOKEN` / `CF_API_TOKEN`) secret is configured. The run stopped before the backup, migration and deploy steps: no D1 export, no schema change, no Worker deployment, no Access change.
+- Release branch CI: 16 of 17 checks green at `1da8c23`. The one failure was `composer-browser`, which passed on re-run (a 30s Playwright timeout on the second mobile viewport); the AI dialog markup comes from main's branding work, not from this branch.
+- **PR #104 is deliberately not merged yet.** Cloudflare Workers Builds auto-builds `main`, so merging before the migration runs would deploy code keyed to tenant `rti` against a database still at schema 45 keyed `defendit360`, leaving the UAT app without data until the migration lands. Correct order: configure the secret, run the release workflow on the release branch, verify, then merge.
+
+Required to finish, in order:
+1. Add repository secret `CLOUDFLARE_API_TOKEN` (Workers Scripts: Edit, D1: Edit, Account Settings: Read). Optional: `INDIA_JOB_TOKEN` (>=32 chars, for the posting worker) and `INDIA_BASE_URL` (enables the HTTP smoke test).
+2. Run **RTICORE production release** with ref = `feat/india-v3-rti-wp00-wp01-wp06-20261101` and confirmation `DEPLOY RTICORE PRODUCTION`.
+3. On a green run, merge PR #104 to main.
