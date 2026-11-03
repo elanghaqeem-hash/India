@@ -37,3 +37,24 @@ No migration deploy or label rename production until:
 6. A follow-up audited workflow reinstates controlled deployment with verified safe backup handling and rollback strategy.
 
 **State: P0 containment implemented in PR #104, full P0 business completion blocked on external evidence and migration reconciliation.**
+
+## Hold lifted — 2026-11-03 (authorised by repository/business owner)
+
+Decision: the P0 **hard hold is lifted** and replaced by a *guarded manual release*. The three objections that caused the hold are addressed in `.github/workflows/rticore-production-release.yml`, not deleted:
+
+1. **No automatic production change.** The workflow has no `push:` trigger and requires the typed string `DEPLOY RTICORE PRODUCTION`. Merging code can never alter production by itself.
+2. **No production data leaves Cloudflare.** This repository is **public**, so the D1 export is kept only on the ephemeral runner; only its byte size and SHA-256 are printed. It is never uploaded as an artifact. Rollback uses the server-side D1 Time Travel bookmark. `scripts/india-p0-source-gate.mjs` now fails if `upload-artifact` ever appears in that workflow.
+3. **Concurrent-write fence on rollback.** D1 is auto-restored only when the run failed at or before the migration step, where no new-code writes can exist. After a successful deploy, only the Worker is rolled back and D1 is left intact, with the bookmark printed for a human decision.
+
+The source gate was converted from "must fail closed" to "must keep these controls": typed confirmation, Time Travel bookmark, no artifact upload, Worker rollback, foreign-key and row-count verification, and the pre-deploy-only restore fence.
+
+### Tenant rekey and the #113 compatibility boundary
+`src/lib/sales-workflow.ts` on main states: *"Do not rename without a separately approved, fully reconciled tenant migration."* That condition is now met, so the rekey proceeds:
+- Migration `0050_rti_tenant_key.sql` is generated from the full canonical schema (0001–0049): 132 tenant-scoped tables, 269 triggers dropped and recreated verbatim, foreign keys deferred to commit.
+- `tests/rti-v3-tenant-migration.test.cjs` rehearses it on a database populated by real application flows and asserts row counts, trigger definitions, foreign keys, immutability triggers and AES-GCM Vault decryption continuity (originals sealed under the legacy key stay readable).
+- Business owner approval: 2026-11-01 and 2026-11-03.
+
+`tests/rticore-tenant-compat.test.cjs` is therefore changed from pinning the literal legacy key to enforcing the real invariant: the code's `TENANT` must equal the key the applied migrations produce, and the test harness must agree. This still blocks a branding-only rename from silently mutating the persisted key (the failure #113 fixed), while allowing this migration-backed cutover.
+
+### Still outside this change
+No Cloudflare Access policy change, no branch protection change, and no claim of operational UAT certification. The 420-case operational UAT and function-owner signoffs in the sections above remain open items.

@@ -18,9 +18,16 @@ for (let n = 30; n <= latest; n++) {
 }
 const wfPath = join(root, '.github/workflows/rticore-production-release.yml');
 const workflow = readFileSync(wfPath, 'utf8');
+// The release workflow is armed (hold lifted 2026-11-01 by the repository/business owner) but must keep every
+// control that justified lifting it. These are source-level guards, not an operational certification.
 if (/^\s+push\s*:/m.test(workflow)) fail('Production release workflow has an automatic push trigger');
-if (!/workflow_dispatch\s*:/.test(workflow)) fail('Production containment must use manual dispatch only');
-if (!/exit 1/.test(workflow) || !/PRODUCTION HOLD/.test(workflow)) fail('P0 production workflow must explicitly fail closed');
+if (!/workflow_dispatch\s*:/.test(workflow)) fail('Production release must use manual dispatch only');
+if (!workflow.includes('DEPLOY RTICORE PRODUCTION')) fail('Production release must require a typed confirmation string');
+if (!/time-travel info/.test(workflow)) fail('Production release must capture a D1 Time Travel bookmark before migrating');
+if (/upload-artifact/.test(workflow)) fail('This repository is public: the production D1 export must never be uploaded as an artifact');
+if (!/Roll back Worker version on failure/.test(workflow)) fail('Production release must roll back the Worker on failure');
+if (!/foreign_key_check/.test(workflow) || !/row counts preserved/.test(workflow)) fail('Production release must verify foreign keys and row preservation');
+if (!/steps\.deploy\.outcome != 'success'/.test(workflow)) fail('D1 auto-restore must be fenced to pre-deploy failures only');
 const loginPage = readFileSync(join(root, 'src/app/login/page.tsx'), 'utf8');
 const loginTest = readFileSync(join(root, 'tests/india-login-browser.test.cjs'), 'utf8');
 for (const label of ['Login RTICORE', 'Identitas belum diizinkan membuka RTICORE.']) {
@@ -36,4 +43,4 @@ if (!navbar.includes('aria-label="RTICORE AI Business Assistant"') ||
     assistantTest.includes("name: 'INDIA AI Business Assistant'") ||
     multiTurnTest.includes("name: 'INDIA AI Business Assistant'")) fail('AI dialog/composer/multi-turn browser selector mismatch');
 if (process.exitCode) process.exit(process.exitCode);
-console.log('P0 SOURCE GATE PASS: migrations unique 0030-' + latest + ', production hard-held, browser selectors match RTICORE. NOT operational certification.');
+console.log('P0 SOURCE GATE PASS: migrations unique 0030-' + latest + ', guarded manual release armed, browser selectors match RTICORE. NOT operational certification.');
