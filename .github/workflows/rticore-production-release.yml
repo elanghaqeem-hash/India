@@ -1,0 +1,204 @@
+name: RTICORE production release (v3.0-RTI) - backup, migrate, deploy, verify, rollback
+
+# Manual-only controlled release. Authorised by the repository owner / business owner on 2026-11-01 to lift the
+# earlier P0 hard hold. The three objections that caused the hold are addressed here, not removed:
+#
+#  1. No automatic trigger. There is no `push:` trigger and the run requires a typed confirmation string, so
+#     production is never changed by merging code.
+#  2. No production data leaves Cloudflare. THIS REPOSITORY IS PUBLIC, so the D1 export is kept only on the
+#     ephemeral runner and never uploaded as an artifact; only its size and SHA-256 are printed. Rollback uses the
+#     server-side D1 Time Travel bookmark.
+#  3. Concurrent-write fence on rollback. D1 is restored automatically ONLY when the run failed at or before the
+#     migration step, where no new-code writes can exist yet. If anything fails after the Worker is deployed, the
+#     Worker is rolled back and D1 is deliberately left intact, with the bookmark printed for a human decision.
+#
+# Order: gates -> build -> preflight counts -> D1 export + Time Travel bookmark -> pending migrations
+#        -> deploy Worker -> data/schema/control verification -> HTTP smoke -> fenced rollback on failure.
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type exactly: DEPLOY RTICORE PRODUCTION'
+        required: true
+        type: string
+      apply_migrations:
+        description: 'Apply pending D1 migrations (0046-0050 incl. tenant rekey)'
+        required: true
+        default: true
+        type: boolean
+      restore_d1_on_migration_failure:
+        description: 'Auto-restore D1 to the pre-release bookmark if the migration step itself fails'
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rticore-production-release
+  cancel-in-progress: false
+
+env:
+  CLOUDFLARE_ACCOUNT_ID: 208155f241d4da84e1a6a9b44b7a8d28
+  D1_NAME: india-staging-db
+  WORKER: india
+  NEXT_TELEMETRY_DISABLED: '1'
+  CI: 'true'
+
+jobs:
+  release:
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.CLOUDFLARE_TOKEN || secrets.CF_API_TOKEN }}
+      INDIA_JOB_TOKEN: ${{ secrets.INDIA_JOB_TOKEN }}
+      BASE_URL: ${{ secrets.INDIA_BASE_URL }}
+    steps:
+      - name: Require typed confirmation
+        run: |
+          if [ "${{ inputs.confirm }}" != "DEPLOY RTICORE PRODUCTION" ]; then
+            echo "BLOCKED: confirmation string did not match. Nothing was changed."; exit 1
+          fi
+
+      - name: Require Cloudflare deploy token (value never printed)
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "BLOCKED: CLOUDFLARE_API_TOKEN secret is not configured. Nothing was changed."; exit 2
+          fi
+
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install
+        run: npm ci --no-audit --no-fund
+
+      - name: Release gates (generated migrations, source guard, RTI suites, ERP regression, types)
+        run: |
+          node scripts/rti/build-migrations.cjs --check
+          node scripts/india-p0-source-gate.mjs
+          npm run test:rti
+          npm run test:erp
+          npm run test:erp:extensions
+          npm run test:modules-13-15
+          npm run typecheck
+
+      - name: Build Worker bundle before touching production
+        run: npx opennextjs-cloudflare build
+
+      - name: Preflight - record production schema and row counts (counts only, no data)
+        id: preflight
+        run: |
+          set -euo pipefail
+          q() { npx wrangler d1 execute "$D1_NAME" --remote --json --command "$1" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);process.stdout.write(JSON.stringify(j[0].results))})"; }
+          echo "schema: $(q 'SELECT coalesce(max(version),0) v FROM india_schema_migrations')"
+          q "SELECT (SELECT count(*) FROM india_sales_opportunities) opportunities,(SELECT count(*) FROM india_boq) boq,(SELECT count(*) FROM india_document_vault) vault,(SELECT count(*) FROM india_members) members" > preflight.json
+          cat preflight.json
+          echo "triggers: $(q "SELECT count(*) n FROM sqlite_master WHERE type='trigger'")"
+
+      - name: Independent backup - D1 export kept on runner only, plus Time Travel bookmark
+        id: backup
+        run: |
+          set -euo pipefail
+          mkdir -p backup
+          npx wrangler d1 export "$D1_NAME" --remote --output backup/d1-before-release.sql
+          # Public repository: the dump is NEVER uploaded. Only its fingerprint is published.
+          echo "backup bytes: $(wc -c < backup/d1-before-release.sql)"
+          echo "backup sha256: $(sha256sum backup/d1-before-release.sql | cut -d' ' -f1)"
+          npx wrangler d1 time-travel info "$D1_NAME" --json > backup/time-travel.json
+          BOOKMARK=$(node -e "const j=require('./backup/time-travel.json');process.stdout.write(String(j.bookmark||''))")
+          test -n "$BOOKMARK" || { echo "BLOCKED: no Time Travel bookmark; refusing to migrate"; exit 2; }
+          echo "bookmark=$BOOKMARK" >> "$GITHUB_OUTPUT"
+          echo "Pre-release D1 bookmark: $BOOKMARK"
+
+      - name: Record current Worker version for rollback
+        id: checkpoint
+        run: |
+          set -euo pipefail
+          node --input-type=module > prev.txt <<'NODE'
+          const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${process.env.WORKER}/deployments`, { headers: { Authorization: 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN } });
+          const j = await r.json();
+          process.stdout.write(j?.result?.deployments?.[0]?.versions?.[0]?.version_id || '');
+          NODE
+          echo "previous_version=$(cat prev.txt)" >> "$GITHUB_OUTPUT"
+          echo "Previous Worker version: $(cat prev.txt)"
+
+      - name: Apply pending migrations in order (stop at first failure)
+        id: migrate
+        if: inputs.apply_migrations
+        run: |
+          set -euo pipefail
+          CURRENT=$(npx wrangler d1 execute "$D1_NAME" --remote --json --command "SELECT coalesce(max(version),0) v FROM india_schema_migrations" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);process.stdout.write(String(j[0].results[0].v))})")
+          echo "Production schema version before: $CURRENT"
+          echo "started=true" >> "$GITHUB_OUTPUT"
+          for f in $(ls migrations/*.sql | sort); do
+            n=$((10#$(basename "$f" | cut -c1-4)))
+            if [ "$n" -gt "$CURRENT" ]; then
+              echo "Applying $f"
+              npx wrangler d1 execute "$D1_NAME" --remote --file "$f" --yes
+            fi
+          done
+          echo "applied=true" >> "$GITHUB_OUTPUT"
+
+      - name: Set posting-worker job token on the Worker (when provided)
+        if: env.INDIA_JOB_TOKEN != ''
+        run: printf '%s' "$INDIA_JOB_TOKEN" | npx wrangler secret put INDIA_JOB_TOKEN --name "$WORKER"
+
+      - name: Deploy Worker
+        id: deploy
+        run: npx opennextjs-cloudflare deploy
+
+      - name: Verify schema, tenant key, controls and row preservation
+        run: |
+          set -euo pipefail
+          q() { npx wrangler d1 execute "$D1_NAME" --remote --json --command "$1" | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>{const j=JSON.parse(s);process.stdout.write(JSON.stringify(j[0].results))})"; }
+          V=$(q "SELECT max(version) v FROM india_schema_migrations"); echo "schema: $V"; echo "$V" | grep -q '"v":50'
+          L=$(q "SELECT (SELECT count(*) FROM india_sales_opportunities WHERE tenant_id='defendit360')+(SELECT count(*) FROM india_boq WHERE tenant_id='defendit360')+(SELECT count(*) FROM india_document_vault WHERE tenant_id='defendit360') n")
+          echo "rows still on legacy key: $L"; echo "$L" | grep -q '"n":0'
+          P=$(q "SELECT value_json FROM india_sys_parameters WHERE tenant_id='rti' AND key='company.tenant_key'"); echo "tenant parameter: $P"; echo "$P" | grep -q 'rti'
+          q "SELECT (SELECT count(*) FROM india_sales_opportunities) opportunities,(SELECT count(*) FROM india_boq) boq,(SELECT count(*) FROM india_document_vault) vault,(SELECT count(*) FROM india_members) members" > postflight.json
+          cat postflight.json
+          node -e "const a=require('./preflight.json')[0],b=require('./postflight.json')[0];for(const k of Object.keys(a))if(a[k]!==b[k]){console.error('ROW COUNT CHANGED for '+k+': '+a[k]+' -> '+b[k]);process.exit(1)}console.log('row counts preserved')"
+          echo "triggers after: $(q "SELECT count(*) n FROM sqlite_master WHERE type='trigger'")"
+          F=$(q "PRAGMA foreign_key_check"); echo "fk violations: $F"; test "$F" = "[]"
+
+      - name: HTTP smoke test (no 5xx)
+        if: env.BASE_URL != ''
+        run: |
+          for p in /login /api/erp/posting; do
+            c=$(curl -s -o /dev/null -w '%{http_code}' "$BASE_URL$p"); echo "$p -> $c"
+            case "$c" in 5*) echo "SMOKE FAILED on $p"; exit 1;; esac
+          done
+
+      - name: Roll back Worker version on failure
+        if: failure() && steps.deploy.outcome == 'success' && steps.checkpoint.outputs.previous_version != ''
+        env:
+          PREV: ${{ steps.checkpoint.outputs.previous_version }}
+        run: |
+          node --input-type=module <<'NODE'
+          const r = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.CLOUDFLARE_ACCOUNT_ID}/workers/scripts/${process.env.WORKER}/deployments`, {
+            method: 'POST', headers: { Authorization: 'Bearer ' + process.env.CLOUDFLARE_API_TOKEN, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ strategy: 'percentage', versions: [{ version_id: process.env.PREV, percentage: 100 }], annotations: { 'workers/message': 'Rollback after RTICORE v3.0-RTI release verification failure' } }) });
+          const j = await r.json().catch(() => ({}));
+          if (!r.ok || j.success !== true) { console.error('WORKER ROLLBACK FAILED - restore manually to ' + process.env.PREV); process.exit(2); }
+          console.log('Worker rolled back to ' + process.env.PREV);
+          NODE
+
+      - name: Restore D1 only when the failure happened before any deploy (concurrent-write fence)
+        if: failure() && inputs.restore_d1_on_migration_failure && steps.migrate.outputs.started == 'true' && steps.deploy.outcome != 'success' && steps.backup.outputs.bookmark != ''
+        run: |
+          echo "Migration-phase failure with no deployed code: restoring D1 to the pre-release bookmark."
+          npx wrangler d1 time-travel restore "$D1_NAME" --bookmark "${{ steps.backup.outputs.bookmark }}" --json
+
+      - name: Post-deploy failure - D1 deliberately NOT restored
+        if: failure() && steps.deploy.outcome == 'success'
+        run: |
+          echo "The Worker was rolled back. D1 was NOT restored automatically because the deployed code may already"
+          echo "have written rows; an automatic restore could discard them. Pre-release bookmark for a human decision:"
+          echo "  ${{ steps.backup.outputs.bookmark }}"
+          echo "Restore command: npx wrangler d1 time-travel restore $D1_NAME --bookmark <bookmark>"
