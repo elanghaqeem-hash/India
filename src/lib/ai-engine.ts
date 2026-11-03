@@ -1,4 +1,4 @@
-// RTICORE Multi-Source AI Engine
+// RTICORE CyberBusiness 360 Multi-Source AI Engine
 // Supports Google Gemini, OpenAI, Anthropic Claude, Groq/DeepSeek, and Local Fallback Engine.
 // Enforces Admin Priority Ordering with automatic cascade failover.
 
@@ -52,7 +52,7 @@ export const DEFAULT_AI_CONFIGS: AIProviderConfig[] = [
     provider: 'local',
     name: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
     apiKey: 'INTERNAL_BUILTIN',
-    model: 'rticore-expert-v2',
+    model: 'RTI-expert-v2',
     priority: 5, // Fallback
     isEnabled: true,
     status: 'active',
@@ -268,7 +268,7 @@ function generateLocalExpertResponse(prompt: string): string {
    - BoQ terpisah dari dokumen teknis jika pengadaan 2 sampul.`;
   }
 
-  return `### Ringkasan Asisten Bisnis RTICORE:
+  return `### Ringkasan Asisten Bisnis RTICORE CyberBusiness 360:
 - **Analisis Permintaan**: Sistem memproses konteks transaksi komersial secara terpadu.
 - **Rekomendasi**: Seluruh transaksi komersial harus memenuhi rantai persetujuan DoA (Manager, VP, Direktur) dan tercatat dalam buku besar audit trail.
 - **Kepatuhan Data**: Sesuai UU PDP dan standar ISO 27001, data sensitif, margin internal, dan rincian BoQ Komponen A-E tidak boleh dibagikan kepada pihak eksternal.`;
@@ -328,7 +328,7 @@ export async function executeAIPrompt(
   const fallbackContent = generateLocalExpertResponse(prompt);
   return {
     providerUsed: 'Built-in RTICORE Cybersecurity Expert System (Local Fallback)',
-    modelUsed: 'rticore-expert-v2',
+    modelUsed: 'RTI-expert-v2',
     content: fallbackContent,
     latencyMs: Date.now() - startTime,
     tokensEstimate: Math.round(fallbackContent.length / 4),

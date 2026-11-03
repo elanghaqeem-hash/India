@@ -1,4 +1,4 @@
-// RTICORE In-Memory Preview Store
+// RTICORE CyberBusiness 360 In-Memory Preview Store
 // Seeded with realistic data from BRD v2.0 & RTI test scenarios.
 // Preview state is deliberately non-persistent.
 

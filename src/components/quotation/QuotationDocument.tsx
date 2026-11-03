@@ -23,7 +23,7 @@ function Brand() {
   return <div className="quote-brand">
     <div className="quote-brand-logo" aria-label="RTI">
       <div><div className="quote-logo-text">RTI</div>
-      <div className="quote-logo-member">RTICORE Enterprise Platform</div></div>
+      <div className="quote-logo-member">RTICORE Business Management Platform</div></div>
     </div>
     <div className="quote-brand-address"><b>RTI</b><br/>
       [Alamat dan kontak resmi — wajib dikonfirmasi sebelum penerbitan]
@@ -84,7 +84,7 @@ export default function QuotationDocument({ proposal: p, format, details: d }: P
       </div>
       <div className="quote-subject"><b>Perihal</b><span>:</span><b>Penawaran Harga Pengadaan {p.opportunity_name}</b></div>
       <div className="quote-letter-body">
-        <p>Terima kasih atas kesempatan yang diberikan kepada PT Riset Teknologi Indonesia
+        <p>Terima kasih atas kesempatan yang diberikan kepada RTI
           (RTI) untuk menyampaikan penawaran harga pengadaan layanan <b>{p.opportunity_name}</b> bagi
           {' '}{d.endUser || p.company_name}. Sehubungan dengan rencana pekerjaan tersebut, kami
           menyampaikan penawaran sebesar <b>{totalPrice}</b> belum termasuk PPN sesuai rincian harga terlampir.</p>

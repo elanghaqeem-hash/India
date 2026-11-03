@@ -1,4 +1,4 @@
-// RTICORE Core Types & Enums
+// RTICORE CyberBusiness 360 Core Types & Enums
 // Sourced from the database schemas and BRD v2.0 / PreDev Decisions
 
 export type SystemRole =

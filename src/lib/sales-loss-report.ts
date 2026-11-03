@@ -18,7 +18,7 @@ export async function createLossReportDocx(deal:SalesDeal,account:SalesAccount,c
   throw Error('Laporan Lost hanya dapat dibuat dari kesempatan Closed Lost dengan alasan dan uraian.');
  const f=deal.fields;
  const body=[
-  paragraph('RTICORE — SALES & CRM',true),
+  paragraph('RTI | RTICORE — SALES & CRM',true),
   paragraph('CLOSED LOST — EVALUASI PELUANG PENJUALAN',true),
   paragraph('INTERNAL DRAFT — BELUM DISETUJUI / TIDAK UNTUK PELANGGAN'),
   paragraph('ID Opportunity: '+deal.id),

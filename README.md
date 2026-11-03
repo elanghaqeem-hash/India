@@ -1,6 +1,6 @@
-# RTICORE — Centralized Operations & Resource Enterprise (PT Riset Teknologi Indonesia)
+# RTICORE Business Management Platform
 
-Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk platform INDIA.
+Repositori ini berisi dokumentasi spesifikasi, perancangan, diagram sistem, dan skema database untuk platform RTICORE.
 
 ## Struktur Berkas
 

@@ -1,0 +1,31 @@
+name: RTICORE Brand Consistency
+on:
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'tests/rticore-branding.test.cjs'
+      - 'package.json'
+      - '.github/workflows/rticore-branding-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/rticore-branding.test.cjs'
+      - 'package.json'
+jobs:
+  brand-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies for isolated branding regression
+        run: npm install --no-audit --no-fund
+      - name: Verify TypeScript
+        run: npm run typecheck
+      - name: Check RTICORE/RTI branding
+        run: npm run test:branding
+      - name: Regression tests for login, sidebar, quotation and assistant
+        run: node --test tests/india-login-experience.test.cjs tests/india-access-entrypoints.test.cjs tests/enterprise-navigation.test.cjs tests/quotation-docx.test.cjs tests/quotation-layout.test.cjs

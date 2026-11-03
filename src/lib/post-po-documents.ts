@@ -1,4 +1,4 @@
-// Post-PO form schema and independent Word output. Reference: official V.0426 forms.
+// Post-PO form schema and independent Word output. Reference: RTI V.0426 forms.
 // No customer identifiers, signatories or financial figures are invented as fallbacks.
 export type Pic = { name: string; mobile: string; email: string };
 export type EmployeeBand = '' | '<100' | '100-500' | '>500';
@@ -177,7 +177,7 @@ function row(label:string,value:unknown):string {return '<w:tr>'+tc(label,true)+
 function tc(value:unknown,header=false):string{return '<w:tc><w:tcPr><w:tcW w:w="'+(header?'3350':'6450')+'" w:type="dxa"/><w:tcBorders><w:bottom w:val="single" w:sz="4" w:color="D2D7E0"/></w:tcBorders>'+(header?'<w:shd w:fill="F0EBF7"/>':'')+'</w:tcPr>'+para(value,header)+'</w:tc>';}
 function tbl(rows:string):string{return '<w:tbl><w:tblPr><w:tblW w:w="9800" w:type="dxa"/><w:tblBorders><w:top w:val="single" w:sz="4" w:color="A0A0A0"/><w:bottom w:val="single" w:sz="4" w:color="A0A0A0"/></w:tblBorders></w:tblPr><w:tblGrid><w:gridCol w:w="3350"/><w:gridCol w:w="6450"/></w:tblGrid>'+rows+'</w:tbl>';}
 function h(s:string):string{return '<w:p><w:pPr><w:shd w:fill="59318B"/><w:spacing w:before="180" w:after="110"/></w:pPr><w:r><w:rPr><w:b/><w:color w:val="FFFFFF"/><w:sz w:val="20"/></w:rPr><w:t>'+xml(s)+'</w:t></w:r></w:p>';}
-function brand(title:string,isDemo=false):string {return (isDemo?h('DATA DUMMY / SIMULASI — DILARANG DIGUNAKAN SEBAGAI DOKUMEN RESMI')+para('NOMOR PO, NPWP/KTP, HARGA, IDENTITAS, DAN NAMA PENANDATANGAN ADALAH CONTOH. BUKAN BUKTI PENGESAHAN.',true):'')+para('RTI | PT RISET TEKNOLOGI INDONESIA',true)+para('CONFIDENTIAL  •  FORMULIR V.0426  •  '+title,true);}
+function brand(title:string,isDemo=false):string {return (isDemo?h('DATA DUMMY / SIMULASI — DILARANG DIGUNAKAN SEBAGAI DOKUMEN RESMI')+para('NOMOR PO, NPWP/KTP, HARGA, IDENTITAS, DAN NAMA PENANDATANGAN ADALAH CONTOH. BUKAN BUKTI PENGESAHAN.',true):'')+para('RTI | RTI',true)+para('CONFIDENTIAL  •  FORMULIR V.0426  •  '+title,true);}
 function lines(value:string):string {return String(value).split(/\r?\n/).filter(Boolean).map(x=>para(x)).join('');}
 const clientTerms=[
   'PELANGGAN wajib melampirkan salinan dokumen pendukung antara lain NPWP & KTP (Penanggung Jawab Utama). The CUSTOMER is required to attach supporting copy document such as NPWP & KTP (Main Person in Charge).',
@@ -286,7 +286,7 @@ export function downloadPostPoDocx(packet:PostPoPacket,kind:PostPoDocKind):void{
  const url=URL.createObjectURL(new Blob([view.buffer],{type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'}));
  const link=document.createElement('a');link.href=url;
  const safe=packet.project.poNumber.replace(/[^a-zA-Z0-9_-]/g,'-').slice(0,60);
- link.download='RTICORE_'+(packet.isDemo?'DEMO_':'')+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
+ link.download='RTICORE_RTI_'+(packet.isDemo?'DEMO_':'')+(kind==='registration'?'Form_Registrasi':'Form_Project')+'_'+safe+'.docx';
  document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
 

@@ -3,7 +3,7 @@ import './globals.css';
 import { AppShell } from '@/components/layout/AppShell';
 
 export const metadata: Metadata = {
-  title: 'RTICORE — RTI Centralized Operations & Resource Enterprise',
+  title: 'RTICORE — RTI Business Management Platform',
   description: 'Integrated CRM, Tender Intelligence, Scoping Assessment, Dynamic Pricing, DoA Approval, Proposal Generation & Project Delivery.',
 };
 

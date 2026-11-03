@@ -1,4 +1,4 @@
-// RTICORE Smart Scoping Sizing Engine
+// RTICORE CyberBusiness 360 Smart Scoping Sizing Engine
 // Sourced from the pricing/proposal schema & RTI VAPT/SOC guidelines
 
 import { BoxMethod, VaptScopingInput, SocScopingInput } from './types';

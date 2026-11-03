@@ -1,6 +1,9 @@
 // D1-backed Sales stage gates. Pure domain functions; no customer demo values.
-// Technical D1 tenant key (storage identifier, not a brand label). Kept dependency-free so this pure module loads
-// under node --experimental-strip-types; tests assert it equals Parameter Center company.tenant_key.
+// Compatibility boundary: persisted tenant_id is an immutable database key, not the RTI display brand.
+// Do not rename without a separately approved, fully reconciled tenant migration. That condition is now met:
+// migrations/0050_rti_tenant_key.sql rekeys every tenant-scoped table and recreates all triggers verbatim, and
+// tests/rti-v3-tenant-migration.test.cjs rehearses it on real application-flow data (rows, triggers, foreign keys
+// and AES-GCM Vault decryption continuity). Kept as a literal so this pure module loads under --experimental-strip-types.
 export const TENANT='rti';
 export const SALES_STAGES=[
  ['prospecting','Prospecting',10],

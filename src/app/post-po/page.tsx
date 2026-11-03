@@ -339,7 +339,7 @@ export default function PostPoPage(){
    <div className="space-y-4">
     <Section title="Unduh Dokumen" description="Generator mempertahankan layout asli Word V.042026, tidak lagi menyusun ulang tabel dua kolom.">
      <div className="mb-4 space-y-3 rounded-xl border border-violet-200 bg-violet-50/50 p-3">
-       <h3 className="text-xs font-bold text-violet-900">Template Word Resmi V.042026</h3>
+       <h3 className="text-xs font-bold text-violet-900">Template Word Resmi RTI V.042026</h3>
        <p className="text-[11px] leading-relaxed text-slate-600">Unggah kedua template Word asli dari referensi sebelumnya. File dibaca hanya pada tab browser; logo, tabel, font, footer, klausul bilingual, dan kotak tanda tangan tetap dipertahankan. Template tidak dikirim ke server.</p>
        <label className="block text-xs font-semibold text-slate-700">
          Template Form Registrasi (.docx)
