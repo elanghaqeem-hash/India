@@ -1,5 +1,7 @@
 // D1-backed Sales stage gates. Pure domain functions; no customer demo values.
-export const TENANT='RTI';
+// Compatibility boundary: persisted tenant_id is an immutable database key, not the RTI display brand.
+// Do not rename without a separately approved, fully reconciled tenant migration.
+export const TENANT='defendit360';
 export const SALES_STAGES=[
  ['prospecting','Prospecting',10],
  ['qualified','Qualified',25],
