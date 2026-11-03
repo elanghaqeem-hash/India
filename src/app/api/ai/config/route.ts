@@ -16,7 +16,7 @@ export async function GET(req:Request){
  if(auth.identity.role!=='admin')return json({success:false,message:'Hanya Admin dapat mengelola AI API Keys.'},403);
  try {
   const configs=await listProviders(auth.identity.db);
-  // Report readiness only to an authenticated INDIA Admin; never return secret material.
+  // Report readiness only to an authenticated RTICORE Admin; never return secret material.
   const encryptionReady=await encryptionKey().then(()=>true,()=>false);
   return json({success:true,configs,encryptionReady});
  }

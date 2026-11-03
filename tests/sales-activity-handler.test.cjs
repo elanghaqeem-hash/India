@@ -19,7 +19,7 @@ test('actual API: Sales A schedule, Sales B isolated, Admin sees timeline and ma
   const created=await h.call('sales/activities','POST','sales',payload);
   assert.equal(created.status,201,JSON.stringify(created));
   const id=created.body.id;
-  h.sql.prepare("INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,created_by) VALUES('legacy-a','defendit360','opp-qa','note','Existing sales note','Retained prior to Activity Center',?)").run(users.sales);
+  h.sql.prepare("INSERT INTO india_sales_activities(id,tenant_id,opportunity_id,kind,subject,detail,created_by) VALUES('legacy-a','rti','opp-qa','note','Existing sales note','Retained prior to Activity Center',?)").run(users.sales);
   const [sales,other,admin]=await Promise.all([
    h.call('sales/activities','GET','sales'),h.call('sales/activities','GET','other'),h.call('sales/activities','GET','admin')
   ]);

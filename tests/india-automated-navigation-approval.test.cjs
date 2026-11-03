@@ -21,10 +21,10 @@ test('FlexGuard pending entitlement flows to original wallet via canonical D1 qu
  assert.ok(q.includes("?wallet_id='+encodeURIComponent(row.id)"));
  assert.match(wallet,/wallet_id=/);
 });
-test('isolated real migrations through 39 parse and existing wallet table supports approval query',()=>{
+test('isolated real migrations through 50 parse and existing wallet table supports approval query',()=>{
  const db=new DatabaseSync(':memory:');db.exec('PRAGMA foreign_keys=ON');
  try{
- for(const name of fs.readdirSync('migrations').filter(s=>/^\d{4}_.+\.sql$/.test(s) && Number(s.slice(0,4))<=39).sort())
+ for(const name of fs.readdirSync('migrations').filter(s=>/^\d{4}_.+\.sql$/.test(s) && Number(s.slice(0,4))<=50).sort())
   db.exec(fs.readFileSync('migrations/'+name,'utf8'));
  const sql=`SELECT 'flexguard_wallet' AS kind,w.id,p.opportunity_id,('FlexGuard entitlement · '||a.legal_name) AS title,w.created_by,w.created_at
  FROM india_flexguard_wallets w
@@ -33,9 +33,9 @@ test('isolated real migrations through 39 parse and existing wallet table suppor
  JOIN india_delivery_projects p ON p.id=c.project_id AND p.tenant_id=c.tenant_id
  WHERE w.tenant_id=? AND w.status='draft' AND c.status='active' AND c.model='FlexGuard'
  AND lower(w.created_by)!=? ORDER BY w.created_at DESC LIMIT 101`;
- const rows=db.prepare(sql).all('defendit360','checker@synthetic.invalid');
+ const rows=db.prepare(sql).all('rti','checker@synthetic.invalid');
  assert.deepEqual(rows,[]);
- assert.equal(db.prepare('SELECT MAX(version) v FROM india_schema_migrations').get().v,39);
+ assert.equal(db.prepare('SELECT MAX(version) v FROM india_schema_migrations').get().v,50);
  assert.equal(db.prepare('PRAGMA quick_check').get().quick_check,'ok');
  assert.deepEqual(db.prepare('PRAGMA foreign_key_check').all(),[]);
  }finally{db.close();}

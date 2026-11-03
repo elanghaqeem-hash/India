@@ -65,13 +65,13 @@ test('Campaign migration adds validated master and Lead attribution FK without f
  for(const name of ['0004_india_sales_isolation.sql','0005_marketing_lead_flow.sql','0009_lead_request_idempotency.sql','0010_marketing_campaigns.sql'])
   db.exec(sql(name));
  const add=db.prepare('INSERT INTO india_marketing_campaigns(id,tenant_id,code,name,channel,status,owner_email,budget_idr,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?)');
- add.run('camp-1','defendit360','FSI_Q4_2026','Cyber FSI Webinar','webinar','active','marketing@example.test',15000000,'marketing@example.test','marketing@example.test');
- assert.throws(()=>add.run('camp-2','defendit360','FSI_Q4_2026','Duplicate','webinar','active','marketing@example.test',10000,'marketing@example.test','marketing@example.test'),/UNIQUE/);
- assert.throws(()=>add.run('camp-3','defendit360','OTHER','Invalid','fake_channel','active','marketing@example.test',10000,'marketing@example.test','marketing@example.test'),/CHECK/);
- assert.throws(()=>add.run('camp-4','defendit360','CAMP-4','Invalid','webinar','active','marketing@example.test',-1,'marketing@example.test','marketing@example.test'),/CHECK/);
+ add.run('camp-1','rti','FSI_Q4_2026','Cyber FSI Webinar','webinar','active','marketing@example.test',15000000,'marketing@example.test','marketing@example.test');
+ assert.throws(()=>add.run('camp-2','rti','FSI_Q4_2026','Duplicate','webinar','active','marketing@example.test',10000,'marketing@example.test','marketing@example.test'),/UNIQUE/);
+ assert.throws(()=>add.run('camp-3','rti','OTHER','Invalid','fake_channel','active','marketing@example.test',10000,'marketing@example.test','marketing@example.test'),/CHECK/);
+ assert.throws(()=>add.run('camp-4','rti','CAMP-4','Invalid','webinar','active','marketing@example.test',-1,'marketing@example.test','marketing@example.test'),/CHECK/);
  const insertLead=db.prepare("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,campaign_id,service_family,assigned_sales_email,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)");
- insertLead.run('lead-1','defendit360','LD-1','PT UAT Cyber','Webinar','Cyber FSI Webinar','camp-1','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
- assert.throws(()=>insertLead.run('lead-2','defendit360','LD-2','PT Other','Webinar','Other','camp-missing','VAPT','sales@example.test','marketing@example.test','marketing@example.test'),/FOREIGN KEY/);
+ insertLead.run('lead-1','rti','LD-1','PT UAT Cyber','Webinar','Cyber FSI Webinar','camp-1','VAPT','sales@example.test','marketing@example.test','marketing@example.test');
+ assert.throws(()=>insertLead.run('lead-2','rti','LD-2','PT Other','Webinar','Other','camp-missing','VAPT','sales@example.test','marketing@example.test','marketing@example.test'),/FOREIGN KEY/);
  db.exec("UPDATE india_marketing_leads SET status='converted' WHERE id='lead-1'");
  assert.equal(db.prepare("SELECT COUNT(*) AS leads,SUM(CASE WHEN status='converted' THEN 1 ELSE 0 END) AS converted FROM india_marketing_leads WHERE campaign_id='camp-1'").get().converted,1);
  assert.equal(db.prepare('PRAGMA foreign_key_check').all().length,0);
@@ -181,7 +181,7 @@ test('Campaign registration API persists valid active Owner, rejects unknown Own
   assert.deepEqual(sales.body.owners,[]);
   const unauthorized=await call('POST','uat.sales@example.test',{...valid,owner_email:'uat.sales@example.test'});
   assert.equal(unauthorized.status,403);
-  const missing=await call('POST',admin,{...valid,owner_email:'maria.hayu@defendit360.co.id'});
+  const missing=await call('POST',admin,{...valid,owner_email:'maria.hayu@rti.co.id'});
   assert.equal(missing.status,422);
   assert.match(missing.body.message,/Owner tidak terdaftar/);
   assert.equal(db.prepare('SELECT COUNT(*) n FROM india_marketing_campaigns').get().n,0);
@@ -210,7 +210,7 @@ test('Campaign registration API persists valid active Owner, rejects unknown Own
   assert.equal((await call('DELETE',admin,{id:created.body.id,revision:2,code:'WRONG'})).status,409);
   // Referential safety: existing Lead must never be orphaned by a Campaign delete.
   db.prepare("INSERT INTO india_marketing_leads(id,tenant_id,lead_number,account_name,source,campaign,campaign_id,service_family,assigned_sales_email,created_by,updated_by) VALUES (?,?,?,?,?,?,?,?,?,?,?)")
-   .run('lead-with-campaign','defendit360','LD-DELETE-1','PT UAT','Webinar','Cyber FSI Webinar',created.body.id,'VAPT','uat.sales@example.test',admin,admin);
+   .run('lead-with-campaign','rti','LD-DELETE-1','PT UAT','Webinar','Cyber FSI Webinar',created.body.id,'VAPT','uat.sales@example.test',admin,admin);
   const linkedDelete=await call('DELETE',admin,{id:created.body.id,revision:2,code:created.body.code});
   assert.equal(linkedDelete.status,409);
   assert.match(linkedDelete.body.message,/Lead terkait/);

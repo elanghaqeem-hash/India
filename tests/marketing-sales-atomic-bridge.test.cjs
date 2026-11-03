@@ -11,9 +11,9 @@ function legacy(){
  db.exec(read('tests/fixtures/pr18_lead_schema.sql'));
  db.exec(read('tests/fixtures/pr18_integrity.sql'));
  db.exec("DELETE FROM india_schema_migrations WHERE version=3;INSERT INTO india_members(email,role) VALUES('sales@example.test','sales'),('admin@example.test','admin')");
- db.exec("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES('a','defendit360','PT Retained','IND-UAT','sales@example.test');INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,estimated_value_idr,created_by) VALUES('o','defendit360','a','VAPT',100000000,'sales@example.test')");
- db.exec("INSERT INTO india_marketing_leads(id,tenant_id,company_name,contact_name,contact_email,service_interest,lead_source,status,owner_email,converted_account_id,converted_opportunity_id,created_by,updated_at,version) VALUES('l','defendit360','PT Retained','PIC','pic@example.test','VAPT','Referral','converted','sales@example.test','a','o','sales@example.test','2026-10-20 12:00:00',4)");
- db.exec("INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,created_at) VALUES('e','defendit360','l','CONVERT','admin@example.test','2026-10-20 11:59:00')");
+ db.exec("INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,created_by) VALUES('a','rti','PT Retained','IND-UAT','sales@example.test');INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,estimated_value_idr,created_by) VALUES('o','rti','a','VAPT',100000000,'sales@example.test')");
+ db.exec("INSERT INTO india_marketing_leads(id,tenant_id,company_name,contact_name,contact_email,service_interest,lead_source,status,owner_email,converted_account_id,converted_opportunity_id,created_by,updated_at,version) VALUES('l','rti','PT Retained','PIC','pic@example.test','VAPT','Referral','converted','sales@example.test','a','o','sales@example.test','2026-10-20 12:00:00',4)");
+ db.exec("INSERT INTO india_marketing_lead_events(id,tenant_id,lead_id,action,actor_email,created_at) VALUES('e','rti','l','CONVERT','admin@example.test','2026-10-20 11:59:00')");
  return db;
 }
 function snapshot(db){

@@ -1,0 +1,21 @@
+name: INDIA P0 release containment and migration collision source gate
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  p0-source-guard:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - name: Reject canonical migration collisions, stale RTICORE selectors and auto production release
+        run: node scripts/india-p0-source-gate.mjs
+# SOURCE-only gate. Real signed Access UAT, data recovery and independent approvals remain mandatory.

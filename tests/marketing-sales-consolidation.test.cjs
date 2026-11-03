@@ -31,7 +31,7 @@ function legacy(){
  const d=base();
  d.exec(read('tests/fixtures/pr18_lead_schema.sql'));
  d.exec(read('tests/fixtures/pr18_integrity.sql'));
- const tenant='defendit360',sales='uat.sales.a@india.invalid';
+ const tenant='rti',sales='uat.sales.a@india.invalid';
  d.prepare('INSERT INTO india_sales_accounts(id,tenant_id,legal_name,customer_number,data_json,created_by) VALUES(?,?,?,?,?,?)')
   .run(IDs.account,tenant,'PT UAT PR18 Retained','IND-PR18-UAT','{}',sales);
  d.prepare("INSERT INTO india_sales_opportunities(id,tenant_id,company_id,title,stage,estimated_value_idr,data_json,created_by) VALUES(?,?,?,?,'prospecting',?,?,?)")

@@ -10,7 +10,7 @@ const exp={};
 const authModule={authorizeBoQ:async()=>({ok:false,response:{status:401}}),privateHeaders:{'Cache-Control':'private, no-store'}};
 vm.runInNewContext(js,{exports:exp,require:n=>{
  if(n==='@/lib/boq-auth')return authModule;
- if(n==='@/lib/sales-workflow')return {TENANT:'defendit360'};
+ if(n==='@/lib/sales-workflow')return {TENANT:'rti'};
  throw Error('Unexpected dependency '+n);
 },Response:{json:(body,opts)=>({body,status:opts?.status||200})}},{filename:apiFile});
 const get=exp.GET;
@@ -32,7 +32,7 @@ test('role-specific queries exclude maker and are read-only',async()=>{
  const sqls=[];
  authModule.authorizeBoQ=async()=>({ok:true,identity:{
   role:'legal',email:'legal@example.test',db:{prepare:sql=>{sqls.push(sql);return {bind:(...a)=>{
-   assert.equal(a[0],'defendit360');
+   assert.equal(a[0],'rti');
    assert.equal(a[1],'legal@example.test');
    return {all:async()=>({success:true,results:[]})};
   }}}}

@@ -6,7 +6,7 @@ const fs=require('node:fs'),path=require('node:path'),ts=require('typescript');
 const {DatabaseSync}=require('node:sqlite');
 const root=path.resolve(__dirname,'..');
 const source=p=>fs.readFileSync(path.join(root,p),'utf8');
-const tenant='defendit360';
+const tenant='rti';
 const users={a:'uat.sales.a@india.invalid',b:'uat.sales.b@india.invalid',admin:'uat.admin@india.invalid',viewer:'uat.viewer@india.invalid',marketing:'uat.marketing@india.invalid'};
 const q={need:'Annual security assessment',budget_status:'Approved',decision_maker:'CISO',procurement_process:'Direct purchase',contact_phone:'081234567890'};
 const customer={industry:'Banking',business_type:'Financial Services',employee_band:'100-500',company_phone:'021000000',hq_address:'UAT synthetic address',hq_province:'DKI Jakarta',hq_postal:'12345',hq_village_code:'31.71.01.1001'};

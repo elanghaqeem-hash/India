@@ -1,3 +1,6 @@
+// Technical D1 tenant key, declared locally so this pure module loads under --experimental-strip-types (no value
+// imports). Tests assert it equals sales-workflow TENANT and Parameter Center company.tenant_key.
+export const TENANT_KEY='rti';
 import type {D1DB} from './boq-auth';
 /** Reused at stage, export/submission and forecast commit boundaries. d is the Opportunity SQL alias. */
 const required=`(EXISTS(SELECT 1 FROM india_sales_bids b WHERE b.tenant_id=d.tenant_id AND b.opportunity_id=d.id AND (b.channel!='direct' OR b.bid_decision='no_go'))
@@ -21,5 +24,5 @@ export const tenderReadySQL=`(NOT ${required} OR (
  OR length(c.document_name)=0 OR length(c.evidence_reference)<8 OR length(c.evidence_sha256)!=64
  OR (c.due_at IS NOT NULL AND datetime(c.due_at)<datetime('now'))))
 ))`;
-export async function tenderReady(db:D1DB,id:string){return !!await db.prepare('SELECT id FROM india_sales_opportunities d WHERE d.tenant_id=? AND d.id=? AND '+tenderReadySQL).bind('defendit360',id).first();}
-export function guardTender(g:{condition:string;args:(string|number|null)[]},id:string){g.condition+=' AND EXISTS(SELECT 1 FROM india_sales_opportunities d WHERE d.id=? AND d.tenant_id=? AND '+tenderReadySQL+')';g.args.push(id,'defendit360');}
+export async function tenderReady(db:D1DB,id:string){return !!await db.prepare('SELECT id FROM india_sales_opportunities d WHERE d.tenant_id=? AND d.id=? AND '+tenderReadySQL).bind(TENANT_KEY,id).first();}
+export function guardTender(g:{condition:string;args:(string|number|null)[]},id:string){g.condition+=' AND EXISTS(SELECT 1 FROM india_sales_opportunities d WHERE d.id=? AND d.tenant_id=? AND '+tenderReadySQL+')';g.args.push(id,TENANT_KEY);}

@@ -25,7 +25,7 @@ export async function POST(req:Request){
   if(action==='account'){
    erpAssert(role==='finance','Chart of Accounts hanya Finance dengan grant',403);
    erpAssert(erpId(v.legal_entity_id)&&erpText(v.code,2,30)&&erpText(v.name,3,160)&&['asset','liability','equity','revenue','expense'].includes(String(v.category)),'Data akun tidak valid');
-   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string);
+   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string,{permission:'fin.account.create'});
    const id=crypto.randomUUID();
    await erpAtom(a.identity,'1=1',[],[db.prepare('INSERT INTO india_gl_accounts(id,tenant_id,legal_entity_id,code,name,category,created_by) VALUES(?,?,?,?,?,?,?)').bind(id,TENANT,v.legal_entity_id as string,v.code as string,v.name as string,v.category as string,email)],'gl',id,'ACCOUNT_CREATE',{code:v.code});
    return erpReply({success:true,id},201);
@@ -33,7 +33,7 @@ export async function POST(req:Request){
   if(action==='period'){
    erpAssert(role==='finance','Periode hanya Finance dengan grant',403);
    erpAssert(erpId(v.legal_entity_id)&&erpPeriod(v.period),'Periode akuntansi tidak valid');
-   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string);
+   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string,{permission:'fin.period.create'});
    const id=crypto.randomUUID();
    await erpAtom(a.identity,"EXISTS(SELECT 1 FROM india_erp_org_units WHERE tenant_id=? AND id=? AND kind='legal_entity' AND active=1)",[TENANT,v.legal_entity_id as string],[db.prepare('INSERT INTO india_gl_periods(id,tenant_id,legal_entity_id,period,created_by) VALUES(?,?,?,?,?)').bind(id,TENANT,v.legal_entity_id as string,v.period as string,email)],'gl',id,'PERIOD_OPEN',{period:v.period});
    return erpReply({success:true,id},201);
@@ -52,7 +52,7 @@ export async function POST(req:Request){
     debits+=BigInt(d);credits+=BigInt(c);
    }
    erpAssert(debits>0n&&debits===credits&&debits<BigInt(Number.MAX_SAFE_INTEGER),'Jurnal tidak seimbang');
-   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string);
+   await erpGrant(a.identity,'finance_gl',v.legal_entity_id as string,{permission:'fin.journal.create'});
    const id=crypto.randomUUID();
    const writes=[db.prepare('INSERT INTO india_gl_journals(id,tenant_id,legal_entity_id,period_id,source_type,source_key,memo,created_by) VALUES(?,?,?,?,?,?,?,?)').bind(id,TENANT,v.legal_entity_id as string,v.period_id as string,v.source_type as string,v.source_key as string,(v.memo as string).trim(),email)];
    for(const line of lines)writes.push(db.prepare('INSERT INTO india_gl_lines(id,tenant_id,journal_id,account_id,debit_cents,credit_cents) VALUES(?,?,?,?,?,?)').bind(crypto.randomUUID(),TENANT,id,line.account_id as string,line.debit_cents as number,line.credit_cents as number));
@@ -62,7 +62,7 @@ export async function POST(req:Request){
   if(action==='review'||action==='post'){
    erpAssert(erpId(v.id)&&Number.isSafeInteger(v.version),'ID dan versi jurnal wajib');
    const row=await db.prepare('SELECT id,legal_entity_id,created_by,reviewed_by,status,version FROM india_gl_journals WHERE tenant_id=? AND id=?').bind(TENANT,v.id as string).first<{legal_entity_id:string;created_by:string;reviewed_by:string|null;status:string;version:number}>();
-   erpAssert(row,'Jurnal tidak ditemukan',404);await erpGrant(a.identity,'finance_gl',row.legal_entity_id);
+   erpAssert(row,'Jurnal tidak ditemukan',404);await erpGrant(a.identity,'finance_gl',row.legal_entity_id,action==='review'?{permission:'fin.journal.approve',resource:{maker:row.created_by,status:row.status}}:{permission:'fin.journal.post',resource:{maker:row.reviewed_by||undefined,status:row.status}});
    erpAssert(row.version===v.version,'Versi jurnal telah berubah',409);
    if(action==='review'){
     erpAssert(role==='approver','Persetujuan jurnal hanya Approver',403);

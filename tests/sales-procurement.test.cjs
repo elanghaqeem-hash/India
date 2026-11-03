@@ -5,7 +5,7 @@ const js=ts.transpileModule(raw,{compilerOptions:{module:ts.ModuleKind.CommonJS,
 const m={exports:{}};new Function('exports','module',js)(m.exports,m);
 const {needsTenderGate,canDecideBid,procurementGate}=m.exports;
 const {PROCUREMENT_PROCESSES}=require('../src/lib/sales-workflow.ts');
-const base={opportunity_id:'opp-u',tenant_id:'defendit360',channel:'tender',bid_decision:'pending',proposed_by:'sales@example.test',decided_by:null,decision_reason:''};
+const base={opportunity_id:'opp-u',tenant_id:'rti',channel:'tender',bid_decision:'pending',proposed_by:'sales@example.test',decided_by:null,decision_reason:''};
 const rks={kind:'rks',status:'reviewed',compliance_status:'compliant',reviewed_by:'presales@example.test',file_reference:'archive/RKS-2026-v1',source_content_hash:'a'.repeat(64)};
 test('Tender, RFQ, RFP require decisions; direct sales bypasses tender-specific gate',()=>{
  for(const x of ['Tender LPSE','RFQ private','RFP BUMN','pengadaan publik'])assert.equal(needsTenderGate(x),true);

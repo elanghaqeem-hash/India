@@ -7,7 +7,7 @@ function seedChecklist(d,ref='archive/fake',hash='a'.repeat(64),name='term-sheet
  id,tenant_id,opportunity_id,item_code,category,label,mandatory,document_name,
  evidence_reference,evidence_sha256,created_by
  ) VALUES(?,?,?,?,?,?,?,?,?,?,?)`).run(
-  'item-qa','defendit360','opp-qa','COM-01','commercial','Required vendor commercial document',1,
+  'item-qa','rti','opp-qa','COM-01','commercial','Required vendor commercial document',1,
   name,ref,hash,'sales.a@flow.invalid');
 }
 async function original(d,kind='supporting',name='term-sheet.pdf',bytes=Buffer.from('%PDF-1.7\nAuthentic synthetic tender source')){
