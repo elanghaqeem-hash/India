@@ -49,7 +49,7 @@
     "test:erp": "node --test tests/india-erp-foundation.test.cjs",
     "gate:erp": "npm run typecheck && npm run test:psa-timesheets && npm run test:erp && npm run test:erp:extensions",
     "test:erp:extensions": "node --test tests/india-erp-enterprise-extensions.test.cjs",
-    "test:branding": "node --test tests/rticore-branding.test.cjs"
+    "test:branding": "node --test tests/rticore-branding.test.cjs tests/rticore-tenant-compat.test.cjs"
   },
   "dependencies": {
     "clsx": "^2.1.1",
